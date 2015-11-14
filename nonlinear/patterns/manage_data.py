@@ -116,6 +116,7 @@ class Subject:
 
 
 class SubjectSet(dict):
+	
 	def add(self, subject):
 		self[subject.id] = subject
 

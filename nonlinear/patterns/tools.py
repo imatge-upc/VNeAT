@@ -1,4 +1,5 @@
 from collections import MutableMapping
+from numpy import array as nparray
 
 class TransformedDict(MutableMapping):
 	"""A dictionary that applies an arbitrary key-altering
@@ -31,3 +32,41 @@ class TransformedDict(MutableMapping):
 
 	def __keytransform__(self, key):
 		return key
+
+
+def combinatorial(func, features, n, start = 0):
+	num_features = len(features) - start
+	if num_features > 0 and n > 0:
+		for y in combinatorial(func, features, n, start+1):
+			yield y
+		x = features[start]
+		for d in range(1, n):
+			for y in combinatorial(func, features, n - d, start+1):
+				yield func(x, y)
+			x = func(x, features[start])
+		yield x
+
+
+def polynomial(degree, features, constant_term = False):
+	if constant_term:
+		assert len(features) > 0
+		yield nparray([1]*len(features[0]))
+
+	for d in range(1, degree+1):
+		for term in combinatorial(lambda x, y: x*y, features, d):
+			yield term
+
+
+#	def mem(f):
+#		mem = {}
+#		def f2(*args):
+#			try:
+#				return mem[args]
+#			except KeyError:
+#				mem[args] = f(*args)
+#				print args, ' --> ', mem[args]
+#				return mem[args]
+#		return f2
+#
+#	combinatorial = mem(combinatorial)
+

@@ -1,4 +1,4 @@
-from nibabel import load as nibload
+from nibabel import load as nibload, Nifti1Image as niiFile
 from numpy import array as nparray
 
 
@@ -46,12 +46,19 @@ class NiftiManager:
 					del f
 					yield chunk
 
+	def affine(self):
+		f = nibload(self.filename)
+		aff = f.affine
+		del f
+		return aff
+
 
 class NiftiSetManager:
 
 	def __init__(self, filenames):
 		assert len(filenames) != 0
 		self.filenames = filenames
+		self.affine = None
 
 	def chunksets(self, mem_usage = 100.0, *args, **kwargs):
 		nms = map(NiftiManager, self.filenames)
@@ -71,6 +78,15 @@ class NiftiSetManager:
 				for j in range(dims[2]):
 					for k in range(dims[3]):
 						yield Region((x+i, y+j, z+k), chunkset.data[:, i, j, k])
+
+	def affine(self):
+		if self.affine == None:
+			self.affine = sum(NiftiManager(fn).affine() for fn in self.filenames)/float(len(self.filenames))
+		return self.affine
+
+
+class NiftiOutput(niiFile):
+	pass
 
 
 class Region:
