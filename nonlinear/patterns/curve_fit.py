@@ -3,6 +3,7 @@ from scipy.optimize import curve_fit
 
 
 class FunctionWrapper:
+
 	def __init__(self, function, xdata):
 		self.function = function
 		self.xdata = xdata
@@ -20,6 +21,7 @@ class FunctionWrapper:
 
 
 class GLM:
+	
 	def __init__(self, xdata, ydata):
 		if len(xdata.shape) == 1:
 			self.xdata = nparray([xdata.copy()])

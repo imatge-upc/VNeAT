@@ -1,10 +1,6 @@
 from nibabel import load as nibload
 from numpy import array as nparray
 
-class Region:
-	def __init__(self, coords, data):
-		self.coords = coords
-		self.data = data
 
 class NiftiManager:
 
@@ -57,9 +53,9 @@ class NiftiSetManager:
 		assert len(filenames) != 0
 		self.filenames = filenames
 
-	def chunksets(self, mem_usage = 100.0, x1 = 0, y1 = 0, z1 = 0, x2 = None, y2 = None, z2 = None):
+	def chunksets(self, mem_usage = 100.0, *args, **kwargs):
 		nms = map(NiftiManager, self.filenames)
-		iterators = map(lambda nm: nm.chunks(mem_usage, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), nms)
+		iterators = map(lambda nm: nm.chunks(float(mem_usage)/len(nms), *args, **kwargs), nms)
 		try:
 			while True:
 				chunkset = map(lambda it: it.next(), iterators)
@@ -67,13 +63,21 @@ class NiftiSetManager:
 		except StopIteration:
 			pass
 
-	def voxels(self, mem_usage = 100.0, x1 = 0, y1 = 0, z1 = 0, x2 = None, y2 = None, z2 = None):
-		for chunkset in self.chunksets(mem_usage, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2):
+	def voxels(self, *args, **kwargs):
+		for chunkset in self.chunksets(*args, **kwargs):
 			dims = chunkset.data.shape
 			x, y, z = chunkset.coords
 			for i in range(dims[1]):
 				for j in range(dims[2]):
 					for k in range(dims[3]):
 						yield Region((x+i, y+j, z+k), chunkset.data[:, i, j, k])
+
+
+class Region:
+
+	def __init__(self, coords, data):
+		self.coords = coords
+		self.data = data
+
 
 

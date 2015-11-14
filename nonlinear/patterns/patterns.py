@@ -1,6 +1,9 @@
 # To be executed as follows:
 # python -W ignore -u ttest.py
 
+import database as db
+from curve_fit import GLM
+from numpy import array as nparray
 
 print
 print 'Welcome to ttest.py!'
@@ -9,19 +12,26 @@ print 'There is a lot of data to process, so please be pacient.'
 print 'Thank you for using our software! :)'
 print
 
-# Set paths
-WORK_DIR = '/Users/Asier/Documents/TFG/Alan T'
-DATA_DIR = 'Nonlinear_NBA_15'
-EXCEL_FILE = 'work_DB_CSF.R1.final.xls'
 OUTPUT_DIR = 'ttests'
 OUTPUT_FILENAME = 'ttest_results'
 
 # Set region
-regx_init = 0
-regx_end = 1000
-regy_init = 0
-regy_end = 1000
-regz_init = 0
-regz_end = 1000
+x1 = 0
+x2 = None
+y1 = 0
+y2 = None
+z1 = 0
+z2 = None
 
-MEMORY_USE = 100 # approx. memory use in MB (depends on garbage collector, but the order of magnitude should be around this value)
+for supervoxel in db.get_data(x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2):
+	ydata = nparray(map(lambda voxel: voxel.gmvalue, supervoxel))
+	xdata = []
+	#TODO: append features to xdata
+
+	xdata = nparray(xdata)
+	glm = GLM(xdata, ydata)
+	glm.orthogonalize()
+	glm.optimize()
+
+	#TODO: store results for each supervoxel (also define what results are exactly)
+	#TODO: perform and store tests over results

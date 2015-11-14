@@ -3,17 +3,31 @@ from xlrd import open_workbook as open_wb
 from xlrd.sheet import ctype_text as type2text
 
 class ExcelRow(tdict):
+
+	def __keytransform__(self, key):
+		return key.strip().lower()
+
 	def __repr__(self):
 		return 'ExcelRow( ' + tdict.__repr__(self) + ' )'
 
 	def __str__(self):
 		return 'ExcelRow( ' + tdict.__str__(self) + ' )'
 
-	def __keytransform__(self, key):
-		return key.strip().lower()
 
-
-def get_rows(filename, start = 1, end = None, sheet_index = 0, header_row = 0, fields = {'id': (lambda s: str(s).strip().split('_')[0]), 'diag':int, 'age':int, 'sex':bool, 'apoe4_bin':bool, 'escolaridad':int, 'ad_csf_index_ttau':float}):
+def get_rows(filename,
+			 start = 1, end = None,
+			 sheet_index = 0,
+			 header_row = 0,
+			 fields = {
+			 	'id': (lambda s: str(s).strip().split('_')[0]),
+			 	'diag':int,
+			 	'age':int,
+			 	'sex':int,
+			 	'apoe4_bin':int,
+			 	'escolaridad':int,
+			 	'ad_csf_index_ttau':float
+			 }
+			):
 	info = []
 	with open_wb(filename) as wb:
 		# Open first sheet
@@ -44,7 +58,7 @@ def get_rows(filename, start = 1, end = None, sheet_index = 0, header_row = 0, f
 			return []
 
 		if end == None:
-			end = ws.ncols
+			end = ws.nrows
 
 		for i in range(start, end):
 			r = ExcelRow()
@@ -61,15 +75,3 @@ def get_rows(filename, start = 1, end = None, sheet_index = 0, header_row = 0, f
 				info.append(r)
 	return info
 
-
-
-'''class Subject:
-
-	def __init__(self, identifier, diagnostic = None, age = None, sex = None, apoe4 = None, education = None, adcsfIndex = None):
-		self.id = identifier
-		self.diag = diagnostic
-		self.age = age
-		self.sex = sex
-		self.apoe4 = apoe4
-		self.ed = education
-		self.adcsf = adcsfIndex'''
