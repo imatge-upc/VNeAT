@@ -1,8 +1,8 @@
-from nibabel import load as nibload, Nifti1Image as niiFile
+from nibabel import load as nibload, save as nibsave, Nifti1Image as niiFile
 from numpy import array as nparray
 
 
-class NiftiManager:
+class NiftiReader:
 
 	def __init__(self, filename):
 		self.filename = filename
@@ -23,7 +23,10 @@ class NiftiManager:
 		assert y1 < y2
 		assert z1 < z2
 
-		nelems = mem_usage*(2**17) # (number of MBytes x 2**20 bytes/MB x 8 bits/byte)/(64 bits/elem)
+		d = 1.0
+		for x in self.dims[3:]:
+			d *= x
+		nelems = mem_usage*(2**17)/d # (number of MBytes x 2**20 bytes/MB x 8 bits/byte)/(64 bits/elem)
 
 		x1, y1, z1 = map(lambda a: max(a, 0), [x1, y1, z1])
 		x2, y2, z2 = map(min, zip(self.dims, [x2, y2, z2]))
@@ -33,7 +36,7 @@ class NiftiManager:
 		sx, sy, sz = x2 - x1, y2 - y1, z2 - z1
 		dydx = sy/float(sx)
 		dzdx = sz/float(sx)
-		dx = (nelems / (dydx * dzdx))**(1./3)
+		dx = (nelems / (dydx * dzdx))**(1.0/3)
 		dy = int(dydx * dx)
 		dz = int(dzdx * dx)
 		dx = int(dx)
@@ -45,6 +48,9 @@ class NiftiManager:
 					chunk = Region((x, y, z), f.get_data('unchanged')[x:min(x2, x+dx), y:min(y2, y+dy), z:min(z2, z+dz)])
 					del f
 					yield chunk
+
+
+class NiftiInputManager(NiftiReader):
 
 	def affine(self):
 		f = nibload(self.filename)
@@ -61,7 +67,7 @@ class NiftiSetManager:
 		self.affine = None
 
 	def chunksets(self, mem_usage = 100.0, *args, **kwargs):
-		nms = map(NiftiManager, self.filenames)
+		nms = map(NiftiInputManager, self.filenames)
 		iterators = map(lambda nm: nm.chunks(float(mem_usage)/len(nms), *args, **kwargs), nms)
 		try:
 			while True:
@@ -81,12 +87,21 @@ class NiftiSetManager:
 
 	def affine(self):
 		if self.affine == None:
-			self.affine = sum(NiftiManager(fn).affine() for fn in self.filenames)/float(len(self.filenames))
+			self.affine = sum(NiftiInputManager(fn).affine() for fn in self.filenames)/float(len(self.filenames))
 		return self.affine
 
 
-class NiftiOutput(niiFile):
-	pass
+class NiftiOutputManager(niiFile):
+	# TODO: edit this class so that we code functions 
+	def save(self, filename, *args, **kwargs):
+		nibsave(self, *args, **kwargs)
+		self.nr = NiftiReader(filename)
+
+	def chunks(self, *args, **kwargs):
+		try:
+			return self.nr.chunks(*args, **kwargs)
+		except AttributeError:
+			return ()
 
 
 class Region:
