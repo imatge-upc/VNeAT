@@ -1,6 +1,7 @@
 from collections import MutableMapping
 from numpy import array as nparray
 
+
 class TransformedDict(MutableMapping):
 	"""A dictionary that applies an arbitrary key-altering
 	   function before accessing the keys"""
@@ -47,16 +48,6 @@ def combinatorial(func, features, n, start = 0):
 		yield x
 
 
-def polynomial(degree, features, constant_term = False):
-	if constant_term:
-		assert len(features) > 0
-		yield nparray([1]*len(features[0]))
-
-	for d in range(1, degree+1):
-		for term in combinatorial(lambda x, y: x*y, features, d):
-			yield term
-
-
 #	def mem(f):
 #		mem = {}
 #		def f2(*args):
@@ -69,4 +60,16 @@ def polynomial(degree, features, constant_term = False):
 #		return f2
 #
 #	combinatorial = mem(combinatorial)
+
+
+def polynomial(degree, features, constant_term = False):
+	if constant_term:
+		assert len(features) > 0
+		yield nparray([1]*len(features[0]))
+
+	for d in range(1, degree+1):
+		for term in combinatorial(lambda x, y: x*y, features, d):
+			yield term
+
+
 
