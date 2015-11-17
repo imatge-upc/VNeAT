@@ -62,14 +62,37 @@ def combinatorial(func, features, n, start = 0):
 #	combinatorial = mem(combinatorial)
 
 
-def polynomial(degree, features, constant_term = False):
+def polynomial(degree, features, complete_polynomy = True, constant_term = False):
 	if constant_term:
 		assert len(features) > 0
 		yield nparray([1]*len(features[0]))
 
-	for d in range(1, degree+1):
+	if complete_polynomy:
+		init = 1
+	else:
+		init = degree
+
+	for d in range(init, degree+1):
 		for term in combinatorial(lambda x, y: x*y, features, d):
 			yield term
 
 
+def copy_iterable(it):
+	try:
+		return (copy_iterable(x) for x in it)
+	except TypeError:
+		try:
+			return it.copy()
+		except AttributeError:
+			return it
+
+
+def tolist(it, first_call = True):
+	try:
+		return [tolist(x, False) for x in it]
+	except TypeError:
+		if first_call:
+			return [it]
+		else:
+			return it
 

@@ -23,13 +23,16 @@ class FunctionWrapper:
 class GLM:
 	
 	def __init__(self, xdata, ydata):
+		assert len(xdata.shape) > 0
 		if len(xdata.shape) == 1:
 			self.xdata = nparray([xdata.copy()])
 		else:
-			self.xdata = xdata.copy()
+			self.xdata = xdata.astype(float)
 		assert xdata.shape[1] == ydata.shape[0]
 		self.num_regressors = self.xdata.shape[0]
-		self.ydata = ydata.copy()
+		self.ydata = ydata.astype(float)
+		for i in range(self.xdata.shape[0]):
+			self.__filter(i)
 
 	@staticmethod
 	def pred_function(xdata, *args):
@@ -39,17 +42,30 @@ class GLM:
 		orig_ydata = self.ydata
 		orig_num_regressors = self.num_regressors
 		try:
-			for i in range(1, orig_num_regressors):
+			i = 1
+			while i < orig_num_regressors:
 				self.num_regressors = i
 				self.ydata = self.xdata[i, :]
 				self.optimize()
 				self.xdata[i, :] -= self.pred_function(self.xdata, *self.opt_params)
 				del self.opt_params, self.opt_params_cov
+				self.__filter(i)
+				if self.num_regressors < i:
+					orig_num_regressors -= 1
+				else:
+					i += 1
 		except Exception as e:
 			raise e
 		finally:
 			self.num_regressors = orig_num_regressors
 			self.ydata = orig_ydata
+
+	def __filter(self, i):
+		if max(abs(self.xdata[i, :])) < 1e-5:
+			xdata = list(self.xdata)
+			del xdata[i]
+			self.xdata = nparray(xdata)
+			self.num_regressors -= 1
 
 	def optimize(self, p0=None, sigma=None, absolute_sigma=False, check_finite=True, **kw):
 		num_params = self.num_regressors

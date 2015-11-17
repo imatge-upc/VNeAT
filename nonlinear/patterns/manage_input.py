@@ -1,26 +1,34 @@
 from excelIO import get_rows
-from niftiIO import NiftiSetManager as NiftiSM
+from niftiIO import NiftiSetReader as NiftiSR
 from os.path import basename
 
-class DataManager:
+class InputData(NiftiSR):
 
-	def __init__(self, filenames, excel_file):
-		self.subj_set = SubjectSet()
+	def __init__(self, filenames, excel_file, *args, **kwargs):
+		NiftiSR.__init__(self, filenames, *args, **kwargs)
+
+		subj_set = SubjectSet()
 		for r in get_rows(excel_file):
-			self.subj_set.add(Subject(r['id'],
-									  r['diag'],
-									  r['age'],
-									  r['sex'],
-									  r['apoe4_bin'],
-									  r['escolaridad'],
-									  r['ad_csf_index_ttau']))
-		self.subj_set.normalize()
-		self.nsm = NiftiSM(filenames)
+			subj_set.add(Subject(r['id'],
+								 r['diag'],
+								 r['age'],
+								 r['sex'],
+								 r['apoe4_bin'],
+								 r['escolaridad'],
+								 r['ad_csf_index_ttau']))
 
-	def voxels(self, *args, **kwargs):
-		subjects = map(lambda fn: self.subj_set.get(DataManager.filename_to_id(fn)), self.nsm.filenames)
-		for voxel in self.nsm.voxels(*args, **kwargs):
-			yield SuperVoxel(voxel.coords, (VoxelData(subjects[i], voxel.data[i]) for i in range(len(voxel.data))))
+		self.subjects = map(lambda fn: subj_set.get(InputData.filename_to_id(fn)), self.filenames)
+
+	def __iter__(self):
+		return self.supervoxels()
+
+	def supervoxels(self, mem_usage = None):
+		if mem_usage != None:
+			self.mem_usage = mem_usage
+		return (self.wrap(voxel) for voxel in self.voxels(self.mem_usage))
+
+	def wrap(self, voxel):
+		return SuperVoxel(voxel.coords, (VoxelData(self.subjects[i], voxel.data[i]) for i in range(len(voxel.data))))
 
 	@staticmethod
 	def filename_to_id(filename):
@@ -116,7 +124,7 @@ class Subject:
 
 
 class SubjectSet(dict):
-	
+
 	def add(self, subject):
 		self[subject.id] = subject
 
