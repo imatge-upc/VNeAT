@@ -23,16 +23,22 @@ class FunctionWrapper:
 class GLM:
 	
 	def __init__(self, xdata, ydata):
-		assert len(xdata.shape) > 0
-		if len(xdata.shape) == 1:
-			self.xdata = nparray([xdata.copy()])
-		else:
-			self.xdata = xdata.astype(float)
-		assert xdata.shape[1] == ydata.shape[0]
-		self.num_regressors = self.xdata.shape[0]
-		self.ydata = ydata.astype(float)
-		for i in range(self.xdata.shape[0]):
+		self.xdata = nparray(xdata, dtype = float)
+		self.ydata = nparray(ydata, dtype = float)
+
+		assert len(self.xdata.shape) == 2 and self.xdata.shape[1] != 0
+		assert len(self.ydata.shape) == 1
+		assert self.xdata.shape[1] == self.ydata.shape[0]
+
+		orig_num_regressors = self.xdata.shape[0]
+		self.num_regressors = orig_num_regressors
+		i = 0
+		while i < self.num_regressors:
 			self.__filter(i)
+			if self.num_regressors == orig_num_regressors:
+				i += 1
+			else:
+				orig_num_regressors -= 1
 
 	@staticmethod
 	def pred_function(xdata, *args):

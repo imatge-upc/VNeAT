@@ -67,6 +67,8 @@ def polynomial(degree, features, complete_polynomy = True, constant_term = False
 		assert len(features) > 0
 		yield nparray([1]*len(features[0]))
 
+	features = nparray(features)
+
 	if complete_polynomy:
 		init = 1
 	else:

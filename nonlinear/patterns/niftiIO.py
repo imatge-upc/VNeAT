@@ -1,5 +1,4 @@
 from nibabel import load as nibload, save as nibsave, Nifti1Image as niiFile
-from numpy import array as nparray
 
 
 class NiftiReader:
@@ -71,40 +70,6 @@ class NiftiInputManager(NiftiReader):
 		return aff
 
 
-class NiftiSetReader:
-
-	def __init__(self, filenames, *args, **kwargs):
-		assert len(filenames) != 0
-		self.filenames = filenames
-		self.nms = map(lambda fn: NiftiInputManager(fn, *args, **kwargs), self.filenames)
-		self.dims = self.nms[0].dims[:3] + (len(self.filenames),) + self.nms[0].dims[3:]
-		self.affine = sum(nm.affine() for nm in self.nms)/float(len(self.nms))
-		self.mem_usage = 100.0
-
-	def chunks(self, mem_usage = None):
-		if mem_usage != None:
-			self.mem_usage = mem_usage
-		iterators = map(lambda nm: nm.chunks(float(self.mem_usage)/len(self.nms)), self.nms)
-		try:
-			while True:
-				chunkset = map(lambda it: it.next(), iterators)
-				yield Region(chunkset[0].coords, nparray(map(lambda chunk: chunk.data, chunkset)))
-		except StopIteration:
-			pass
-		
-	def __iter__(self):
-		return self.voxels()
-
-	def voxels(self, mem_usage = None):
-		for chunkset in self.chunks(mem_usage):
-			dims = chunkset.data.shape
-			x, y, z = chunkset.coords
-			for i in range(dims[1]):
-				for j in range(dims[2]):
-					for k in range(dims[3]):
-						yield Region((x+i, y+j, z+k), chunkset.data[:, i, j, k])
-
-
 class NiftiWriter(niiFile):
 	@staticmethod
 	def open(filename):
@@ -131,5 +96,7 @@ class Region:
 		self.coords = coords
 		self.data = data
 
+	def size():
+		return self.data.shape[:3]
 
 

@@ -24,10 +24,10 @@ filename_by_id = {f.split('_')[0][8:] : f for f in filter(lambda elem: isfile(jo
 
 
 # Initialize data retrieval variables
-ads = []
+controls = []
 preclinicals = []
 mcis = []
-controls = []
+ads = []
 
 
 # Retrieve interesting data from excel file
