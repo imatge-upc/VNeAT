@@ -46,7 +46,8 @@ class InputData:
 			while True:
 				reg = iterators[0].next()
 				chunkset = [reg.data]
-				chunkset += [it.next().data for it in iterators[1:]]
+				for it in iterators[1:]:
+					chunkset.append(it.next().data)
 				yield Region(reg.coords, nparray(chunkset))
 		except StopIteration:
 			pass
@@ -58,7 +59,7 @@ class InputData:
 			for i in range(dims[1]):
 				for j in range(dims[2]):
 					for k in range(dims[3]):
-						yield Voxel((x+i, y+j, z+k), chunkset.data.view()[:, i, j, k])
+						yield Voxel((x+i, y+j, z+k), chunkset.data[:, i, j, k])
 
 	def __iter__(self):
 		return self.supervoxels()
@@ -67,7 +68,7 @@ class InputData:
 		return (self.wrap(voxel) for voxel in self.voxels(mem_usage))
 
 	def wrap(self, voxel):
-		return Voxel(voxel.coords, nparray([VoxelData(self.subjects[i], voxel.data.view()[i]) for i in range(len(voxel.data))]))
+		return Voxel(voxel.coords, nparray([VoxelData(self.subjects[i], voxel.data[i]) for i in range(len(voxel.data))]))
 
 	def normalize_subject_data(self):
 		#TODO
