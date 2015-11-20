@@ -16,17 +16,17 @@ print
 
 
 # Set region
-x1, x2 = 0, None
-y1, y2 = 0, None
-z1, z2 = 0, None
-# rang = (1, 1, 1)
-# start = (57, 49, 82)
-# x2, y2, z2 = tuple(start[i] + rang[i] for i in range(3))
-# x1, y1, z1 = start
+# x1, x2 = 0, None
+# y1, y2 = 0, None
+# z1, z2 = 0, None
+rang = (20, 20, 20)
+start = (47, 39, 72)
+x2, y2, z2 = tuple(start[i] + rang[i] for i in range(3))
+x1, y1, z1 = start
 
 # Get input data and initialize output data structure
 input_data = db.get_data(x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2)
-dims = input_data.dims[:3]
+dims = input_data.dims[1:4]
 output_data1 = [[[[] for _ in range(dims[2])] for _ in range(dims[1])] for _ in range(dims[0])]
 output_data2 = tolist(copy(output_data1))
 
@@ -52,7 +52,7 @@ for feature in features[2:]:
 adcsf = features[3]
 ladcsf = min(adcsf)
 radcsf = max(adcsf)
-npoints = 20
+npoints = 100
 adcsf_axis = linspace(ladcsf, radcsf, npoints)
 adcsf_polys = nparray(tolist(polynomial(degree, [adcsf_axis])))
 

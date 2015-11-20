@@ -8,7 +8,7 @@ print
 print 'Setting relevant parameters for the program...',
 
 import database as db
-from graphlib import NiftiGraph as NGraph, tarjan
+from graphlib import NiftiGraph as NGraph
 from subject import Subject
 from numpy import ones
 from os.path import join
@@ -22,8 +22,13 @@ OUTPUT_DIR = join('python', 'ttest')
 OUTPUT_FILENAME = 'ttest_results_v2'
 
 # Set region
-x1, y1, z1 = [0]*3
-x2, y2, z2 = [None]*3
+# x1, y1, z1 = [0]*3
+# x2, y2, z2 = [None]*3
+rang = (30, 30, 30)
+start = (37, 29, 62)
+x2, y2, z2 = tuple(start[i] + rang[i] for i in range(3))
+x1, y1, z1 = start
+
 
 # Set thresholds for p-value and gray matter quantity (per unit volume)
 pv_threshold = 0.01
@@ -48,7 +53,7 @@ diag = [[] for _ in range(lsd)]
 for i in range(len(in_data.subjects)):
 	diag[in_data.subjects[i].diag].append(i)
 
-dims = in_data.dims
+dims = in_data.dims[1:4]
 total_num_voxels = dims[0]*dims[1]*dims[2]
 inc = 100./total_num_voxels
 progress = 0
@@ -57,11 +62,14 @@ nextstep = 1
 for voxel in in_data.voxels():
 	progress += inc
 	if progress >= nextstep:
-		print '   ' + str(nextstep)) + '%'
+		print '   ' + str(nextstep) + '%'
 		nextstep += 1
 	if all(gm_value < gm_threshold for gm_value in voxel.data):
 		continue
 	x, y, z = voxel.coords
+	x -= x1
+	y -= y1
+	z -= z1
 	data = [[voxel.data[i] for i in l] for l in diag]
 	for i in range(lsd - 1):
 		for j in range(lsd - i - 1):
@@ -77,17 +85,19 @@ del tt_res
 
 print 'Filtering for clusters of size >= ' + str(num_nodes_cluster) + '...',
 
+lim_value = norm.ppf(1 - pv_threshold)
+
 for i in range(len(out_data)):
 	for j in range(len(out_data[i])):
 		g = NGraph(out_data[i][j], pv_threshold)
-		for scc in tarjan(g.nodes(), g.neighbours):
+		for scc in g.sccs():
 			if len(scc) < num_nodes_cluster:
 				for x, y, z in scc:
-					out_data[x, y, z] = 1.0
+					out_data[i][j][x, y, z] = 0.0
 			else:
 				for x, y, z in scc:
 					# z-score
-					out_data[x, y, z] = norm.ppf(1 - out_data[x, y, z])
+					out_data[i][j][x, y, z] = norm.ppf(1 - out_data[i][j][x, y, z]) - lim_value + 0.2
 
 print 'Done.'
 
