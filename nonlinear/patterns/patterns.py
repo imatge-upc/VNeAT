@@ -3,9 +3,7 @@
 
 import database as db
 from curve_fit import GLM
-from numpy import array as nparray, linspace
 from tools import polynomial, copy_iterable as copy, tolist #, combinatorial
-from matplotlib.pyplot import plot, show
 
 print
 print 'Welcome to patterns.py!'
@@ -48,24 +46,16 @@ for feature in features[2:]:
 	for p in polynomial(degree, [feature]):
 		xdata.append(p)
 
-# Polynomyals up to 3 of extended AD-CSF index axis to compute output
-adcsf = features[3]
-ladcsf = min(adcsf)
-radcsf = max(adcsf)
-npoints = 100
-adcsf_axis = linspace(ladcsf, radcsf, npoints)
-adcsf_polys = nparray(tolist(polynomial(degree, [adcsf_axis])))
-
-# Orthogonalize xdata parameters outside the loop (so that we don't have to repeat this over and over)
+# Orthogonalize xdata parameters outside the loop (so that we don't have to repeat this over and over again)
 glm = GLM(xdata[:5], xdata[0])
 glm.orthogonalize()
 
 xdata[:5] = glm.xdata
 
-# Minimum quantity of grey matter (per unit volume) so that we consider a voxel (otherwise it will be omitted)
+# Minimum quantity of gray matter (per unit volume) so that we consider a voxel (otherwise it will be omitted)
 gm_threshold = 0.2
 
-# Printing progress purposes only
+# Progress printing purposes only
 total_num_voxels = dims[0]*dims[1]*dims[2]
 num_voxels_processed = 0
 stnv = str(total_num_voxels)
@@ -85,24 +75,25 @@ for voxel in input_data.voxels():
 	# Skip this voxel if there is no subject whose gray matter quantity in this coordinates is equal to or above the threshold
 	if all(gm_value < gm_threshold for gm_value in ydata):
 		output_data1[i][j][k] = ydata
-		output_data2[i][j][k] = [0]*npoints
+		output_data2[i][j][k] = [0, 0, 0]
 	else:
 		# Correct GM values with sex, age (up to 3rd order polynomial), and homogeneous term
 		glm1 = GLM(xdata[:5], ydata)
-		#	glm1.orthogonalize() # Done outside the loop, xdata[:5] is already orthogonalized
-		glm1.optimize()
-		ydata2 = ydata - glm1.pred_function(glm1.xdata, *glm1.opt_params)
 
-		# Store corrected values in output_data1
-		output_data1[i][j][k] = ydata2
+		#	glm1.orthogonalize() # Done outside the loop, xdata[:5] is already orthogonalized
+		_ = glm1.optimize()
+		ydata2 = ydata - glm1.predict(glm1.opt_params)
+
+		# Store corrected values in output_data2
+		output_data2[i][j][k] = ydata2
 
 		# Try to predict corrected GM values with AD-CSF polynomial terms
 		glm2 = GLM(xdata[5:], ydata2)
-		glm2.optimize()
+		_ = glm2.optimize()
 
-		# Store final function in output_data2
-		output_data2[i][j][k] = glm2.pred_function(adcsf_polys, *glm2.opt_params)
-
+		# Store final function in output_data1
+		output_data1[i][j][k] = glm2.opt_params
+		
 	# Print progress
 	num_voxels_processed += 1
 	progress += pr_inc
@@ -110,7 +101,9 @@ for voxel in input_data.voxels():
 		last_int = int(10*progress)
 		snvp = str(num_voxels_processed)
 		lnvp = len(snvp)
-		print ' '*(ltnv - lnvp + 4) + snvp + ' / ' + stnv + '   (' + str(int(100*progress)/100.) + '%)'
+		print ' '*(ltnv - lnvp + 4) + snvp + ' / ' + stnv + '   (' + str(int(100*progress)/100.) + '%)\r',
+
+print
 
 
 	#TODO: redefine what results are exactly (for now, just raw function points, maybe use parameters + function so that it is reproducible?)
@@ -153,8 +146,19 @@ for voxel in input_data.voxels():
 db.save_output_data(nparray(output_data1), '/Users/Asier/Documents/TFG/python/output1.nii')
 db.save_output_data(nparray(output_data2), '/Users/Asier/Documents/TFG/python/output2.nii')
 
+from numpy import array as nparray, linspace
+from matplotlib.pyplot import plot, show
+adcsf = features[3]
+ladcsf = min(adcsf)
+radcsf = max(adcsf)
+npoints = 100
+adcsf_axis = linspace(ladcsf, radcsf, npoints)
+adcsf_polys = nparray(tolist(polynomial(degree, [adcsf_axis])))
+
 x, y, z = 57, 49, 82
-plot(adcsf_axis, output_data2[x-x1][y-y1][z-z1], 'r', adcsf, output_data1[x-x1][y-y1][z-z1], 'bo')
+glm2 = GLM(adcsf_polys, adcsf_polys[0])
+plot(adcsf_axis, glm2.predict(output_data1[x-x1][y-y1][z-z1]), 'r')
+plot(adcsf, output_data2[x-x1][y-y1][z-z1], 'bo')
 show()
 
 

@@ -14,20 +14,20 @@ class GLM:
 			  variables in an additive manner, i.e., a ponderated sum of the K
 			  regressors might fit each of the variables
 			- Each of the K regressors has been measured at the same moments in
-			  which the M variables were measured, giving thus a KxN matrix where
-			  the i-th row represents the N observations of the i-th regressor
+			  which the M variables were measured, giving thus a NxK matrix where
+			  the i-th column represents the N observations of the i-th regressor
 		
 		In this situation, the relationship of the different elements can be ex-
 		pressed as follows:
 
-			OBS(MxN) = PARAMS(MxK) * MODEL(KxN) + eps(MxN),
+			OBS(NxM) = MODEL(NxK) * PARAMS(KxM) + eps(NxM),
 
-		where OBS denotes the MxN matrix containing the N observations of each of
-		the M variables, MODEL denotes the KxN matrix containing the N observations
-		of each of the K regressors, PARAMS denotes the MxK matrix of ponderation
+		where OBS denotes the NxM matrix containing the N observations of each of
+		the M variables, MODEL denotes the NxK matrix containing the N observations
+		of each of the K regressors, PARAMS denotes the KxM matrix of ponderation
 		coefficients (one for each variable and regressor, that is, the amplitude
 		each regressor has in each variable), and eps denotes the error commited
-		when making the aforementioned assumptions, i.e., a MxN matrix that contains
+		when making the aforementioned assumptions, i.e., a NxM matrix that contains
 		the data that is left unexplained after accounting for all the regressors
 		in the model.
 
@@ -42,19 +42,11 @@ class GLM:
 
 			Parameters:
 
-				- xdata: KxN (2-dimensional) matrix, representing the model (independent data),
+				- xdata: NxK (2-dimensional) matrix, representing the model (independent data),
 					where N > 0 is the number of samples and K > 0 the number of regressors.
 
-				- ydata: vector of length N / MxN (2-dimensional) matrix, representing the obser-
+				- ydata: vector of length N / NxM (2-dimensional) matrix, representing the obser-
 					vations (dependent data), where M > 0 is the number of variables.
-
-			Modifies:
-
-				- [created] self.xdata: matrix
-					Copy of the parameter xdata
-
-				- [created] self.ydata: vector / matrix
-					Copy of the parameter ydata
 				
 			Raises:
 
@@ -65,54 +57,44 @@ class GLM:
 				- A new instance of the GLM class
 		'''
 
-		self.xdata = nparray(xdata, dtype = float)
-		self.ydata = nparray(ydata, dtype = float)
+		self._xdata = nparray(xdata, dtype = float)
+		self._ydata = nparray(ydata, dtype = float)
 
-		assert len(self.xdata.shape) == 2 and self.xdata.shape[1] != 0
-		assert len(self.ydata.shape) <= 2
-		if len(self.ydata.shape) == 1:
-			assert self.xdata.shape[1] == self.ydata.shape[0]
+		assert len(self._xdata.shape) == 2 and self._xdata.shape[1] != 0
+		assert len(self._ydata.shape) <= 2
+		if len(self._ydata.shape) == 1:
+			assert self._xdata.shape[1] == self._ydata.shape[0]
 		else:
-			assert self.xdata.shape[1] == self.ydata.shape[1]
+			assert self._xdata.shape[1] == self._ydata.shape[1]
 
-		self.__sigma = None
+	@property
+	def xdata(self):
+		return self._xdata
+	
+	@property
+	def ydata(self):
+		return self._ydata
 
-	def predict(self, theta):
+	@staticmethod
+	def predict(xdata, theta):
 		'''Prediction function used in GLM.
 
 			Parameters:
 
-				- theta: array-like with M * K elements, representing the ponderation coefficients of
-					the system, that is, the PARAMS matrix (in any shape, but ensuring that there are
-					exactly K*M elements and they are ordered BY ROWS - first row 1, then row 2, up to
-					row M -), being K the number of regressors and M the number of variables.
+				- xdata: matrix of shape (N, K), representing the model matrix of the system, where N is
+					the number of samples and K the number of regressors.
+
+				- theta: vector of length K / matrix of shape (K, M), representing the ponderation coef-
+					ficients of the system, that is, the PARAMS matrix, being K the number of regressors
+					and M the number of variables.
 
 			Returns:
 
-				- array-like structure with the same shape as that of self.ydata
-					result of computing the expression
-						-> reshape(theta, (M, K)) * xdata, if M > 1 (returns a matrix)
-						-> reshape(theta, (K)) * xdata, if M = 1 (returns vector)
+				- vector of length N / matrix of shape (N, M), result of computing the expression
+					xdata * theta (matrix multiplication)
 		'''
 
-		# result should be an array-like structure with shape (M, N) or just (N)
-		# xdata is a matrix with shape (K, N)
-		# theta must be of shape (M, K) or just (K)
-		K = self.xdata.shape[0]
-		if len(self.ydata.shape) == 2:
-			M = self.ydata.shape[0]
-			if theta.shape != (M, K):
-				theta = theta.reshape((M, K), order='C')
-		elif len(theta.shape) != 1:
-			theta = theta.reshape(K)
-			
-		return theta.dot(self.xdata[:K]) # same as numpy.dot(theta, self.xdata[:K])
-
-	def __error_energy(self, theta):
-		error = (self.ydata - self.predict(theta)).reshape(-1)
-		if self.__sigma != None:
-			error *= self.__sigma
-		return sum(error**2)
+		return xdata.dot(theta) # same as numpy.dot(theta, self.xdata[:K])
 
 	def orthogonalize(self):
 		'''Orthogonalizes each regressor in self w.r.t. all the previous ones. That is, for each
@@ -137,7 +119,7 @@ class GLM:
 				v = self.xdata[j]
 				v -= v.dot(u)*u2
 
-	def optimize(self, x0 = None, sigma = None, method = 'BFGS', *args, **kwargs):
+	def optimize(self, sigma = None, num_threads = -1):
 		'''Computes optimal ponderation coefficients so that the error's energy is minimized.
 
 			Parameters:
