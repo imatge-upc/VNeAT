@@ -3,7 +3,7 @@
 
 import database as db
 from numpy import array as nparray, zeros
-from sklearn.linear_model import LinearRegression as GLM
+from curve_fit_v2 import GLM
 from tools import polynomial
 
 
@@ -58,8 +58,10 @@ for p in polynomial(degree, [adcsf]):
 xdata2 = nparray(xdata2, dtype = float).T
 
 # Initialize GLMs outside the loop
-glm = GLM(fit_intercept = True, normalize = True, copy_X = True, n_jobs = -1)
-glm2 = GLM(fit_intercept = False, normalize = False, copy_X = True, n_jobs = -1)
+glm1 = GLM(xdata1, xdata1[:, 0], homogeneous = True)
+glm1.orthonormalize()
+
+glm2 = GLM(xdata2, xdata2[:, 0], homogeneous = False)
 
 # Minimum quantity of gray matter (per unit volume) so that we consider a voxel (otherwise it will be omitted)
 #	gm_threshold = 0.2
@@ -84,27 +86,29 @@ for chunk in input_data.chunks():
 
 	# Gray matter values (in matrix form, nullified if they are below threshold) in ydata
 	# ydata[i*dy*dz + j*dz + k] contains the nullified GM values associated to voxel (i, j, k) in the region
-	#	ydata = nparray([chunk.data[:,i,j,k]*valid_voxels[i,j,k] for i in range(dx) for j in range(dy) for k in range(dz)], dtype = float).T
+	#	glm1.ydata = nparray([chunk.data[:,i,j,k]*valid_voxels[i,j,k] for i in range(dx) for j in range(dy) for k in range(dz)], dtype = float).T
 
-	ydata = chunk.data.reshape((dw, dx*dy*dz))
+	glm1.ydata = chunk.data.reshape((dw, dx*dy*dz))
 
 	# Correct GM values with orthogonalized sex, age (up to 3rd order polynomial),
 	# and the homogeneous term, and try to predict corrected GM values with AD-CSF
 	# polynomial terms (all in one optimization call)
-	_ = glm.fit(xdata1, ydata)
-	output_data[0, x:x+dx, y:y+dy, z:z+dz] = glm.intercept_.reshape((dx, dy, dz))
-	output_data[1:5, x:x+dx, y:y+dy, z:z+dz] = glm.coef_.T.reshape((4, dx, dy, dz))
-	
-	_ = glm2.fit(xdata2, ydata - glm.predict(xdata1))
-	output_data[5:, x:x+dx, y:y+dy, z:z+dz] = glm2.coef_.T.reshape((3, dx, dy, dz))
-	
+	glm1.optimize()
+
+	output_data[:5, x:x+dx, y:y+dy, z:z+dz] = glm1.opt_params.reshape((5, dx, dy, dz))
+
+	glm2.ydata = glm1.ydata - GLM.predict(glm1.xdata, glm1.opt_params)
+	glm2.optimize()
+
+	output_data[5:, x:x+dx, y:y+dy, z:z+dz] = glm2.opt_params.reshape((3, dx, dy, dz))
+
 	# Print progress
 	progress += prog_inc*dx*dy*dz
 	print '\r  Computing parameters:  ' + str(int(progress)/100.) + '% completed',
 
 print
 
-db.save_output_data(output_data, '/Users/Asier/Documents/TFG/python/output_v5.nii')
+db.save_output_data(output_data, '/Users/Asier/Documents/TFG/python/output_v6.nii')
 
 
 #	from numpy import linspace
@@ -122,12 +126,11 @@ db.save_output_data(output_data, '/Users/Asier/Documents/TFG/python/output_v5.ni
 #	vgen = vgen.voxels()
 #	v = vgen.next()
 #	
-#	glm.intercept_ = output_data[0, x-x1, y-y1, z-z1]
-#	glm.coef_ = output_data[1:5, x-x1, y-y1, z-z1]
-#	corrected_data = v.data - glm.predict(xdata1)
+#	params = output_data[:5, x-x1, y-y1, z-z1]
+#	corrected_data = v.data - GLM.predict(glm1.xdata, params)
 #	
-#	coefs = output_data[5:, x-x1, y-y1, z-z1]
-#	curve = sum(adcsf_polys[i]*coefs[i] for i in range(len(coefs)))
+#	params = output_data[5:, x-x1, y-y1, z-z1]
+#	curve = GLM.predict(adcsf_polys.T, params)
 #	
 #	from matplotlib.pyplot import show, plot
 #	
