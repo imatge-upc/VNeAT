@@ -20,12 +20,14 @@ print
 # y1, y2 = 0, None
 # z1, z2 = 0, None
 rang = (1, 1, 1)
-start = (47, 39, 72)
+start = (73, 84, 41)#start = (47, 39, 72)
 x2, y2, z2 = tuple(start[i] + rang[i] for i in range(3))
 x1, y1, z1 = start
 
 # Get input data and initialize output data structure
-input_data = db.get_data(x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2)
+input_data = db.get_data(DATA_DIR = "C:\Users\upcnet\FPM\data\Non-linear\Nonlinear_NBA_15",
+                         EXCEL_FILE = "C:\Users\upcnet\FPM\data\Non-linear\work_DB_CSF.R1.final.xls",
+                         x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2)
 dims = input_data.dims[1:4]
 output_data1 = [[[[] for _ in range(dims[2])] for _ in range(dims[1])] for _ in range(dims[0])]
 output_data2 = tolist(copy(output_data1))
@@ -150,10 +152,10 @@ for voxel in input_data.voxels():
 	#	-------------------------------------------------------
 
 
-db.save_output_data(nparray(output_data1), '/Users/Asier/Documents/TFG/python/output1.nii')
-db.save_output_data(nparray(output_data2), '/Users/Asier/Documents/TFG/python/output2.nii')
+# db.save_output_data(nparray(output_data1), '/Users/Asier/Documents/TFG/python/output1.nii')
+# db.save_output_data(nparray(output_data2), '/Users/Asier/Documents/TFG/python/output2.nii')
 
-x, y, z = 57, 49, 82
+x, y, z = 73, 84, 41
 plot(adcsf_axis, output_data2[x-x1][y-y1][z-z1], 'r', adcsf, output_data1[x-x1][y-y1][z-z1], 'bo')
 show()
 

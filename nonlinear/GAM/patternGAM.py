@@ -17,8 +17,8 @@ print
 
 
 # Set region
-start = (60, 43, 72)
-rang = (20, 20, 20)
+start = (73, 84, 41)
+rang = (1, 1, 1)
 x1, y1, z1 = start
 x2, y2, z2 = tuple(start[i] + rang[i] for i in range(3))
 
@@ -41,7 +41,22 @@ for subject in input_data.subjects:
 
 # Minimum quantity of grey matter (per unit volume) so that we consider a voxel (otherwise it will be omitted)
 gm_threshold = 0.2
-npoints=129;
+npoints=129
+
+
+#Politting issues
+t0_ini=np.array(features[1])
+t1_ini=np.array(features[2])
+t2_ini=np.array(features[3])
+t0min=min(features[1])
+t0max=max(features[1])
+t0=linspace(t0min,t0max,npoints)
+t1min=min(features[2])
+t1max=max(features[2])
+t1=linspace(t1min,t1max,npoints)
+t2min=min(features[3])
+t2max=max(features[3])
+t2=linspace(t2min,t2max,npoints)
 
 # Printing progress purposes only
 total_num_voxels = dims[0]*dims[1]*dims[2]
@@ -68,19 +83,10 @@ for voxel in input_data.voxels():
         # GAM!
         gam = GAM(ydata)
         gam.basisFunctions.set_polySmoother(features[1],1)
-        gam.basisFunctions.set_polySmoother(features[2],2)
-        gam.basisFunctions.set_polySmoother(features[3],3)
+        gam.basisFunctions.set_splinesSmoother(features[2],1,s=100)
+        gam.basisFunctions.set_splinesSmoother(features[3],3,s=100)
         gam.backfitting_algorithm()
         output_data2[i][j][k] = gam.prediction()
-        smooth_functions=gam.pred_function()
-
-# m=GAM(y)
-# m.basisFunctions.set_polySmoother(x1.T,2)
-# m.basisFunctions.set_polySmoother(x2,2)
-# m.backfitting_algorithm()
-# y_pred=m.pred_function()
-        # Store final function in output_data2
-        #
 
     # Print progress
     num_voxels_processed += 1
@@ -90,34 +96,26 @@ for voxel in input_data.voxels():
         snvp = str(num_voxels_processed)
         lnvp = len(snvp)
         print ' '*(ltnv - lnvp + 4) + snvp + ' / ' + stnv + '   (' + str(int(100*progress)/100.) + '%)'
-    standardize = lambda x: (x - x.mean()) / x.std()
-    plt.figure()
-    plt.plot(ydata, '.')
-    plt.plot(output_data2[i][j][k])
 
-    x0min=min(features[1])
-    x0max=max(features[1])
-    x0=linspace(x0min,x0max,npoints)
+    # plt.figure()
+    # plt.plot(ydata, 'ko')
+    # plt.plot(gam.results.alpha + gam.results.smoothers[0](t0) + gam.results.smoothers[1](t1) + gam.results.smoothers[2](t2),'r-' )
 
     plt.figure()
-    plt.plot(standardize(gam.AM.smoothers[0](np.asarray(features[1]))),'r')
-    plt.plot(ydata-standardize(gam.AM.smoothers[1](np.asarray(features[2])))-standardize(gam.AM.smoothers[2](np.asarray(features[3]))),'.k')
-
+    plt.plot(features[1],ydata-gam.results.smoothers[1](t1_ini) - gam.results.smoothers[2](t2_ini) -gam.results.alpha, 'ko')
+    plt.plot(t0, gam.results.smoothers[0](t0)+gam.results.offset[0], 'r-', label='AdditiveModel')
 
     plt.figure()
-    plt.plot(standardize(gam.AM.smoothers[1](np.asarray(features[2]))),'r')
-    plt.plot(ydata-standardize(gam.AM.smoothers[2](np.asarray(features[3])))-standardize(gam.AM.smoothers[0](np.asarray(features[1]))),'.k')
+    plt.plot(features[2],ydata-gam.results.smoothers[0](t0_ini) - gam.results.smoothers[2](t2_ini) -gam.results.alpha, 'ko')
+    plt.plot(t1, gam.results.smoothers[1](t1)+gam.results.offset[1], 'r-', label='AdditiveModel')
 
-    x2min=min(features[3])
-    x2max=max(features[3])
-    x2=linspace(x2min,x2max,npoints)
     plt.figure()
-    plt.plot(standardize(gam.AM.smoothers[2](x2)),'r')
-    plt.plot(ydata-standardize(gam.AM.smoothers[1](np.asarray(features[2])))-standardize(gam.AM.smoothers[0](np.asarray(features[1]))),'.k')
+    plt.plot(features[3],ydata-gam.results.smoothers[0](t0_ini) - gam.results.smoothers[1](t1_ini) -gam.results.alpha, 'ko')
+    plt.plot(t2, gam.results.smoothers[2](t2)+gam.results.offset[2], 'r-', label='AdditiveModel')
 
     plt.show()
 
 
 
-db.save_output_data(nparray(output_data1), 'C:\Users\upcnet\FPM\data\Non-linear\output1.nii')
-db.save_output_data(nparray(output_data2), 'C:\Users\upcnet\FPM\data\Non-linear\output2.nii')
+# db.save_output_data(nparray(output_data1), 'C:\Users\upcnet\FPM\data\Non-linear\output1.nii')
+# db.save_output_data(nparray(output_data2), 'C:\Users\upcnet\FPM\data\Non-linear\output2.nii')
