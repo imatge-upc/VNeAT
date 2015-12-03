@@ -6,14 +6,22 @@ class Subject:
 	apoe4s = ['Unknown', 'Yes', 'No']
 
 	def __init__(self, identifier, niftiInputManager, diagnostic = None, age = None, sex = None, apoe4 = None, education = None, adcsfIndex = None):
-		self.id = identifier
-		self.gmdata = niftiInputManager
+		self._id = identifier
+		self._gmdata = niftiInputManager
 		self.diag = diagnostic
 		self.age = age
 		self.sex = sex if sex != None else 0
 		self.apoe4 = apoe4 if apoe4 != None else 0
 		self.ed = education
 		self.adcsf = adcsfIndex
+
+	@property
+	def id(self):
+	    return self._id
+	
+	@property
+	def gmdata(self):
+	    return self._gmdata
 
 	def __hash__(self):
 		return hash(self.id)

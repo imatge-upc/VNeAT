@@ -152,8 +152,8 @@ for voxel in input_data.voxels():
 	#	-------------------------------------------------------
 
 
-# db.save_output_data(nparray(output_data1), '/Users/Asier/Documents/TFG/python/output1.nii')
-# db.save_output_data(nparray(output_data2), '/Users/Asier/Documents/TFG/python/output2.nii')
+db.save_output_data(nparray(output_data1), '/Users/Asier/Documents/TFG/python/output1.nii')
+db.save_output_data(nparray(output_data2), '/Users/Asier/Documents/TFG/python/output2.nii')
 
 x, y, z = 73, 84, 41
 plot(adcsf_axis, output_data2[x-x1][y-y1][z-z1], 'r', adcsf, output_data1[x-x1][y-y1][z-z1], 'bo')

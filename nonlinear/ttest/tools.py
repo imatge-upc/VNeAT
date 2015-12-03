@@ -1,6 +1,6 @@
 from collections import MutableMapping
 from numpy import array as nparray
-
+from itertools import chain
 
 class TransformedDict(MutableMapping):
 	"""A dictionary that applies an arbitrary key-altering
@@ -97,4 +97,16 @@ def tolist(it, first_call = True):
 			return [it]
 		else:
 			return it
+
+def flatten(l, ndims_to_reduce = 1):
+	r = l
+	for _ in range(ndims_to_reduce):
+		try:
+			r = list(chain.from_iterable(r))
+		except TypeError:
+			break
+	return r
+
+
+
 
