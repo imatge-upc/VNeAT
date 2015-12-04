@@ -157,7 +157,7 @@ class SplinesSmoother:
             _w = 1
         else:
             _w = np.sqrt(weights)[:,None]
-          self.spline=UnivariateSpline(self.X * _w, y * _w, s=self.s)
+            self.spline=UnivariateSpline(self.X * _w, y * _w, s=self.s)
 
     def predict(self,x=None):
         if x is None:

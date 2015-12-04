@@ -58,11 +58,6 @@ m.backfitting_algorithm()
 y_pred=m.prediction()
 
 #Plots
-# plt.figure()
-# plt.plot(x1, f1(x1), 'r')
-# plt.plot(x2, f2(x2), 'b')
-# plt.plot(x3, f3(x3), 'k')
-
 plt.figure()
 plt.plot(t1,y, '.')
 plt.plot(t1,z, 'b-', label='true')
@@ -70,35 +65,15 @@ plt.plot(t1,y_pred, 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
 
-# print(m.results.offset)
-# print(m.results.alpha)
-# plt.figure()
-# plt.plot(t1,y-m.results.alpha, 'k.')
-# plt.plot(t1, standardize(m.results.smoothers[0](t1))+m.results.offset[0], 'r-', label='AdditiveModel')
-# plt.plot(t1, standarize(f1(t1)),label='true', linewidth=2)
-
-
 plt.figure()
 plt.plot(t1,y-standarize(f2(t2))-m.results.alpha, 'k.')
 plt.plot(t1, m.results.smoothers[0](t1)+m.results.offset[0], 'r-', label='AdditiveModel')
 plt.plot(t1, standarize(f1(t1)),label='true', linewidth=2)
-
 
 plt.figure()
 plt.plot(t2,y-standarize(f1(t1))-m.results.alpha, 'k.')
 plt.plot(t2,y - (m.results.smoothers[0](t1)+m.results.offset[0])-m.results.alpha,'g.')
 plt.plot(t2, m.results.smoothers[1](t2)+m.results.offset[1], 'r-', label='AdditiveModel')
 plt.plot(t2, standarize(f2(t2)), label='true', linewidth=2)
-#
-#
-# # lex3 = min(x3)
-# # rex3 = max(x3)
-# # npoints3 = 100
-# # var3_axis = np.linspace(lex3, rex3, npoints3)
-#
-# plt.figure()
-# plt.plot(x3,y-standarize(f1(x1))-standarize(f2(x2))-m.results.alpha, 'k.')
-# plt.plot(x3, standardize(m.results.smoothers[2](x3))+m.results.offset[2], 'r-', label='AdditiveModel')
-# plt.plot(x3, standarize(f3(x3)), label='true', linewidth=2)
 
 plt.show()
