@@ -30,7 +30,7 @@ input_data = db.get_data(x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2)
 dims = input_data.dims
 output_data = zeros((7,) + dims[1:4], dtype = float)
 ftest_results = zeros(dims[1:4] + (3,), dtype = float) # RG(B) for each voxel
-p_value_results = zeros(dims[1:4] + (2,), dtype = float) # nonlinear vs. full in 1, linear vs. full in 0
+pvalue_results = zeros(dims[1:4] + (2,), dtype = float) # nonlinear vs. full in 1, linear vs. full in 0
 
 # Compute features (independent of voxel, dependent only on subjects)
 sex = []
@@ -92,72 +92,95 @@ for chunk in input_data.chunks():
 	x -= x1
 	y -= y1
 	z -= z1
+	
 	# Original dimensions of the chunk
 	dw, dx, dy, dz = chunk.data.shape
+	
 	# Compute the voxels whose mean value of gray matter quantity is above (or equal to) the threshold
 	#	valid_voxels = (sum(chunk.data) >= gm_threshold*dw).astype(int)
+	
 	# Gray matter values (in matrix form, nullified if they are below threshold) in ydata
 	# ydata[i*dy*dz + j*dz + k] contains the nullified GM values associated to voxel (i, j, k) in the region
 	#	glm1.ydata = nparray([chunk.data[:,i,j,k]*valid_voxels[i,j,k] for i in range(dx) for j in range(dy) for k in range(dz)], dtype = float).T
 	glm1.ydata = chunk.data.reshape((dw, dx*dy*dz))
+	
 	# Correct GM values with orthogonalized sex, age (up to 2nd order polynomial),
 	# and the homogeneous term, and try to predict corrected GM values with AD-CSF
 	# polynomial terms (all in one optimization call)
 	glm1.optimize()
 	output_data[:4, x:x+dx, y:y+dy, z:z+dz] = glm1.opt_params.reshape((4, dx, dy, dz))
+	
 	glm2.ydata = glm1.ydata - GLM.predict(glm1.xdata, glm1.opt_params)
 	glm2.optimize()
+	
 	output_data[4:, x:x+dx, y:y+dy, z:z+dz] = glm2.opt_params.reshape((3, dx, dy, dz))
+	
+
 	#####################################
 	## Nonlinear f-scores and p-values ##
 	#####################################
+	
 	glm3.ydata = glm2.ydata
 	glm3.optimize()
+	
 	# Compute error with restricted model (only linear component)
 	e = glm3.ydata - GLM.predict(glm3.xdata[:, :1], glm3.opt_params[:1])
 	rss1 = sum(e**2)
 	p1 = 1 # only linear component
+	
 	# Compute error with unrestricted model (add nonlinear components)
 	e = glm3.ydata - GLM.predict(glm3.xdata, glm3.opt_params)
 	rss2 = sum(e**2)
 	p2 = glm3.xdata.shape[1] # number of regressors (in this case, 3)
+	
 	# Degrees of freedom
 	n = glm3.xdata.shape[0] # number of samples
 	df1 = p2 - p1
 	df2 = n - p2 + 1
+	
 	# Compute f-scores and p-values
 	var1 = (rss1 - rss2)/df1
 	var2 = rss2/df2
 	f_score = var1/var2
-	p_value = f_stat.cdf(f_score, df1, df2)
+	pvalue = f_stat.sf(f_score, df1, df2)
+	
 	# Store results
 	ftest_results[x:x+dx, y:y+dy, z:z+dz, 1] = f_score.reshape((dx, dy, dz)) # Green
-	p_value_results[x:x+dx, y:y+dy, z:z+dz, 1] = p_value.reshape((dx, dy, dz))
+	pvalue_results[x:x+dx, y:y+dy, z:z+dz, 1] = pvalue.reshape((dx, dy, dz))
+	
+
 	##################################
 	## Linear f-scores and p-values ##
 	##################################
+	
 	glm4.ydata = glm2.ydata
 	glm4.optimize()
+	
 	# Compute error with restricted model (only nonlinear components)
 	e = glm4.ydata - GLM.predict(glm4.xdata[:, :2], glm4.opt_params[:2])
 	rss1 = sum(e**2)
 	p1 = glm4.xdata.shape[1] - 1 # all components except for the linear one
+	
 	# Compute error with unrestricted model (add linear component)
 	e = glm4.ydata - GLM.predict(glm4.xdata, glm4.opt_params)
 	rss2 = sum(e**2)
 	p2 = glm4.xdata.shape[1] # number of regressors (in this case, 3)
+	
 	# Degrees of freedom
 	n = glm4.xdata.shape[0] # number of samples
 	df1 = p2 - p1
 	df2 = n - p2 + 1
+	
 	# Compute f-scores and p-values
 	var1 = (rss1 - rss2)/df1
 	var2 = rss2/df2
 	f_score = var1/var2
-	p_value = f_stat.cdf(f_score, df1, df2)
+	pvalue = f_stat.sf(f_score, df1, df2)
+	
 	# Store results
 	ftest_results[x:x+dx, y:y+dy, z:z+dz, 0] = f_score.reshape((dx, dy, dz)) # Red
-	p_value_results[x:x+dx, y:y+dy, z:z+dz, 0] = p_value.reshape((dx, dy, dz))
+	pvalue_results[x:x+dx, y:y+dy, z:z+dz, 0] = pvalue.reshape((dx, dy, dz))
+	
 	# Print progress
 	progress += prog_inc*dx*dy*dz
 	print '\r  Computing parameters:  ' + str(int(progress)/100.) + '% completed',
@@ -166,33 +189,35 @@ print
 
 db.save_output_data(output_data, '/Users/Asier/Documents/TFG/python/output_v6_2.nii')
 db.save_output_data(ftest_results, '/Users/Asier/Documents/TFG/python/ftest_v6_2.nii')
-db.save_output_data(p_value_results, '/Users/Asier/Documents/TFG/python/pvalue_v6_2.nii')
+db.save_output_data(pvalue_results, '/Users/Asier/Documents/TFG/python/pvalue_v6_2.nii')
 
-from numpy import linspace
-from tools import tolist
-# Polynomyals up to 3 of extended AD-CSF index axis to compute output
-ladcsf = min(adcsf)
-radcsf = max(adcsf)
-npoints = 100
-adcsf_axis = linspace(ladcsf, radcsf, npoints)
-adcsf_polys = nparray(tolist(polynomial(3, [adcsf_axis])))
 
-x, y, z = 57, 49, 82
 
-vgen = db.get_data(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
-vgen = vgen.voxels()
-v = vgen.next()
-
-params = output_data[:4, x-x1, y-y1, z-z1]
-corrected_data = v.data - GLM.predict(glm1.xdata, params)
-
-params = output_data[4:, x-x1, y-y1, z-z1]
-curve = GLM.predict(adcsf_polys.T, params)
-
-from matplotlib.pyplot import show, plot
-
-plot(adcsf_axis, curve, 'r', adcsf, corrected_data, 'bo')
-show()
+#	from numpy import linspace
+#	from tools import tolist
+#	# Polynomyals up to 3 of extended AD-CSF index axis to compute output
+#	ladcsf = min(adcsf)
+#	radcsf = max(adcsf)
+#	npoints = 100
+#	adcsf_axis = linspace(ladcsf, radcsf, npoints)
+#	adcsf_polys = nparray(tolist(polynomial(3, [adcsf_axis])))
+#	
+#	x, y, z = 57, 49, 82
+#	
+#	vgen = db.get_data(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+#	vgen = vgen.voxels()
+#	v = vgen.next()
+#	
+#	params = output_data[:4, x-x1, y-y1, z-z1]
+#	corrected_data = v.data - GLM.predict(glm1.xdata, params)
+#	
+#	params = output_data[4:, x-x1, y-y1, z-z1]
+#	curve = GLM.predict(adcsf_polys.T, params)
+#	
+#	from matplotlib.pyplot import show, plot
+#	
+#	plot(adcsf_axis, curve, 'r', adcsf, corrected_data, 'bo')
+#	show()
 
 
 
