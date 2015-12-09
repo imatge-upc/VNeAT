@@ -1,5 +1,5 @@
 from excelIO import get_rows
-from niftiIO import NiftiInputManager as NiftiIM, Region
+from niftiIO_v2 import NiftiInputManager as NiftiIM, Region
 from subject import Subject
 from numpy import array as nparray
 from os.path import basename

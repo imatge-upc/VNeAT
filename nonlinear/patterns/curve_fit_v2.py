@@ -8,8 +8,8 @@ class GLM:
 		This method assumes the following situation:
 			- There are M (random) variables whose behaviour we want to explain
 			- Each of the M variables has been measured N times, obtaining thus
-			  an MxN matrix of observations (i-th row contains the N observations
-			  for i-th variable)
+			  an NxM matrix of observations (i-th column contains the N observa-
+			  tions for i-th variable)
 			- There are K regressors that might explain the behaviour of the M
 			  variables in an additive manner, i.e., a ponderated sum of the K
 			  regressors might fit each of the variables
