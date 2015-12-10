@@ -12,12 +12,11 @@ class Graph:
 		return []
 
 	def rec_sccs(self):
-		'''Generates the Strongly Connected Components of the graph.
-		   Implemented with the recursive version of Tarjan's algorithm.
-		   The rec_sccs function is faster than its iterative version
-		   (the sccs function), but it is limited in the number
-		   of nodes each component can have, due to the recursion
-		   depth limit in python'''
+		'''Generates the Strongly Connected Components of the graph. Implemented with the
+			recursive version of Tarjan's algorithm. The rec_sccs function is faster than
+			its iterative version (the sccs function), but it is limited in the number of
+			nodes each component can have, due to the recursion depth limit in python.
+		'''
 
 		class TarjanNode:
 			def __init__(self, node):
@@ -78,13 +77,12 @@ class Graph:
 
 
 	def sccs(self):
-		'''Generates the Strongly Connected Components of the graph.
-		   Implemented with the iterative version of Tarjan's algorithm.
-		   Each component generated is a set of nodes s.t. for each
-		   pair of nodes (u, v) in the component, there exists a path
-		   from u to v and another path (possibly the same in reverse
-		   order in the case of non-directed graphs) from v to u in
-		   the graph.'''
+		'''Generates the Strongly Connected Components of the graph. Implemented with the
+			iterative version of Tarjan's algorithm. Each component generated is a set of
+			nodes s.t. for each pair of nodes (u, v) in the component, there exists a path
+			from u to v and another path (possibly the same in reverse order in the case of
+			non-directed graphs) from v to u in the graph.
+		'''
 
 		class TarjanNode:
 			def __init__(self, node):
@@ -170,6 +168,7 @@ class Graph:
 class NiftiGraph(Graph):
 	
 	def __init__(self, data, pvalue_threshold):
+		Graph.__init__(self)
 		self.pv = pvalue_threshold
 		self.dims = data.shape
 		new_dims = map(lambda d: d + 2, self.dims[:3])
@@ -208,13 +207,12 @@ class NiftiGraph(Graph):
 						yield (i - 1, j - 1, k - 1)
 
 	def sccs(self):
-		''' Generates the Strongly Connected Components of the graph.
-			Implemented by using the Breadth First Search algorithm.
-			Each component generated is a list of nodes s.t. for each
-			pair of nodes (u, v) in the component, there exists a path
-			from u to v and another path (possibly the same in reverse
-			order in the case of non-directed graphs) from v to u in
-			the graph.'''
+		'''Generates the Strongly Connected Components of the graph. Implemented by using the
+			Breadth First Search algorithm. Each component generated is a list of nodes s.t.
+			for each pair of nodes (u, v) in the component, there exists a path from u to v
+			in the graph (these nodes are strongly connected since this is a non-directed
+			graph and thus the same path in reverse order also exists).
+		'''
 
 		visited = [[[False for _ in range(self.dims[2])] for _ in range(self.dims[1])] for _ in range(self.dims[0])]
 		for i, j, k in self.nodes():
@@ -240,59 +238,86 @@ class NiftiGraph(Graph):
 class GenericGraph(Graph):
 
 	def __init__(self, nodes = []):
-		self.node_info = []
-		self.edges = []
+		Graph.__init__(self)
+		if isinstance(nodes, int):
+			nodes = [None]*nodes
+		self._nodes = []
+		self._edges = []
 		for node in nodes:
-			self.node_info.append(node)
-			self.edges.append(set())
+			self._nodes.append(node)
+			self._edges.append({})
 
 	def nodes(self):
-		return range(len(self.node_info))
+		i = 0
+		while i < len(self._nodes):
+			yield i
+			i += 1
+
+	def node(self, u):
+		return self._nodes[u]
+
+	def edges(self):
+		return ((u, v) for u in self.nodes() for v in self._edges[u])
+
+	def edge(self, u, v):
+		if u < 0:
+			# Otherwise this goes undetected since python
+			# lists accept negative indices
+			raise KeyError
+		return self._edges[u][v]
 
 	def neighbours(self, u):
+		if u < 0:
+			return set()
 		try:
-			return self.edges[u]
+			return self._edges[u].iterkeys()
 		except IndexError:
 			return set()
 
-	def add_edge(self, u, v, bidirectional = False):
-		if v > len(self.node_info) or v < 0 or u < 0:
-			return
+	def add_edge(self, u, v, info = None, bidirectional = False):
+		if u < 0 or v < 0: 
+			# Otherwise this goes undetected since python
+			# lists accept negative indices
+			raise KeyError
 		try:
-			self.edges[u].add(v)
+			_ = self._nodes[v] # raise IndexError if v is invalid
+			self._edges[u][v] = info
+			if bidirectional:
+				self._edges[v][u] = info
 		except IndexError:
-			return
-		if bidirectional:
-			self.edges[v].add(u)
+			raise KeyError
 
 	def remove_edge(self, u, v, bidirectional = False):
-		if v > len(self.node_info) or v < 0 or u < 0:
-			return
+		if v < 0 or u < 0:
+			# Otherwise this goes undetected since python
+			# lists accept negative indices
+			raise KeyError
 		try:
-			self.edges[u].discard(v)
+			del self._edges[u][v]
+			if bidirectional:
+				del self._edges[v][u]
 		except IndexError:
-			return
-		if bidirectional:
-			self.edges[v].discard(u)
+			raise KeyError
 
 	def __repr__(self):
-		return 'GenericGraph{ Nodes(' + repr(self.node_info) + ') ; Edges(' + repr(self.edges) + ') }'
+		return 'GenericGraph{ Nodes(' + repr(self._nodes) + ') ; Edges(' + repr(self._edges) + ') }'
 
 	def __str__(self):
 		s = 'GenericGraph{\n'
-		s += '    Nodes( ' + repr(self.node_info) + ' )\n'
+		s += '    Nodes( \n'
+		for u in self.nodes():
+			stru = str(u)
+			s += ' '*(14-len(stru)) + stru + ':   ' + repr(self.node(u)) + '\n'
+		s += ')\n'
 		s += '    Edges(\n'
-		for i in range(len(self.edges)):
-			stri = str(i)
-			s += ' '*(10-len(stri)) + stri + ': ' + repr(self.edges[i]) + '\n'
+		for u, v in self.edges():
+			stru = str(u)
+			strv = str(v)
+			s += ' '*(7-len(stru)) + stru + ' -> '
+			s += strv + ' '*(7-len(strv)) + ':    '
+			s += repr(self.edge(u, v)) + '\n'
 		s += '    )\n'
 		s += '}'
 		return s
-
-
-
-
-
-
 
 

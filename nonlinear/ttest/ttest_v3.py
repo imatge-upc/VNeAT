@@ -31,7 +31,7 @@ x2, y2, z2 = [None]*3
 
 
 # Set thresholds for p-value and gray matter quantity (per unit volume)
-pv_threshold = 0.01
+pv_threshold = 0.001
 gm_threshold = 0.2
 
 # Set threshold for minimum number of nodes present in a cluster for this
@@ -54,9 +54,10 @@ diag = [[] for _ in range(lsd)]
 for i in range(len(in_data.subjects)):
 	diag[in_data.subjects[i].diag].append(i)
 
-prog_inc_x = 10000./dims[0]
-prog_inc_y = prog_inc_x/dims[1]
-prog_inc_z = prog_inc_y/dims[2]
+# Progress printing purposes only
+progress = 0.0
+total_num_voxels = dims[0]*dims[1]*dims[2]
+prog_inc = 10000./total_num_voxels
 
 for chunk in in_data.chunks():
 	x, y, z = chunk.coords
@@ -74,8 +75,8 @@ for chunk in in_data.chunks():
 			tt_res = ttest_ind(data[i], data[i+j+1])
 			out_data[i][j][x:(x+dx), y:(y+dy), z:(z+dz)] = tt_res.pvalue*valid_voxels + non_valid_voxels
 
-	progress = prog_inc_x*(x+dx) + prog_inc_y*(y+dy) + prog_inc_z*(z+dz)
-	print '    ' + str(int(progress)/100.) + '%'
+	progress += prog_inc*dx*dy*dz
+	print '\r  Computing p-values:  ' + str(int(progress)/100.) + '% completed  ',
 
 print 'Done.'
 

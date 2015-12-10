@@ -79,7 +79,7 @@ glm4 = GLM(xdata3, xdata3[:, 0], homogeneous = False)
 glm4.orthonormalize()
 
 # Minimum quantity of gray matter (per unit volume) so that we consider a voxel (otherwise it will be omitted)
-gm_threshold = 0.2
+#	gm_threshold = 0.2
 
 # Progress printing purposes only
 progress = 0.0
@@ -183,7 +183,7 @@ for chunk in input_data.chunks():
 	
 	# Print progress
 	progress += prog_inc*dx*dy*dz
-	print '\r  Computing parameters:  ' + str(int(progress)/100.) + '% completed',
+	print '\r  Computing parameters:  ' + str(int(progress)/100.) + '% completed  ',
 
 print
 
@@ -195,6 +195,7 @@ db.save_output_data(pvalue_results, '/Users/Asier/Documents/TFG/python/pvalue_v6
 
 #	from numpy import linspace
 #	from tools import tolist
+#	
 #	# Polynomyals up to 3 of extended AD-CSF index axis to compute output
 #	ladcsf = min(adcsf)
 #	radcsf = max(adcsf)
