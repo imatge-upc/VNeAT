@@ -131,7 +131,7 @@ for chunk in input_data.chunks():
 	# Compute error with unrestricted model (add nonlinear components)
 	e = glm3.ydata - GLM.predict(glm3.xdata, glm3.opt_params)
 	rss2 = sum(e**2)
-	p2 = glm3.xdata.shape[1] # number of regressors (in this case, 3)
+	p2 = glm3.xdata.shape[1] # number of regressors
 	
 	# Degrees of freedom
 	n = glm3.xdata.shape[0] # number of samples
@@ -164,7 +164,7 @@ for chunk in input_data.chunks():
 	# Compute error with unrestricted model (add linear component)
 	e = glm4.ydata - GLM.predict(glm4.xdata, glm4.opt_params)
 	rss2 = sum(e**2)
-	p2 = glm4.xdata.shape[1] # number of regressors (in this case, 3)
+	p2 = glm4.xdata.shape[1] # number of regressors
 	
 	# Degrees of freedom
 	n = glm4.xdata.shape[0] # number of samples

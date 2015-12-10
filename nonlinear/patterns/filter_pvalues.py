@@ -37,7 +37,7 @@ dims = input_data.dims[1:4]
 # Read f-statistics and p-values
 pvalues = db.open_output_file('/Users/Asier/Documents/TFG/python/pvalue_v6_2.nii').get_data()
 fscores = db.open_output_file('/Users/Asier/Documents/TFG/python/ftest_v6_2.nii').get_data()
-
+fscores /= 80.0
 
 # Compute the minimum p-value between linear and non-linear terms for each voxel
 min_pvalues = (pvalues[:,:,:,0] < pvalues[:,:,:,1]).astype(int)
@@ -87,6 +87,13 @@ for scc in g.sccs():
 	else:
 		for x, y, z in scc:
 			min_pvalues[x, y, z] = norm.ppf(1 - min_pvalues[x, y, z]) - lim_value + 0.2
+
+print 'Done.'
+
+print 'Re-scaling f-scores...',
+
+max_fscore = fscores.max()
+fscores /= max_fscore
 
 print 'Done.'
 
