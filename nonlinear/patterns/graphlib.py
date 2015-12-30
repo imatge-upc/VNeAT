@@ -3,19 +3,33 @@ from abc import ABCMeta, abstractmethod
 class Graph:
 	__metaclass__ = ABCMeta
 
+	'''[Abstract Class] Defines a Graph by specifying the list of nodes it contains and
+		the neighbours that each node has (the outgoing edges). It already implements a
+		method to compute the 'Strongly Connected Components' of the graph by using Tarjan's
+		algorithm, both in a recursive manner ('rec_sccs') and with an iterative approach
+		('sccs').
+	'''
+
 	@abstractmethod
 	def nodes(self):
-		return []
+		'''[Abstract Method] Generates/Returns all the nodes of the graph.
+		'''
+		raise NotImplementedError
 
 	@abstractmethod
 	def neighbours(self, node):
-		return []
+		'''[Abstract Method] Given a node, generates/returns its neighbours.
+		'''
+		raise NotImplementedError
 
 	def rec_sccs(self):
 		'''Generates the Strongly Connected Components of the graph. Implemented with the
 			recursive version of Tarjan's algorithm. The rec_sccs function is faster than
 			its iterative version (the sccs function), but it is limited in the number of
 			nodes each component can have, due to the recursion depth limit in python.
+			Unless you are certain that the graph is small enough or not connected enough
+			to have such many connected components and the speed of the method is critical
+			for your application, it is recommended that you use the 'sccs' method instead.
 		'''
 
 		class TarjanNode:
@@ -237,7 +251,7 @@ class NiftiGraph(Graph):
 
 class GenericGraph(Graph):
 
-	def __init__(self, nodes = []):
+	def __init__(self, nodes = [], directed = True):
 		Graph.__init__(self)
 		if isinstance(nodes, int):
 			nodes = [None]*nodes
@@ -246,6 +260,12 @@ class GenericGraph(Graph):
 		for node in nodes:
 			self._nodes.append(node)
 			self._edges.append({})
+
+		self._directed = directed
+
+	@property
+	def directed(self):
+		return self._directed
 
 	def nodes(self):
 		i = 0
@@ -274,7 +294,7 @@ class GenericGraph(Graph):
 		except IndexError:
 			return set()
 
-	def add_edge(self, u, v, info = None, bidirectional = False):
+	def add_edge(self, u, v, info = None):
 		if u < 0 or v < 0: 
 			# Otherwise this goes undetected since python
 			# lists accept negative indices
@@ -282,22 +302,46 @@ class GenericGraph(Graph):
 		try:
 			_ = self._nodes[v] # raise IndexError if v is invalid
 			self._edges[u][v] = info
-			if bidirectional:
+			if self._directed:
 				self._edges[v][u] = info
 		except IndexError:
 			raise KeyError
 
-	def remove_edge(self, u, v, bidirectional = False):
+	def remove_edge(self, u, v):
 		if v < 0 or u < 0:
 			# Otherwise this goes undetected since python
 			# lists accept negative indices
 			raise KeyError
 		try:
 			del self._edges[u][v]
-			if bidirectional:
+			if self._directed:
 				del self._edges[v][u]
 		except IndexError:
 			raise KeyError
+
+	def sccs(self):
+		if self._directed:
+			# use Tarjan's algorithm implemented in a superclass (Graph)
+			for scc in super(GenericGraph, self).sccs():
+				yield scc
+		else:
+			# perform bfs for each node
+			visited = [False]*len(self._nodes)
+			for u in self.nodes():
+				if not visited[u]:
+					scc = [u]
+					visited[u] = True
+					# Perform a simple bfs and add every node reachable from u to the current strongly
+					# connected component (edges are undirected)
+					index = 0
+					while index < len(scc):
+						v = scc[index] # v = queue.front()
+						index += 1 # queue.pop(); scc.add(v)
+						for w in self.neighbours(v):
+							if not visited[w]:
+								visited[w] = True
+								scc.append(w) # queue.push(w)
+					yield scc
 
 	def __repr__(self):
 		return 'GenericGraph{ Nodes(' + repr(self._nodes) + ') ; Edges(' + repr(self._edges) + ') }'

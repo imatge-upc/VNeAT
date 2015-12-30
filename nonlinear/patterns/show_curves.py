@@ -85,15 +85,24 @@ while True:
 		params = output_data[:4, x, y, z]
 		corrected_data = v.data - GLM.predict(glm1.xdata, params)
 
+		params_l = output_data[4:5, x, y, z]
+		lin_curve = GLM.predict(adcsf_polys[:, :1], params_l)
+
+		params_nl = output_data[5:, x, y, z]
+		nonlin_curve = GLM.predict(adcsf_polys[:, 1:], params_nl)
+
 		params = output_data[4:, x, y, z]
 		curve = GLM.predict(adcsf_polys, params)
 
-		plot(adcsf_axis, curve, 'r', label = 'Fitted curve')
+		plot(adcsf_axis, lin_curve, 'r', label = 'Fitted linear curve')
+		plot(adcsf_axis, nonlin_curve, 'y', label = 'Fitted nonlinear curve')
+		plot(adcsf_axis, curve, 'k', label = 'Fitted total curve')
+
 		color = ['go', 'bo', 'mo', 'ko']
 		for i in range(len(diag)):
 			l = diag[i]
 			plot(adcsf[l], corrected_data[l], color[i], label = diags[i])
-		legend()
+		# legend()
 		show()
 		print
 	except Exception as e:

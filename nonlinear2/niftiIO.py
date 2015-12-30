@@ -66,9 +66,6 @@ class NiftiReader:
 	def __iter__(self):
 		return self.chunks()
 
-
-class NiftiInputManager(NiftiReader):
-
 	def affine(self):
 		f = nibload(self.filename)
 		aff = f.affine
@@ -86,12 +83,12 @@ class NiftiWriter(niiFile):
 
 	def save(self, filename = None, *args, **kwargs):
 		if filename != None:
-			self.filename = filename
-		nibsave(self, self.filename, *args, **kwargs)
+			self._filename = filename
+		nibsave(self, self._filename, *args, **kwargs)
 
 	def chunks(self, mem_usage = None, *args, **kwargs):
 		try:
-			return NiftiReader(self.filename, *args, **kwargs).chunks(mem_usage)
+			return NiftiReader(self._filename, *args, **kwargs).chunks(mem_usage)
 		except AttributeError:
 			return ()
 
