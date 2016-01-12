@@ -15,7 +15,7 @@ class InputManager:
 		escapechar = None
 
 	def __init__(self, input_file, data_dir):
-		print 'Still not implemented'b
+		print 'Still not implemented'
 
 	@staticmethod
 	def fromExcelToCSV(excel_file, csv_file, sheet_index = 0, header_row = 0, *args, **kwargs):

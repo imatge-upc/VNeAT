@@ -176,12 +176,12 @@ class PolyGLM(GLM):
 			degrees = list(degrees)
 			if len(degrees) != len(self._pglm_features):
 				raise ValueError('Argument \'degrees\' must have a length equal to the number of features')
-			self._pglm_degrees = []
 			for deg in degrees:
 				if not isinstance(deg, int):
 					raise ValueError('Expected integer in \'degrees\' list, got ' + str(type(deg)) + ' instead')
 				if deg < 1:
 					raise ValueError('All degrees must be >= 1')
+			self._pglm_degrees = degrees
 
 		self._pglm_homogeneous = homogeneous
 

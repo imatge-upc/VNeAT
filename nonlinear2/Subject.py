@@ -5,6 +5,29 @@ class Subject:
 	Sexes = ['Unknown', 'Male', 'Female']
 	APOE4s = ['Unknown', 'Yes', 'No']
 
+	Attributes = \
+		 '''- Subject.Diagnostic: A 0-based index indicating the diagnostic of the subject (see Subject.Diagnostics).
+			    None if it was not indicated.
+
+			- Subject.Age: integer that indicates the age of the subject.
+			    None if it was not indicated.
+
+			- Subject.Sex: integer indicating the genre of the subject.
+			    -1 if Female.
+			     1 if Male.
+			     0 if Not Indicated.
+
+			- Subject.APOE4: integer indicating if the apoe-4 protein is present in the subject's organism.
+			    -1 if Not Present.
+			     1 if Present.
+			     0 if Not Indicated.
+
+			- Subject.Education: integer that indicates the level of academical education of the subject.
+			    None if it was not indicated.
+
+			- Subject.ADCSFIndex: float thar represents the AD-CSF index (t-tau) value of the subject.
+			    None if it was not indicated.
+		 '''
 	Diagnostic = 'diag'
 	Age = 'age'
 	Sex = 'sex'
@@ -31,6 +54,18 @@ class Subject:
 		return self._gmfile
 
 	def get(self, attribute_list):
+		'''Retrieves the specified attributes from the subject's data.
+
+			Parameters:
+
+			    - attribute_list: iterable containing the attributes that must be retrieved from the subject.
+			        See Subject.Attributes to obtain a list of available attributes.
+
+			Returns:
+
+				- list containing the values of the attributes specified in the 'attribute_list' argument,
+				    in the same order.
+		'''
 		return [getattr(self, attr_name) for attr_name in attribute_list]
 
 	def __hash__(self):
