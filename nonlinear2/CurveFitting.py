@@ -122,6 +122,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_correctors.shape[1] - 1):
 			u = self._crvfitter_correctors[:, i]
@@ -169,6 +170,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
@@ -194,6 +196,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_regressors.shape[1] - 1):
 			u = self._crvfitter_regressors[:, i]
@@ -241,6 +244,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_regressors.shape[1]):
 			u = self._crvfitter_regressors[:, i]
@@ -267,6 +271,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
@@ -317,6 +322,7 @@ class CurveFitter:
 
 			    - None
 		'''
+		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
 		for i in range(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
@@ -383,6 +389,8 @@ class CurveFitter:
 
 			    - The result should be returned as a tuple of 2 elements, containing the correction parameters in
 			        the first position and the regression parameters in the second position.
+
+			    - Although it is defined as a static method here, this method supports a non-static implementation.
 		'''
 		raise NotImplementedError
 
@@ -472,12 +480,14 @@ class CurveFitter:
 			        the 'correction_parameters' and the 'regression_parameters' arguments should be left unchanged.
 
 			    - The 'correctors' and 'correction_parameters' matrices may have zero elements.
+
+			    - Although it is defined as a static method here, this method supports a non-static implementation.
 		'''
 		raise NotImplementedError
 
 	def evaluate_fit(self, observations, correctors = None, correction_parameters = None, regressors = None, regression_parameters = None, *args, **kwargs):
 		'''Evaluates the degree to which the correctors and regressors get to explain the observational
-			data passed for the last time to the 'fit' method.
+			data passed in the 'observations' argument.
 
 			Parameters:
 
@@ -487,9 +497,9 @@ class CurveFitter:
 			        variables and N the number of observations for each variable.
 
 			    - correctors: NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
-			    	that (may) explain a part of the observational data in which we are not interested, where C is
-			    	the number of correctors and N the number of elements for each corrector. If set to None, the
-			    	internal correctors will be used.
+			        that (may) explain a part of the observational data in which we are not interested, where C is
+			        the number of correctors and N the number of elements for each corrector. If set to None, the
+			        internal correctors will be used.
 
 			    - correction_parameters: array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
 			        the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
@@ -497,9 +507,9 @@ class CurveFitter:
 			        to None, the correction parameters obtained in the last call to 'fit' will be used.
 
 			    - regressors: NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
-			    	to be used to try to explain/predict the observations (experimental data), where R is the number
-			    	of regressors and N the number of elements for each regressor. If set to None, the internal re-
-			    	gressors will be used.
+			        to be used to try to explain/predict the observations (experimental data), where R is the number
+			        of regressors and N the number of elements for each regressor. If set to None, the internal re-
+			        gressors will be used.
 
 			    - regression_parameters: array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
 			        the parameters to fit the regressors to the corrected observations for each variable, where M =
@@ -625,6 +635,8 @@ class CurveFitter:
 			        'regressors' and the 'regression_parameters' matrices have at least one element each.
 
 			    - Both the 'regressors' and the 'regression_parameters' arguments should be left unchanged.
+
+			    - Although it is defined as a static method here, this method supports a non-static implementation.
 		'''
 		raise NotImplementedError
 
@@ -638,16 +650,18 @@ class CurveFitter:
 			        of regressors and N the number of elements for each regressor. If set to None, the regressors of
 			        the instance will be used.
 
-			    - regression_parameters: (Kr)xM (2-dimensional) matrix (default None), representing the parameters
-			        that best fit the regressors to the corrected observations for each variable, where M is the
-			        number of variables and Kr is the number of regression parameters for each variable. If set to
-			        None, the regression parameters of the instance will be used.
+			    - regression_parameters: array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
+			        the parameters to fit the regressors to the corrected observations for each variable, where M =
+			        X1*...*Xn is the number of variables and Kr is the number of regression parameters for each
+			        variable. If set to None, the regression parameters obtained in the last call to 'fit' will be
+			        used.
 
 			    - any other arguments will be passed to the __predict__ method.
 
 			Returns:
 
-			    - Prediction: NxM (2-dimensional) matrix, containing N predicted values for each of the M variables.
+			    - Prediction: array-like structure of shape (N, X1, ..., Xn), containing N predicted values for each of
+			        the M = X1*...*Xn variables.
 		'''
 		if regressors is None:
 			regs = self._crvfitter_regressors
@@ -716,6 +730,8 @@ class CurveFitter:
 
 			    - You may modify the 'observations' matrix if needed. However, both the 'correctors' and the
 			        'correction_parameters' arguments should be left unchanged.
+
+			    - Although it is defined as a static method here, this method supports a non-static implementation.
 		'''
 		raise NotImplementedError
 
@@ -729,13 +745,15 @@ class CurveFitter:
 			        explained by the correctors and regressors in the system, where M = X1*...*Xn is the number of
 			        variables and N the number of observations for each variable.
 
-			    - correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that (may)
-			        explain a part of the observational data in which we are not interested, where C is the number
-			        of correctors and N the number of elements for each corrector.
+			    - correctors: NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+			        that (may) explain a part of the observational data in which we are not interested, where C is
+			        the number of correctors and N the number of elements for each corrector. If set to None, the
+			        internal correctors will be used.
 
-			    - correction_parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best fit
-			        the correctors to the observations for each variable, where M = X1*...*Xn is the number of
-			        variables and Kc is the number of correction parameters for each variable.
+			    - correction_parameters: array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+			        the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+			        is the number of variables and Kc the number of correction parameters for each variable. If set
+			        to None, the correction parameters obtained in the last call to 'fit' will be used.
 
 			    - any other arguments will be passed to the __correct__ method.
 
@@ -813,7 +831,7 @@ class AdditiveCurveFitter(CurveFitter):
 	def __evaluate_fit__(self, correctors, correction_parameters, regressors, regression_parameters, observations, *args, **kwargs):
 		'''Evaluates the significance of the regressors as regards the behaviour of the observations performing an
 			F-test. In particular, the null hypothesis states that the regressors do not explain the variation of
-			the observations at all. The inverse of the p-value of such experiment is returned.
+			the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
 		'''
 		if 0 in correctors.shape:
 			# There is no correction -> Correction error is same as observations

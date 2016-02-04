@@ -40,8 +40,8 @@ class Subject:
 		self._gmfile = graymatter_filename
 		setattr(self, Subject.Diagnostic, diagnostic)
 		setattr(self, Subject.Age, age)
-		setattr(self, Subject.Sex, sex if sex != None else 0)
-		setattr(self, Subject.APOE4, apoe4 if apoe4 != None else 0)
+		setattr(self, Subject.Sex, sex if not sex is None else 0)
+		setattr(self, Subject.APOE4, apoe4 if not apoe4 is None else 0)
 		setattr(self, Subject.Education, education)
 		setattr(self, Subject.ADCSFIndex, adcsfIndex)
 
@@ -78,24 +78,24 @@ class Subject:
 		diag, age, sex, apoe4, ed, adcsf = self.get(Subject.Diagnostic, Subject.Age, Subject.Sex, Subject.APOE4, Subject.Education, Subject.ADCSFIndex)
 		s = 'Subject ' + repr(self.id) + ':\n'
 		s += '    Diagnostic: '
-		if diag == None:
+		if diag is None:
 			s += 'Unknown'
 		else:
 			s += Subject.Diagnostics[diag]
 		s += '\n    Age: '
-		if age == None:
+		if age is None:
 			s += 'Unknown'
 		else:
 			s += repr(age)
 		s += '\n    Sex: ' + Subject.Sexes[sex]
 		s += '\n    APOE4 presence: ' + Subject.APOE4s[apoe4]
 		s += '\n    Education level: '
-		if ed == None:
+		if ed is None:
 			s += 'Unkown'
 		else:
 			s += repr(ed)
 		s += '\n    AD-CSF index (t-tau) value: '
-		if adcsf == None:
+		if adcsf is None:
 			s += 'Unknown'
 		else:
 			s += repr(adcsf)
