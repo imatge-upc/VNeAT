@@ -31,7 +31,7 @@ class GAM(AdditiveCurveFitter):
         n_features=len(smoothers)
 
 
-        mu = 0
+        mu = 0.0
         alpha = np.mean(observations)
 
         offset = np.zeros(n_features, np.float64)
