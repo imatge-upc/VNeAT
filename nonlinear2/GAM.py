@@ -1,3 +1,4 @@
+from abc import  abstractmethod
 from CurveFitting import AdditiveCurveFitter
 from numpy import zeros, array as nparray
 import numpy as np
@@ -10,62 +11,89 @@ import warnings
 from collections import OrderedDict
 
 class GAM(AdditiveCurveFitter):
-    '''Additive model with non-parametric, smoothed components
+    '''
+    Additive model with non-parametric, smoothed components
     '''
 
+    def __init__(self,corrector_smoothers=None, regressor_smoothers=None,maxiter=20):
 
-    @staticmethod
-    def __predict__(regressors):
+        self.corrector_smoothers=corrector_smoothers
+        self.regressor_smoothers=regressor_smoothers
 
-        for smoother in regressors:
-            ypred=ypred + smoother.predict()
+        if corrector_smoothers is not None:
+            correctors=corrector_smoothers.get_covariates()
+        if regressor_smoothers is not None:
+            regressors=regressor_smoothers.get_covariates()
 
-        return ypred
-
-    def __fit__(self,correctors,regressors, observations, rtol=1.0e-06, maxiter=30):
-
-        self._init_iter()
-        smoothers=correctors+regressors
-        n_correctors=len(correctors)
-        n_regressors=len(regressors)
-        n_features=len(smoothers)
+        super(GAM, self).__init__(regressors, correctors, False)
 
 
-        mu = 0.0
+    def __predict__(self,regressors,regression_parameters):
+
+        y_pred=0
+        for reg in self.regressor_smoothers:
+            y_pred = y_pred + reg.predict()
+
+        return y_pred
+
+    def __fit__(self,correctors,regressors,observations, rtol=1.0e-06, maxiter=1):
+
+        self.maxiter=maxiter
+        self.rtol=rtol
+
+        dims=observations.shape
+        smoothers = SmootherSet()
+        for smoother,corr in  zip(self.corrector_smoothers,correctors.T):
+            smoother.set_covariate(corr.reshape(dims[0],-1))
+            smoothers.set_smoother(smoother)
+        for smoother,reg in zip(self.regressor_smoothers,regressors.T):
+            smoother.set_covariate(reg.reshape(dims[0],-1))
+            smoothers.set_smoother(smoother)
+
+        n_correctors=self.corrector_smoothers.num_smoothers
+        n_smoothers=len(smoothers)
+
+        self.__init_iter()
         alpha = np.mean(observations)
+        mu = 0.0
+        offset = np.zeros(n_smoothers, np.float64)
 
-        offset = np.zeros(n_features, np.float64)
-
-        while self.cont():
-            for i in range(n_features):
+        while self.__cont(observations):
+            for i in range(n_smoothers):
                 r = observations - alpha - mu
                 smoothers[i].fit(r)
                 f_i_pred = smoothers[i].predict()
-                offset[i] = f_i_pred.sum() / n_features
+                offset[i] = f_i_pred.sum() / n_smoothers
                 f_i_pred -= offset[i]
                 mu += f_i_pred
+                self.iter += 1
 
-        results_correctors=OrderedDict()
-        results_regressors=OrderedDict()
-        results_correctors['Mean']=alpha
-        for smoother in smoothers[:n_correctors]:
-            results_correctors[smoother.name]=smoother.get_parameters()
-        for smoother in smoothers[n_correctors:]:
-            results_regressors[smoother.name]=smoother.get_parameters()
+        # results_correctors=[]
+        # results_regressors=[]
+        # results_correctors.append('Mean',alpha)
+        # for smoother in smoothers[:n_correctors]:
+        #     results_correctors.append((smoother.name,smoother.get_parameters()))
+        # for smoother in smoothers[n_correctors:]:
+        #     results_regressors.append((smoother.name,smoother.get_parameters()))
 
-        return (results_correctors,results_regressors)
+        self.corrector_smoothers=smoothers[:n_correctors+1]
+        self.regressor_smoothers=smoothers[n_correctors+1:]
+        print([smooth.parameters for smooth in self.corrector_smoothers])
+        print([smooth.parameters for smooth in self.regressor_smoothers])
 
-    def _init_iter(self):
+        return (self.corrector_smoothers,self.regressor_smoothers)
+
+    def __init_iter(self):
         self.iter = 0
         self.dev = np.inf
         return self
 
-    def _cont(self):
+    def __cont(self,observations):
         if self.iter == 0:
             return True
 
-        self.iter += 1
-        curdev = (((self.results.observations - self.results.predict())**2)).sum()
+
+        curdev = (((observations - self.predict())**2)).sum()
 
         if self.iter > self.maxiter:
             return False
@@ -78,23 +106,41 @@ class GAM(AdditiveCurveFitter):
         return True
 
 
-# class Smoothers(list):
-#
-#     def __init__(self):
-#         self.name =[]
-#         self.num_smoothers = 0
-#
-#     def set_smoother(self,smoother, name = None):
-#         self.num_smoothers = self.num_smoothers +1
-#         self.append(smoother)
+class SmootherSet(list):
+
+    def __init__(self):
+        self.num_smoothers = 0
+
+    def set_smoother(self,smoother, name = None):
+        self.num_smoothers = self.num_smoothers +1
+        self.append(smoother)
+
+    def get_covariates(self):
+        return np.array([smoother.get_covariate() for smoother in self]).T
+
+
 
 class Smoother():
 
+    @abstractmethod
     def fit(self):
         raise NotImplementedError()
+
+    @abstractmethod
     def predict(self):
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_parameters(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_covariate(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def set_covariate(self):
+        raise NotImplementedError()
 
 class SplinesSmoother(Smoother):
 
@@ -128,7 +174,6 @@ class SplinesSmoother(Smoother):
         spline=UnivariateSpline(self.xdata , ydata, k=self.degree,s=self.smoothing_factor)
         self.parameters=spline.get_knots(),spline.get_coeffs(),self.degree
 
-
     def predict(self,xdata=None,parameters=None):
 
         if xdata is None:
@@ -148,11 +193,15 @@ class SplinesSmoother(Smoother):
     def get_parameters(self):
         return self.parameters
 
+    def get_covariate(self):
+        return np.array(self.xdata)
+
+    def set_covariate(self,xdata):
+        self.xdata=xdata
 
     @property
     def name(self):
         return self.name
-
 
 class PolynomialSmoother(Smoother):
     """
@@ -162,38 +211,28 @@ class PolynomialSmoother(Smoother):
     def __init__(self, x, order=3,parameters=None,name=None):
 
         self.order = order
-        if parameters is None:
-            parameters = np.zeros((order+1,), np.float64)
-        self.parameters=parameters
-        self.xdata = x
-        if name is None:
-            name='SplinesSmoother'
-        self._name=name
+
         if x.ndim > 1:
             raise ValueError("Error, each smoother a single covariate associated.")
 
+        self.xdata = x #np.array([x**i for i in range(order+1)]).T
+
+        if parameters is None:
+            parameters = np.zeros((order+1,), np.float64)
+        self.parameters=parameters
+
+        if name is None:
+            name='SplinesSmoother'
+
+        self._name=name
 
 
-    # def df_model(self):
-    #     """
-    #     Degrees of freedom used in the fit.
-    #     """
-    #     return self.order + 1
-    #
-    # def df_resid(self):
-    #     """
-    #     Residual degrees of freedom from last fit.
-    #     """
-    #     return self.N - self.order - 1
-
-
-    def fit(self, ydata,sample_weight=None,num_threads = -1):
-
-        if ydata.ndim == 1:
-            ydata = ydata[:,None]
+    def fit(self,ydata,sample_weight=None,num_threads = -1):
 
         curve = LR(fit_intercept = False, normalize = False, copy_X = False,n_jobs=num_threads)
-        curve.fit(self.xdata, ydata, sample_weight)
+
+        xdata = np.array([np.squeeze(self.xdata)**i for i in range(self.order+1)]).T
+        curve.fit(xdata, ydata, sample_weight)
         self.parameters = curve.coef_.T
 
     def predict(self, xdata=None,parameters=None):
@@ -207,15 +246,35 @@ class PolynomialSmoother(Smoother):
                 raise ValueError("You should either fit first the model to the data or specify the parameters")
             else:
                 parameters = self.parameters
+
+        xdata=np.array([np.squeeze(xdata)**i for i in range(self.order+1)]).T
         return xdata.dot(self.parameters)
 
     def get_parameters(self):
         return self.parameters
 
+    def get_covariate(self):
+        return np.array(self.xdata)
+
+    def set_covariate(self,xdata):
+        self.xdata=xdata
+
     @property
     def name(self):
-        return 'SplinesSmoother'
+        return self.name
 
+
+    # def df_model(self):
+    #     """
+    #     Degrees of freedom used in the fit.
+    #     """
+    #     return self.order + 1
+    #
+    # def df_resid(self):
+    #     """
+    #     Residual degrees of freedom from last fit.
+    #     """
+    #     return self.N - self.order - 1
 
 class KernelSmoother(Smoother):
     def __init__(self, x, y, Kernel = None):
