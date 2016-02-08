@@ -33,24 +33,24 @@ y += z
 
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
-corrector_smoother.append(PolynomialSmoother(x1,order=1,name='PolySmoother1'))
+regressor_smoother.append(PolynomialSmoother(x1,order=1,name='PolySmoother1'))
 regressor_smoother.append(PolynomialSmoother(x2,order=2,name='PolySmoother2'))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2,name='PolySmoother3'))
 
-gam=GAM(regressor_smoothers=regressor_smoother,corrector_smoothers=corrector_smoother)
+gam=GAM(regressor_smoothers=regressor_smoother)
 gam.fit(y)
-y_pred=gam.predict()
+y_pred_r=gam.predict()
 
 
 plt.figure()
 plt.plot(y, '.')
 plt.plot(z, 'b-', label='true')
-plt.plot(y_pred, 'r-', label='AdditiveModel')
+plt.plot(y_pred_r, 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
 plt.show()
 
 # plt.figure()
 # plt.plot(x1,y-standarize(f2(x2))-standarize(f3(x3))-smoother_results['mean'], 'k.')
-# plt.plot(x1, standardize(smoother_results), 'r-', label='AdditiveModel')
+# plt.plot(x1, standardize(gam.__predict__()), 'r-', label='AdditiveModel')
 # plt.plot(x1, standarize(f1(x1)),label='true', linewidth=2)

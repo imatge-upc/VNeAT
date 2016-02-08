@@ -22,17 +22,26 @@ class GAM(AdditiveCurveFitter):
 
         if corrector_smoothers is not None:
             correctors=corrector_smoothers.get_covariates()
+        else:
+            correctors=None
         if regressor_smoothers is not None:
             regressors=regressor_smoothers.get_covariates()
+        else:
+            regressors=None
 
         super(GAM, self).__init__(regressors, correctors, False)
 
 
-    def __predict__(self,regressors,regression_parameters):
+    def __predict__(self,regressors,regression_parameters,regressor_smoothers=None):
 
         y_pred=0
-        for reg in self.regressor_smoothers:
-            y_pred = y_pred + reg.predict()
+        if regressor_smoothers is None:
+            regressor_smoothers = self.smoothers
+
+        for smoother,regressor,param in zip(regressor_smoothers,regressors.T,regression_parameters):
+            smoother.set_covariate(regressor)
+            smoother.set_parameters(param)
+            y_pred = y_pred + smoother.predict()
 
         return y_pred
 
@@ -43,14 +52,18 @@ class GAM(AdditiveCurveFitter):
 
         dims=observations.shape
         smoothers = SmootherSet()
-        for smoother,corr in  zip(self.corrector_smoothers,correctors.T):
-            smoother.set_covariate(corr.reshape(dims[0],-1))
-            smoothers.set_smoother(smoother)
-        for smoother,reg in zip(self.regressor_smoothers,regressors.T):
-            smoother.set_covariate(reg.reshape(dims[0],-1))
-            smoothers.set_smoother(smoother)
+        if self.corrector_smoothers is not None:
+            for smoother,corr in  zip(self.corrector_smoothers,correctors.T):
+                smoother.set_covariate(corr.reshape(dims[0],-1))
+                smoothers.set_smoother(smoother)
+            n_correctors=self.corrector_smoothers.num_smoothers
+        else:
+            n_correctors = 0
+        if self.regressor_smoothers is not None:
+            for smoother,reg in zip(self.regressor_smoothers,regressors.T):
+                smoother.set_covariate(reg.reshape(dims[0],-1))
+                smoothers.set_smoother(smoother)
 
-        n_correctors=self.corrector_smoothers.num_smoothers
         n_smoothers=len(smoothers)
 
         self.__init_iter()
@@ -58,11 +71,12 @@ class GAM(AdditiveCurveFitter):
         mu = 0.0
         offset = np.zeros(n_smoothers, np.float64)
 
+        self.smoothers=smoothers
         while self.__cont(observations):
             for i in range(n_smoothers):
                 r = observations - alpha - mu
-                smoothers[i].fit(r)
-                f_i_pred = smoothers[i].predict()
+                self.smoothers[i].fit(r)
+                f_i_pred = self.smoothers[i].predict()
                 offset[i] = f_i_pred.sum() / n_smoothers
                 f_i_pred -= offset[i]
                 mu += f_i_pred
@@ -76,12 +90,14 @@ class GAM(AdditiveCurveFitter):
         # for smoother in smoothers[n_correctors:]:
         #     results_regressors.append((smoother.name,smoother.get_parameters()))
 
-        self.corrector_smoothers=smoothers[:n_correctors+1]
-        self.regressor_smoothers=smoothers[n_correctors+1:]
+        self.corrector_smoothers=SmootherSet(self.smoothers[:n_correctors])
+        # self.corrector_smoothers.set_smoother()
+        self.regressor_smoothers=SmootherSet(self.smoothers[n_correctors:])
+        # self.regressor_smoothers.set_smoother()
         print([smooth.parameters for smooth in self.corrector_smoothers])
         print([smooth.parameters for smooth in self.regressor_smoothers])
 
-        return (self.corrector_smoothers,self.regressor_smoothers)
+        return (self.corrector_smoothers.get_parameters(),self.regressor_smoothers.get_parameters())
 
     def __init_iter(self):
         self.iter = 0
@@ -93,7 +109,9 @@ class GAM(AdditiveCurveFitter):
             return True
 
 
-        curdev = (((observations - self.predict())**2)).sum()
+        curdev = (((observations - self.__predict__(self.smoothers.get_covariates(),
+                                                    self.smoothers.get_parameters(),
+                                                    self.smoothers))**2)).sum()
 
         if self.iter > self.maxiter:
             return False
@@ -108,8 +126,13 @@ class GAM(AdditiveCurveFitter):
 
 class SmootherSet(list):
 
-    def __init__(self):
-        self.num_smoothers = 0
+    def __init__(self,smoothers=None):
+
+        if smoothers is None:
+            self.num_smoothers = 0
+        else:
+            self.num_smoothers = len(smoothers)
+            self=smoothers
 
     def set_smoother(self,smoother, name = None):
         self.num_smoothers = self.num_smoothers +1
@@ -118,6 +141,8 @@ class SmootherSet(list):
     def get_covariates(self):
         return np.array([smoother.get_covariate() for smoother in self]).T
 
+    def get_parameters(self):
+        return np.array([smoother.get_parameters() for smoother in self])
 
 
 class Smoother():
@@ -197,7 +222,10 @@ class SplinesSmoother(Smoother):
         return np.array(self.xdata)
 
     def set_covariate(self,xdata):
-        self.xdata=xdata
+        self.xdata=np.squeeze(xdata)
+
+    def set_parameters(self,parameters):
+        self.parameters = parameters
 
     @property
     def name(self):
@@ -252,12 +280,14 @@ class PolynomialSmoother(Smoother):
 
     def get_parameters(self):
         return self.parameters
+    def set_parameters(self,parameters):
+        self.parameters = parameters
 
     def get_covariate(self):
         return np.array(self.xdata)
 
     def set_covariate(self,xdata):
-        self.xdata=xdata
+        self.xdata=np.squeeze(xdata)
 
     @property
     def name(self):
@@ -336,7 +366,6 @@ class KernelSmoother(Smoother):
 
     def std(self, x):
         return np.sqrt(self.var(x))
-
 
 class GaussianKernel:
     """
