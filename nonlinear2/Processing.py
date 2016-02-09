@@ -26,6 +26,13 @@ class Processor:
 		def fitting_scores(self):
 			return self._fitting_scores
 
+		def __str__(self):
+			s = 'Results:'
+			s += '\n    Correction parameters:' + reduce(lambda x, y: x + '\n    ' + y, repr(self._correction_parameters).split('\n'))
+			s += '\n\n    Regression parameters:' + reduce(lambda x, y: x + '\n    ' + y, repr(self._regression_parameters).split('\n'))
+			s += '\n\n    Fitting scores:\n' + reduce(lambda x, y: x + '\n    ' + y, repr(self._fitting_scores).split('\n'))
+			return s
+
 	def __init__(self, subjects, regressors, correctors = [], user_defined_parameters = ()):
 		self._processor_subjects = subjects
 		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), subjects))
@@ -201,6 +208,7 @@ class Processor:
 		# Get frist chunk and fit the parameters
 		chunks = self.__processor_chunks(gmdata_readers)
 		chunk = chunks.next()
+
 		self._processor_fitter.fit(chunk.data, *args, **kwargs)
 
 		# Get the parameters and the dimensions of the solution matrices
@@ -248,7 +256,8 @@ class Processor:
 			# Update progress
 			self.__processor_update_progress(prog_inc*dx*dy*dz)
 
-		self.__processor_update_progress(10000.0 - self._processor_progress)
+		if self.progress != 100.0:
+			self.__processor_update_progress(10000.0 - self._processor_progress)
 		return Processor.Results(regression_parameters, correction_parameters, fitting_scores)
 
 	#TODO: Document properly
@@ -282,6 +291,11 @@ class Processor:
 		if z2 is None:
 			z2 = regression_parameters.shape[3]
 		
+		if t1 is None:
+			t1 = self._processor_regressors.min()
+		if t2 is None:
+			t2 = self._processor_regressors.max()
+
 		rparams = regression_parameters[:, x1:x2, y1:y2, z1:z2]
 
 		regs = zeros((tpoints, 1))
@@ -291,7 +305,7 @@ class Processor:
 			regs[i][0] = t
 			t += step
 
-		self.__curve__(self._processor_fitter, regs, rparams)
+		return regs.T[0], self.__curve__(self._processor_fitter, regs, rparams)
 
 
 	#TODO: Document properly
@@ -316,9 +330,10 @@ class Processor:
 		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
 		dims = gmdata_readers[0].dims
 
-		corrected_data = zeros(dims)
+		correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+		corrected_data = zeros(tuple([len(gmdata_readers)]) + dims)
 
-		for chunk in chunks:
+		for chunk in self.__processor_chunks(gmdata_readers):
 			# Get relative (to the solution matrix) coordinates of the chunk
 			x, y, z = chunk.coords
 			x -= x1
@@ -327,9 +342,9 @@ class Processor:
 
 			# Get chunk data and its dimensions
 			cdata = chunk.data
-			dx, dy, dz = cdata.shape
+			dx, dy, dz = cdata.shape[1:]
 
-			corrected_data[x:(x+dx), y:(y+dy), z:(z+dz)] = self.__corrected_values__(fitter, cdata, correction_parameters[x:(x+dx), y:(y+dy), z:(z+dz)])
+			corrected_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = self.__corrected_values__(self._processor_fitter, cdata, correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)])
 
 		return corrected_data
 

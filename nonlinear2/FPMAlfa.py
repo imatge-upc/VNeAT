@@ -8,7 +8,7 @@ import nibabel as nib
 from numpy import array as nparray
 
 
-print 'Obtaining data from Excel file'
+print 'Obtaining data from Excel file...'
 DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
 EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
 
@@ -40,13 +40,13 @@ for r in exc.get_rows( fieldstype = {
 		)
 	)
 
-print 'Initializing PolyGLM Processor'
+print 'Initializing PolyGLM Processor...'
 pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex])
 
-print 'Processing data'
+print 'Processing data...'
 results = pglmp.process()
 
-print 'Saving results to files'
+print 'Saving results to files...'
 
 affine = nparray(
 		[[ -1.50000000e+00,   0.00000000e+00,   0.00000000e+00,   9.00000000e+01],
@@ -63,3 +63,5 @@ nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_fitscores.nii')
 with open('fpmalfa_userdefparams.txt', 'wb') as f:
 	f.write(str(pglmp.user_defined_parameters) + '\n')
 
+
+print 'Done.'

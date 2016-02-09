@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from Documentation import docstring_inheritor
-from numpy import array as nparray, zeros, ones
+from numpy import array as nparray, zeros, ones, float64
 from scipy.stats import f as f_stat
 
 
@@ -43,7 +43,7 @@ class CurveFitter:
 		if regressors is None:
 			self._crvfitter_regressors = zeros((0, 0))
 		else:
-			self._crvfitter_regressors = nparray(regressors, dtype = float)
+			self._crvfitter_regressors = nparray(regressors, dtype = float64)
 
 			if len(self._crvfitter_regressors.shape) != 2:
 				raise TypeError('Argument \'regressors\' must be a 2-dimensional matrix')
@@ -55,7 +55,7 @@ class CurveFitter:
 				self._crvfitter_correctors = zeros((0, 0))
 
 		else:
-			correctors = nparray(correctors, dtype = float)
+			correctors = nparray(correctors, dtype = float64)
 
 			if len(correctors.shape) != 2:
 				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix (or None)')
@@ -418,7 +418,7 @@ class CurveFitter:
 			        dimensions of the 'observations' argument and Kr is the number of regression parameters for each
 			        variable.
 		'''
-		obs = nparray(observations, dtype = float)
+		obs = nparray(observations, dtype = float64)
 		dims = obs.shape
 		self._crvfitter_dims = dims[1:]
 		if dims[0] != self._crvfitter_regressors.shape[0]:
@@ -526,7 +526,7 @@ class CurveFitter:
 			        variable; the greater the score, the greater the significance, and thus, the better the fit.
 		'''
 
-		obs = nparray(observations, dtype = float)
+		obs = nparray(observations, dtype = float64)
 		dims = obs.shape
 		obs = obs.reshape(dims[0], -1)
 
@@ -541,7 +541,7 @@ class CurveFitter:
 			else:
 				correctors_present = True
 		else:
-			cors = nparray(correctors, dtype = float)
+			cors = nparray(correctors, dtype = float64)
 			if len(cors.shape) != 2:
 				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
 			
@@ -559,7 +559,7 @@ class CurveFitter:
 				if 0 in cparams.shape:
 					raise AttributeError('There are no correction parameters in this instance')
 			else:
-				cparams = nparray(correction_parameters, dtype = float)
+				cparams = nparray(correction_parameters, dtype = float64)
 				cparams = cparams.reshape(cparams.shape[0], -1)
 
 				if 0 in cparams.shape:
@@ -577,7 +577,7 @@ class CurveFitter:
 			if 0 in regs.shape:
 				raise AttributeError('There are no regressors in this instance')
 		else:
-			regs = nparray(regressors, dtype = float)
+			regs = nparray(regressors, dtype = float64)
 
 			if len(regs.shape) != 2:
 				raise TypeError('Argument \'regressors\' must be a 2-dimensional matrix')
@@ -593,7 +593,7 @@ class CurveFitter:
 			if 0 in rparams.shape:
 				raise AttributeError('There are no regression parameters in this instance')
 		else:
-			rparams = nparray(regression_parameters, dtype = float)
+			rparams = nparray(regression_parameters, dtype = float64)
 			# Make matrix 2-dimensional
 			rparams = rparams.reshape(rparams.shape[0], -1)
 
@@ -668,7 +668,7 @@ class CurveFitter:
 			if 0 in regs.shape:
 				raise AttributeError('There are no regressors in this instance')
 		else:
-			regs = nparray(regressors, dtype = float)
+			regs = nparray(regressors, dtype = float64)
 			if len(regs.shape) != 2:
 				raise TypeError('Argument \'regressors\' must be a 2-dimensional matrix')
 			if 0 in regs.shape:
@@ -678,7 +678,7 @@ class CurveFitter:
 			params = self._crvfitter_regression_parameters
 			dims = (1,) + self._crvfitter_dims
 		else:
-			params = nparray(regression_parameters, dtype = float)
+			params = nparray(regression_parameters, dtype = float64)
 			# Keep original dimensions (to reset dimensions of prediction)
 			dims = params.shape
 			# Make matrix 2-dimensional
@@ -764,7 +764,7 @@ class CurveFitter:
 		'''
 
 		## Treat observations
-		obs = nparray(observations, dtype = float)
+		obs = nparray(observations, dtype = float64)
 		# Keep original dimensions (to reset dimensions of corrected data)
 		dims = obs.shape
 		# Make matrix 2-dimensional
@@ -780,7 +780,7 @@ class CurveFitter:
 			if 0 in cors.shape:
 				return observations
 		else:
-			cors = nparray(correctors, dtype = float)
+			cors = nparray(correctors, dtype = float64)
 			if len(cors.shape) != 2:
 				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
 			
@@ -794,7 +794,7 @@ class CurveFitter:
 		if correction_parameters is None:
 			params = self._crvfitter_correction_parameters
 		else:
-			params = nparray(correction_parameters, dtype = float)
+			params = nparray(correction_parameters, dtype = float64)
 			params = params.reshape(params.shape[0], -1)
 
 			if 0 in params.shape:
@@ -841,30 +841,36 @@ class AdditiveCurveFitter(CurveFitter):
 			correction_error = self.__correct__(observations, correctors, correction_parameters)
 
 		## Get the error obtained when using the full model (correctors + regressors)
-		prediction = self.__predict__(regressors, regression_parameters)
+		# prediction = self.__predict__(regressors, regression_parameters)
 
-		regression_error = correction_error - prediction
-
+		# regression_error = correction_error - prediction
+		regression_error = self.__correct__(correction_error, regressors, regression_parameters)
 
 		## Now compare the variances of the errors
 
 		# Residual Sum of Squares for restricted model
-		rss1 = sum(correction_error**2)
+		rss1 = sum((correction_error - correction_error.mean())**2)
 		p1 = correctors.shape[1]
 
-		#Residual Sum of Squares for and full model
+		# Residual Sum of Squares for full model
 		rss2 = sum(regression_error**2)
 		p2 = p1 + regressors.shape[1]
 
 		# Degrees of freedom
 		n = observations.shape[0]
 		df1 = p2 - p1
-		df2 = n - p2 + 1
+		df2 = n - p2
 
 		# Compute f-scores and p-values
 		var1 = (rss1 - rss2)/df1
 		var2 = rss2/df2
 		f_score = var1/var2
+
+		# print rss1, rss2
+		# print 'Df Residuals:', df2
+		# print 'Df Model:', df1
+		# print 'F-statistic:', f_score
+		# print 'R-squared:', 1 - rss2/rss1
 
 		return f_stat.cdf(f_score, df1, df2)
 

@@ -110,7 +110,7 @@ class PolyGLMProcessor(Processor):
 		return pglm
 
 	def __user_defined_parameters__(self, fitter):
-		return (self._pglmprocessor_homogeneous, self._pglmprocessor_perp_norm_option, self._pglmprocessor_degrees)
+		return (self._pglmprocessor_homogeneous, self._pglmprocessor_perp_norm_option) + tuple(self._pglmprocessor_degrees)
 
 	def __read_user_defined_parameters__(self, regressor_names, corrector_names):
 		if super(PolyGLMProcessor, self).__getyesorno__(default_value = True, show_text = 'PolyGLM Processor: Do you want to include the homogeneous term? (Y/N, default Y): '):
@@ -130,13 +130,13 @@ class PolyGLMProcessor(Processor):
 				default_value = 1,
 				lower_limit = 1,
 				try_ntimes = 3,
-				show_text = 'PolyGLM Processor: Please, enter the degree of the feature (predictor) ' + str(reg) + ' (or leave blank to set to 1): '
+				show_text = 'PolyGLM Processor: Please, enter the degree of the feature (predictor) \'' + str(reg) + '\' (or leave blank to set to 1): '
 			))
 		for cor in corrector_names:
 			degrees.append(super(PolyGLMProcessor, self).__getint__(
 				default_value = 1,
 				try_ntimes = 3,
-				show_text = 'PolyGLM Processor: Please, enter the degree of the feature (corrector) ' + str(cor) + ' (or leave blank to set to 1): '
+				show_text = 'PolyGLM Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
 			))
 
 		return (homogeneous, perp_norm_option) + tuple(degrees)

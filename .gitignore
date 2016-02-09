@@ -1,3 +1,7 @@
 data/*
 .idea/*
 *.pyc
+**/.DS_STORE
+*.nii
+*.txt
+*.sh
