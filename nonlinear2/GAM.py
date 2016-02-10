@@ -10,6 +10,9 @@ from scipy.interpolate import splev
 import warnings
 from collections import OrderedDict
 
+
+TYPE_SMOOTHER={'PolynomialSmoother','SplinesSmoother'}
+
 class GAM(AdditiveCurveFitter):
     '''
     Additive model with non-parametric, smoothed components
@@ -32,15 +35,17 @@ class GAM(AdditiveCurveFitter):
         super(GAM, self).__init__(regressors, correctors, False)
 
 
-    def __predict__(self,regressors,regression_parameters,regressor_smoothers=None):
+    def __predict__(self,regressors,regression_parameters):
 
         y_pred=0
-        if regressor_smoothers is None:
-            regressor_smoothers = self.smoothers
+        for reg, parameters in zip(regressors.T,regression_parameters):
+            if parameters[0]==0:
+                smoother=PolynomialSmoother(reg,order=parameters[2])
+            elif parameters[0]==1:
+                smoother=SplinesSmoother(reg,order=parameters[-1],smoothing_factor=parameters[2])
+            else:
+                raise ValueError("This covariate doesn't correspond to any known smoother.")
 
-        for smoother,regressor,param in zip(regressor_smoothers,regressors.T,regression_parameters):
-            smoother.set_covariate(regressor)
-            smoother.set_parameters(param)
             y_pred = y_pred + smoother.predict()
 
         return y_pred
@@ -94,10 +99,10 @@ class GAM(AdditiveCurveFitter):
         # self.corrector_smoothers.set_smoother()
         self.regressor_smoothers=SmootherSet(self.smoothers[n_correctors:])
         # self.regressor_smoothers.set_smoother()
-        print([smooth.parameters for smooth in self.corrector_smoothers])
-        print([smooth.parameters for smooth in self.regressor_smoothers])
+        # print([smooth.parameters for smooth in self.corrector_smoothers])
+        # print([smooth.parameters for smooth in self.regressor_smoothers])
 
-        return (self.corrector_smoothers.get_parameters(),self.regressor_smoothers.get_parameters())
+        return (self.__code_parameters(self.corrector_smoothers),self.__code_parameters(self.regressor_smoothers))
 
     def __init_iter(self):
         self.iter = 0
@@ -122,6 +127,13 @@ class GAM(AdditiveCurveFitter):
         self.dev = curdev
 
         return True
+
+    def __code_parameters(self,smoother_set):
+        parameters=[]
+        for smoother in smoother_set:
+            params=smoother.get_parameters()
+            parameters=np.append([TYPE_SMOOTHER.index(smoother.name()),len(params)],params)
+        return parameters
 
 
 class SmootherSet(list):
@@ -171,6 +183,8 @@ class SplinesSmoother(Smoother):
 
     def __init__(self,xdata,degree=3,smoothing_factor=None,parameters=None,name=None):
 
+        if smoothing_factor is None:
+            smoothing_factor = len(xdata)
         self.smoothing_factor=smoothing_factor
         self.degree=degree
         self.xdata=xdata
@@ -179,13 +193,15 @@ class SplinesSmoother(Smoother):
             name='SplinesSmoother'
         self._name=name
 
-    # def df_model(self,parameters=None):
+    def df_model(self,parameters=None):
+        pass
     #     """
     #     Degrees of freedom used in the fit.
     #     """
     #     return (parameters[2]+1)*(parameters[0]+1)-parameters[2]*parameters[0]
 
-    # def df_resid(self,parameters=None):
+    def df_resid(self,parameters=None):
+        pass
     #     """
     #     Residual degrees of freedom from last fit.
     #     """
@@ -216,7 +232,7 @@ class SplinesSmoother(Smoother):
         return np.squeeze(ydata_pred)
 
     def get_parameters(self):
-        return self.parameters
+        return [self.smoothing_factor,self.parameters]
 
     def get_covariate(self):
         return np.array(self.xdata)
@@ -229,7 +245,7 @@ class SplinesSmoother(Smoother):
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
 class PolynomialSmoother(Smoother):
     """
@@ -253,7 +269,7 @@ class PolynomialSmoother(Smoother):
             name='SplinesSmoother'
 
         self._name=name
-
+        self._N=len(x)
 
     def fit(self,ydata,sample_weight=None,num_threads = -1):
 
@@ -279,7 +295,8 @@ class PolynomialSmoother(Smoother):
         return xdata.dot(self.parameters)
 
     def get_parameters(self):
-        return self.parameters
+        return [self.order,self.parameters]
+
     def set_parameters(self,parameters):
         self.parameters = parameters
 
@@ -291,20 +308,20 @@ class PolynomialSmoother(Smoother):
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
 
-    # def df_model(self):
-    #     """
-    #     Degrees of freedom used in the fit.
-    #     """
-    #     return self.order + 1
-    #
-    # def df_resid(self):
-    #     """
-    #     Residual degrees of freedom from last fit.
-    #     """
-    #     return self.N - self.order - 1
+    def df_model(self):
+        """
+        Degrees of freedom used in the fit.
+        """
+        return self.order + 1
+
+    def df_resid(self):
+        """
+        Residual degrees of freedom from last fit.
+        """
+        return self._N - self.order - 1
 
 class KernelSmoother(Smoother):
     def __init__(self, x, y, Kernel = None):
