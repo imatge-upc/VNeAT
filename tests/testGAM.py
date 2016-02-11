@@ -17,13 +17,12 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.005*R.standard_normal(nobs)#np.zeros(nobs)#
-
+y= np.zeros(nobs)#0.005*R.standard_normal(nobs)#
 f1 = lambda x1: (1 + x1 )
 f2 = lambda x2: (1 + x2 - x2**2)
 f3 = lambda x3: (1 - x3 - x3**2)
 
-z = standardize(f1(x1)) + standardize(f2(x2)) #+ standardize(f3(x3))
+z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
 z = standardize(z)
 
 y += z
@@ -33,8 +32,8 @@ y += z
 
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
-regressor_smoother.append(PolynomialSmoother(x1,order=1,name='PolySmoother1'))
-regressor_smoother.append(PolynomialSmoother(x2,order=2,name='PolySmoother2'))
+regressor_smoother.append(PolynomialSmoother(x1,order=1))
+# regressor_smoother.append(PolynomialSmoother(x2,order=2))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2,name='PolySmoother3'))
 
 gam=GAM(regressor_smoothers=regressor_smoother)
@@ -45,7 +44,7 @@ y_pred_r=gam.predict()
 plt.figure()
 plt.plot(y, '.')
 plt.plot(z, 'b-', label='true')
-plt.plot(y_pred_r, 'r-', label='AdditiveModel')
+plt.plot(standardize(y_pred_r), 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
 plt.show()

@@ -11,7 +11,7 @@ import warnings
 from collections import OrderedDict
 
 
-TYPE_SMOOTHER={'PolynomialSmoother':0,'SplinesSmoother':1}
+TYPE_SMOOTHER=['PolynomialSmoother','SplinesSmoother']
 
 class GAM(AdditiveCurveFitter):
     '''
@@ -34,8 +34,8 @@ class GAM(AdditiveCurveFitter):
 
         super(GAM, self).__init__(regressors, correctors, False)
 
-
-    def __predict__(self,regressors,regression_parameters):
+    @staticmethod
+    def __predict__(regressors,regression_parameters):
 
         y_pred=np.zeros((regressors.shape[0],))
         for reg, parameters in zip(regressors.T,regression_parameters):
@@ -46,8 +46,7 @@ class GAM(AdditiveCurveFitter):
             else:
                 raise ValueError("This covariate doesn't correspond to any known smoother.")
 
-            y_pred += smoother.predict()
-
+            y_pred = smoother.predict()
         return y_pred
 
     def __fit__(self,correctors,regressors,observations, rtol=1.0e-06, maxiter=1):
@@ -87,21 +86,10 @@ class GAM(AdditiveCurveFitter):
                 mu += f_i_pred
                 self.iter += 1
 
-        # results_correctors=[]
-        # results_regressors=[]
-        # results_correctors.append('Mean',alpha)
-        # for smoother in smoothers[:n_correctors]:
-        #     results_correctors.append((smoother.name,smoother.get_parameters()))
-        # for smoother in smoothers[n_correctors:]:
-        #     results_regressors.append((smoother.name,smoother.get_parameters()))
-
-        self.corrector_smoothers=SmootherSet(self.smoothers[:n_correctors])
-        # self.corrector_smoothers.set_smoother()
-        self.regressor_smoothers=SmootherSet(self.smoothers[n_correctors:])
-        # self.regressor_smoothers.set_smoother()
-        # print([smooth.parameters for smooth in self.corrector_smoothers])
-        # print([smooth.parameters for smooth in self.regressor_smoothers])
-
+        self.corrector_smoothers=SmootherSet()
+        self.corrector_smoothers.extend(self.smoothers[:n_correctors])
+        self.regressor_smoothers=SmootherSet()
+        self.regressor_smoothers.extend(self.smoothers[n_correctors:])
         return (self.__code_parameters(self.corrector_smoothers),self.__code_parameters(self.regressor_smoothers))
 
     def __init_iter(self):
@@ -111,6 +99,7 @@ class GAM(AdditiveCurveFitter):
 
     def __cont(self,observations):
         if self.iter == 0:
+            self.iter += 1
             return True
 
 
@@ -131,22 +120,13 @@ class GAM(AdditiveCurveFitter):
         parameters=[]
         for smoother in smoother_set:
             params=smoother.get_parameters()
-            parameters=np.append([TYPE_SMOOTHER.index(smoother.name()),len(params)],params)
-        return parameters
+            parameters.append(params)
+        return np.array(parameters)
 
 
 class SmootherSet(list):
 
-    def __init__(self,smoothers=None):
-
-        if smoothers is None:
-            self.num_smoothers = 0
-        else:
-            self.num_smoothers = len(smoothers)
-            self=smoothers
-
     def set_smoother(self,smoother, name = None):
-        self.num_smoothers = self.num_smoothers +1
         self.append(smoother)
 
     def get_covariates(self):
@@ -265,7 +245,7 @@ class PolynomialSmoother(Smoother):
         self.parameters=parameters
 
         if name is None:
-            name='SplinesSmoother'
+            name='PolynomialSmoother'
 
         self._name=name
         self._N=len(x)
@@ -293,7 +273,7 @@ class PolynomialSmoother(Smoother):
         return xdata.dot(self.parameters)
 
     def get_parameters(self):
-        return np.append([TYPE_SMOOTHER['PolynomialSmoother'],self.order],self.parameters)
+        return np.append([TYPE_SMOOTHER.index('PolynomialSmoother'),self.order],self.parameters)
 
     def set_parameters(self,parameters):
         self.parameters = parameters
