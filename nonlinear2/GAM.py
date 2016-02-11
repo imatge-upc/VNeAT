@@ -11,7 +11,7 @@ import warnings
 from collections import OrderedDict
 
 
-TYPE_SMOOTHER={'PolynomialSmoother','SplinesSmoother'}
+TYPE_SMOOTHER={'PolynomialSmoother':0,'SplinesSmoother':1}
 
 class GAM(AdditiveCurveFitter):
     '''
@@ -37,16 +37,16 @@ class GAM(AdditiveCurveFitter):
 
     def __predict__(self,regressors,regression_parameters):
 
-        y_pred=0
+        y_pred=np.zeros((regressors.shape[0],))
         for reg, parameters in zip(regressors.T,regression_parameters):
             if parameters[0]==0:
-                smoother=PolynomialSmoother(reg,order=parameters[2])
+                smoother=PolynomialSmoother(reg,order=int(parameters[1]),parameters=parameters[2:])
             elif parameters[0]==1:
-                smoother=SplinesSmoother(reg,order=parameters[-1],smoothing_factor=parameters[2])
+                smoother=SplinesSmoother(reg,order=parameters[-1],smoothing_factor=parameters[1],parameters=parameters[2:])
             else:
                 raise ValueError("This covariate doesn't correspond to any known smoother.")
 
-            y_pred = y_pred + smoother.predict()
+            y_pred += smoother.predict()
 
         return y_pred
 
@@ -115,8 +115,7 @@ class GAM(AdditiveCurveFitter):
 
 
         curdev = (((observations - self.__predict__(self.smoothers.get_covariates(),
-                                                    self.smoothers.get_parameters(),
-                                                    self.smoothers))**2)).sum()
+                                                    self.smoothers.get_parameters()))**2)).sum()
 
         if self.iter > self.maxiter:
             return False
@@ -232,7 +231,7 @@ class SplinesSmoother(Smoother):
         return np.squeeze(ydata_pred)
 
     def get_parameters(self):
-        return [self.smoothing_factor,self.parameters]
+        return np.append([TYPE_SMOOTHER['SplinesSmoother'],self.smoothing_factor],self.parameters)
 
     def get_covariate(self):
         return np.array(self.xdata)
@@ -259,7 +258,7 @@ class PolynomialSmoother(Smoother):
         if x.ndim > 1:
             raise ValueError("Error, each smoother a single covariate associated.")
 
-        self.xdata = x #np.array([x**i for i in range(order+1)]).T
+        self.xdata = x
 
         if parameters is None:
             parameters = np.zeros((order+1,), np.float64)
@@ -290,12 +289,11 @@ class PolynomialSmoother(Smoother):
                 raise ValueError("You should either fit first the model to the data or specify the parameters")
             else:
                 parameters = self.parameters
-
         xdata=np.array([np.squeeze(xdata)**i for i in range(self.order+1)]).T
         return xdata.dot(self.parameters)
 
     def get_parameters(self):
-        return [self.order,self.parameters]
+        return np.append([TYPE_SMOOTHER['PolynomialSmoother'],self.order],self.parameters)
 
     def set_parameters(self,parameters):
         self.parameters = parameters

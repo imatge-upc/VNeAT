@@ -1,4 +1,4 @@
-from nonlinear2.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
+from GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
 import matplotlib.pyplot as plt
