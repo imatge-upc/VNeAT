@@ -54,7 +54,7 @@ class GLM(AdditiveCurveFitter):
 			        to try to explain/predict the observations (experimental data), where R is the number of
 			        regressors and N the number of elements for each regressor.
 
-			    - regression_parameters: KxM (2-dimensional) matrix, representing the parameters that best fit
+			    - regression_parameters: RxM (2-dimensional) matrix, representing the parameters that best fit
 			        the regressors to the corrected observations for each variable, where M is the number of
 			        variables and K is the number of regression parameters for each variable.
 
@@ -192,7 +192,7 @@ class PolyGLM(GLM):
 		'''
 		correctors = []
 		regressors = []
-		for index in range(len(self._pglm_is_regressor)):
+		for index in xrange(len(self._pglm_is_regressor)):
 			for p in polynomial(self._pglm_degrees[index], [self._pglm_features[index]]):
 				if self._pglm_is_regressor[index]:
 					regressors.append(p)
@@ -215,14 +215,14 @@ class PolyGLM(GLM):
 	def lin_correctors(self):
 		'''Matrix containing the linear terms of the features that are interpreted as correctors in the model.
 		'''
-		r = [self._pglm_features[i] for i in range(len(self._pglm_is_regressor)) if not self._pglm_is_regressor[i]]
+		r = [self._pglm_features[i] for i in xrange(len(self._pglm_is_regressor)) if not self._pglm_is_regressor[i]]
 		return nparray(r).T
 
 	@property
 	def lin_regressors(self):
 		'''Matrix containing the linear terms of the features that are interpreted as regressors in the model.
 		'''
-		r = [self._pglm_features[i] for i in range(len(self._pglm_is_regressor)) if self._pglm_is_regressor[i]]
+		r = [self._pglm_features[i] for i in xrange(len(self._pglm_is_regressor)) if self._pglm_is_regressor[i]]
 		return nparray(r).T
 
 	@property

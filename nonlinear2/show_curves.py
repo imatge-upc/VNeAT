@@ -1,5 +1,5 @@
 
-show_all = True
+show_all = False
 
 
 
@@ -54,11 +54,11 @@ with open(join('results', 'fpmalfa_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing PolyGLM Processor'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex], user_defined_parameters = user_defined_parameters)
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], pglmp.subjects)
 diag = [[], [], [], []]
-for i in range(len(diagnostics)):
+for i in xrange(len(diagnostics)):
 	diag[diagnostics[i]].append(i)
 
 adcsf = pglmp.regressors.T[0]
@@ -120,7 +120,7 @@ while True:
 		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
 
 		color = ['co', 'bo', 'mo', 'ko']
-		for i in range(len(diag)):
+		for i in xrange(len(diag)):
 			l = diag[i]
 			plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], label = Subject.Diagnostics[i])
 		legend()

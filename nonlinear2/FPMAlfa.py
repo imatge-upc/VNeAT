@@ -41,10 +41,13 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Initializing PolyGLM Processor...'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex])
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
 results = pglmp.process()
+
+print 'Formatting obtained data to display it...'
+z_scores, labels = pglmp.fit_score(results.fitting_scores, produce_labels = True)
 
 print 'Saving results to files...'
 
@@ -60,6 +63,9 @@ niiFile = nib.Nifti1Image
 nib.save(niiFile(results.correction_parameters, affine), 'fpmalfa_cparams.nii')
 nib.save(niiFile(results.regression_parameters, affine), 'fpmalfa_rparams.nii')
 nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_fitscores.nii')
+nib.save(niiFile(z_scores, affine), 'fpmalfa_zscores.nii')
+nib.save(niiFile(labels, affine), 'fpmalfa_labels.nii')
+
 with open('fpmalfa_userdefparams.txt', 'wb') as f:
 	f.write(str(pglmp.user_defined_parameters) + '\n')
 

@@ -3,13 +3,13 @@ import numpy as np
 from matplotlib.pyplot import plot, show
 
 x = np.linspace(-4, 4, 100)
-xdata = np.array([x**i for i in range(4)])
+xdata = np.array([x**i for i in xrange(4)])
 
 params = np.random.uniform(-5, 5, 4)
 params2 = np.random.normal(0, 10, 4)
 
-y = np.array(sum(xdata[i]*params[i] for i in range(xdata.shape[0])))
-y2 = np.array(sum(xdata[i]*params2[i] for i in range(len(xdata))))
+y = np.array(sum(xdata[i]*params[i] for i in xrange(xdata.shape[0])))
+y2 = np.array(sum(xdata[i]*params2[i] for i in xrange(len(xdata))))
 plot(x, y, 'bs', x, y2, 'rs')
 show()
 

@@ -55,9 +55,9 @@ class NiftiReader:
 
 		x1, y1, z1 = self.coords
 		x2, y2, z2 = (x1 + sx, y1 + sy, z1 + sz)
-		for x in range(x1, x2, dx):
-			for y in range(y1, y2, dy):
-				for z in range(z1, z2, dz):
+		for x in xrange(x1, x2, dx):
+			for y in xrange(y1, y2, dy):
+				for z in xrange(z1, z2, dz):
 					f = nibload(self.filename)
 					chunk = Region((x, y, z), f.get_data('unchanged')[x:min(x2, x+dx), y:min(y2, y+dy), z:min(z2, z+dz)])
 					del f

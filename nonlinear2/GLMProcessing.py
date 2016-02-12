@@ -63,18 +63,18 @@ class GLMProcessor(Processor):
 
 
 class PolyGLMProcessor(Processor):
-	_pglmprocessor_perp_norm_options = {
-		'Orthonormalize all': 0,
-		'Orthogonalize all': 1,
-		'Normalize all': 2,
-		'Orthonormalize regressors': 3,
-		'Orthogonalize regressors': 4,
-		'Normalize regressors': 5,
-		'Orthonormalize correctors': 6,
-		'Orthogonalize correctors': 7,
-		'Normalize correctors': 8,
-		'Use correctors and regressors as they are': 9
-	}
+	_pglmprocessor_perp_norm_options_names = [
+		'Orthonormalize all',
+		'Orthogonalize all',
+		'Normalize all',
+		'Orthonormalize regressors',
+		'Orthogonalize regressors',
+		'Normalize regressors',
+		'Orthonormalize correctors',
+		'Orthogonalize correctors',
+		'Normalize correctors',
+		'Use correctors and regressors as they are'
+	]
 
 	_pglmprocessor_perp_norm_options_list = [
 		PGLM.orthonormalize_all,
@@ -88,6 +88,20 @@ class PolyGLMProcessor(Processor):
 		PGLM.normalize_correctors,
 		lambda *args, **kwargs: None
 	]
+
+#		'Orthonormalize all': 0,
+#		'Orthogonalize all': 1,
+#		'Normalize all': 2,
+#		'Orthonormalize regressors': 3,
+#		'Orthogonalize regressors': 4,
+#		'Normalize regressors': 5,
+#		'Orthonormalize correctors': 6,
+#		'Orthogonalize correctors': 7,
+#		'Normalize correctors': 8,
+#		'Use correctors and regressors as they are': 9
+#	}
+
+
 
 	def __fitter__(self, user_defined_parameters):
 		'''Initializes the PolyGLM fitter to be used to process the data.
@@ -105,7 +119,7 @@ class PolyGLMProcessor(Processor):
 		features[:, :num_regs] = self.regressors
 		features[:, num_regs:] = self.correctors
 
-		pglm = PGLM(features = features, regressors = range(num_regs), degrees = self._pglmprocessor_degrees, homogeneous = self._pglmprocessor_homogeneous)
+		pglm = PGLM(features = features, regressors = xrange(num_regs), degrees = self._pglmprocessor_degrees, homogeneous = self._pglmprocessor_homogeneous)
 		treat_data(pglm)
 		return pglm
 
@@ -119,7 +133,7 @@ class PolyGLMProcessor(Processor):
 			homogeneous = 0
 		
 		perp_norm_option = PolyGLMProcessor._pglmprocessor_perp_norm_options[super(PolyGLMProcessor, self).__getoneof__(
-			PolyGLMProcessor._pglmprocessor_perp_norm_options,
+			PolyGLMProcessor._pglmprocessor_perp_norm_options_names,
 			default_value = 'Orthonormalize all',
 			show_text = 'PolyGLM Processor: How do you want to treat the features? (default: Orthonormalize all)'
 		)]
@@ -147,7 +161,5 @@ class PolyGLMProcessor(Processor):
 		return pglm.predict(regression_parameters = regression_parameters)
 
 
-
-
-
+PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i] : i for i in xrange(len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))}
 
