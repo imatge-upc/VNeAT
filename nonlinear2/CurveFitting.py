@@ -690,6 +690,7 @@ class CurveFitter:
 		prediction = self.__predict__(regs, params, *args, **kwargs)
 
 		# Restore original dimensions (except for the first axis)
+		print(prediction)
 		return prediction.reshape(-1, *dims[1:])
 
 	@abstractstatic
