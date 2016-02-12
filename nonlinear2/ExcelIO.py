@@ -64,7 +64,7 @@ class ExcelSheet:
 
 			# Read it and extract headers and the columns where they are
 			self._header2col = ExcelSheet.Row()
-			for col in range(ws.ncols):
+			for col in xrange(ws.ncols):
 				if type2text[headers[col].ctype] == 'text':
 					self._header2col[headers[col].value] = col
 
@@ -147,7 +147,7 @@ class ExcelSheet:
 			if end == None or end > ws.nrows:
 				end = ws.nrows
 
-			for i in range(start, end):
+			for i in xrange(start, end):
 				r = ExcelSheet.Row()
 				# Retrieve row
 				rinfo = ws.row(i)

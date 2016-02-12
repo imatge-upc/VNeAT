@@ -124,14 +124,14 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_correctors.shape[1] - 1):
+		for i in xrange(self._crvfitter_correctors.shape[1] - 1):
 			u = self._crvfitter_correctors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u2 = u/norm_sq
-			for j in range(i+1, self._crvfitter_correctors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
 				v = self._crvfitter_correctors[:, j]
 				v -= v.dot(u)*u2
 
@@ -148,7 +148,7 @@ class CurveFitter:
 			    - None
 		'''
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_correctors.shape[1]):
+		for i in xrange(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq >= threshold:
@@ -172,14 +172,14 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_correctors.shape[1]):
+		for i in xrange(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u /= norm_sq**0.5 # Normalize u
-			for j in range(i+1, self._crvfitter_correctors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
 				v = self._crvfitter_correctors[:, j]
 				v -= v.dot(u)*u # Orthogonalize v with respect to u
 
@@ -198,14 +198,14 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_regressors.shape[1] - 1):
+		for i in xrange(self._crvfitter_regressors.shape[1] - 1):
 			u = self._crvfitter_regressors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u2 = u/norm_sq
-			for j in range(i+1, self._crvfitter_regressors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_regressors.shape[1]):
 				v = self._crvfitter_regressors[:, j]
 				v -= v.dot(u)*u2
 
@@ -222,7 +222,7 @@ class CurveFitter:
 			    - None
 		'''
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_regressors.shape[1]):
+		for i in xrange(self._crvfitter_regressors.shape[1]):
 			u = self._crvfitter_regressors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq >= threshold:
@@ -246,14 +246,14 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_regressors.shape[1]):
+		for i in xrange(self._crvfitter_regressors.shape[1]):
 			u = self._crvfitter_regressors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u /= norm_sq**0.5 # Normalize u
-			for j in range(i+1, self._crvfitter_regressors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_regressors.shape[1]):
 				v = self._crvfitter_regressors[:, j]
 				v -= v.dot(u)*u # Orthogonalize v with respect to u
 
@@ -273,17 +273,17 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_correctors.shape[1]):
+		for i in xrange(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u2 = u/norm_sq
-			for j in range(i+1, self._crvfitter_correctors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
 				v = self._crvfitter_correctors[:, j]
 				v -= v.dot(u)*u2
-			for j in range(self._crvfitter_regressors.shape[1]):
+			for j in xrange(self._crvfitter_regressors.shape[1]):
 				v = self._crvfitter_regressors[:, j]
 				v -= v.dot(u)*u2
 		self.orthogonalize_regressors()
@@ -324,17 +324,17 @@ class CurveFitter:
 		'''
 		# Gram-Schmidt
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in range(self._crvfitter_correctors.shape[1]):
+		for i in xrange(self._crvfitter_correctors.shape[1]):
 			u = self._crvfitter_correctors[:, i]
 			norm_sq = u.dot(u)
 			if norm_sq < threshold:
 				u[:] = 0.0
 				continue
 			u /= norm_sq**0.5 # Normalize u
-			for j in range(i+1, self._crvfitter_correctors.shape[1]):
+			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
 				v = self._crvfitter_correctors[:, j]
 				v -= v.dot(u)*u # Orthogonalize v with respect to u
-			for j in range(self._crvfitter_regressors.shape[1]):
+			for j in xrange(self._crvfitter_regressors.shape[1]):
 				v = self._crvfitter_regressors[:, j]
 				v -= v.dot(u)*u # Orthogonalize v with respect to u
 		self.orthonormalize_regressors()

@@ -23,7 +23,7 @@ def combinatorial(func, elements, k, start = 0):
 		for y in combinatorial(func, elements, k, start+1):
 			yield y
 		x = elements[start]
-		for d in range(1, k):
+		for d in xrange(1, k):
 			for y in combinatorial(func, elements, k - d, start+1):
 				yield func(x, y)
 			x = func(x, elements[start])
@@ -43,7 +43,7 @@ def polynomial(degree, features, complete_polynomy = True, constant_term = False
 	else:
 		init = degree
 
-	for d in range(init, degree+1):
+	for d in xrange(init, degree+1):
 		for term in combinatorial(lambda x, y: x*y, features, d):
 			yield term
 
@@ -69,7 +69,7 @@ def tolist(it, first_call = True):
 
 def flatten(l, ndims_to_reduce = 1):
 	r = l
-	for _ in range(ndims_to_reduce):
+	for _ in xrange(ndims_to_reduce):
 		try:
 			r = list(chain.from_iterable(r))
 		except TypeError:

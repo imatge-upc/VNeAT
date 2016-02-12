@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from Documentation import docstring_inheritor
+from graphlib import NiftiGraph
 from niftiIO import NiftiReader, Region
-from numpy import array as nparray, zeros, savez_compressed as npsave, load as npload
+from numpy import array as nparray, zeros, isfinite, float64
+from scipy.stats import norm
 from sys import stdout
 
 class Processor:
@@ -35,8 +37,8 @@ class Processor:
 
 	def __init__(self, subjects, regressors, correctors = [], user_defined_parameters = ()):
 		self._processor_subjects = subjects
-		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), subjects))
-		self._processor_correctors = nparray(map(lambda subject: subject.get(correctors), subjects))
+		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), subjects), dtype = float64)
+		self._processor_correctors = nparray(map(lambda subject: subject.get(correctors), subjects), dtype = float64)
 		if (len(user_defined_parameters) != 0):
 			self._processor_fitter = self.__fitter__(user_defined_parameters)
 		else:
@@ -171,7 +173,6 @@ class Processor:
 		raise NotImplementedError
 
 	def __processor_chunks(self, gmdata_readers):
-
 		num_subjects = len(gmdata_readers)
 
 		iterators = map(lambda gmdata_reader: gmdata_reader.chunks(self._processor_mem_usage/num_subjects), gmdata_readers)
@@ -180,7 +181,7 @@ class Processor:
 				reg = iterators[0].next()
 				chunkset = [reg.data]
 				chunkset += [it.next().data for it in iterators[1:]]
-				yield Region(reg.coords, nparray(chunkset))
+				yield Region(reg.coords, nparray(chunkset, dtype = float64))
 		except StopIteration:
 			pass
 
@@ -218,9 +219,9 @@ class Processor:
 		rpdims = (rparams.shape[0],) + dims
 		
 		# Initialize solution matrices
-		fitting_scores = zeros(dims)
-		correction_parameters = zeros(cpdims)
-		regression_parameters = zeros(rpdims)
+		fitting_scores = zeros(dims, dtype = float64)
+		correction_parameters = zeros(cpdims, dtype = float64)
+		regression_parameters = zeros(rpdims, dtype = float64)
 
 		# Assign first chunk's solutions to solution matrices
 		dx, dy, dz = cparams.shape[1:]
@@ -251,7 +252,8 @@ class Processor:
 			regression_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.regression_parameters
 
 			# Evaluate the fit for the voxels in this chunk and store them
-			fitting_scores[x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
+			unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
+			fitting_scores[x:x+dx, y:y+dy, z:z+dz] = [[[elem if isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
 			# Update progress
 			self.__processor_update_progress(prog_inc*dx*dy*dz)
@@ -298,10 +300,10 @@ class Processor:
 
 		rparams = regression_parameters[:, x1:x2, y1:y2, z1:z2]
 
-		regs = zeros((tpoints, 1))
+		regs = zeros((tpoints, 1), dtype = float64)
 		step = float(t2 - t1)/tpoints
 		t = t1
-		for i in range(tpoints):
+		for i in xrange(tpoints):
 			regs[i][0] = t
 			t += step
 
@@ -331,7 +333,7 @@ class Processor:
 		dims = gmdata_readers[0].dims
 
 		correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
-		corrected_data = zeros(tuple([len(gmdata_readers)]) + dims)
+		corrected_data = zeros(tuple([len(gmdata_readers)]) + dims, dtype = float64)
 
 		for chunk in self.__processor_chunks(gmdata_readers):
 			# Get relative (to the solution matrix) coordinates of the chunk
@@ -348,8 +350,10 @@ class Processor:
 
 		return corrected_data
 
-	#TODO
-	def fit_score(self, fitting_scores, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None):
+	#TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
+	# since such values affect the values inside the region (if not considered, the clusters could potentially
+	# seem smaller and thus be filtered accordingly)
+	def fit_score(self, fitting_scores, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None, gm_threshold = 0.1, fit_threshold = 0.99, cluster_threshold = 100, produce_labels = False):
 		if x1 is None:
 			x1 = 0
 		if x2 is None:
@@ -363,10 +367,45 @@ class Processor:
 		if z2 is None:
 			z2 = fitting_scores.shape[2]
 
-		return fitting_scores[x1:x2, y1:y2, z1:z2]
+		fitting_scores = fitting_scores[x1:x2, y1:y2, z1:z2]
+
+		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
+		gm_threshold *= len(gmdata_readers) # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
+
+		valid_voxels = zeros(fitting_scores.shape, dtype = float64)
+		for chunk in self.__processor_chunks(gmdata_readers):
+			# Get relative (to the solution matrix) coordinates of the chunk
+			x, y, z = chunk.coords
+			x -= x1
+			y -= y1
+			z -= z1
+
+			dx, dy, dz = chunk.data.shape[1:]
+
+			valid_voxels[x:(x+dx), y:(y+dy), z:(z+dz)] = sum(chunk.data) >= gm_threshold
 
 
-	#TODO: define more of these
+		z_scores = zeros(fitting_scores.shape, dtype = float64)
+		lim_value = norm.ppf(fit_threshold)
+
+		labels = zeros(z_scores.shape, dtype = float64)
+		label = 0
+
+		ng = NiftiGraph(1.0 - fitting_scores*valid_voxels, 1.0 - fit_threshold)
+		for scc in ng.sccs():
+			if len(scc) >= cluster_threshold:
+				label += 1
+				for x, y, z in scc:
+					z_scores[x, y, z] = norm.ppf(fitting_scores[x, y, z]) - lim_value + 0.2
+					labels[x, y, z] = label
+
+		if produce_labels:
+			return z_scores, labels
+		else:
+			return z_scores
+
+
+	#TODO: define more of these?
 
 	@staticmethod
 	def __processor_get__(obtain_input_from, apply_function, try_ntimes, default_value, show_text, show_error_text):
@@ -464,7 +503,7 @@ class Processor:
 		right_justify = lambda s: ' '*(lslol - len(str(s))) + str(s)
 
 		new_show_text = show_text
-		for i in range(lol):
+		for i in xrange(lol):
 			new_show_text += '\n  ' + right_justify(i) + ':  ' + str(opt_list[i])
 		new_show_text += '\nYour choice: '
 
@@ -472,6 +511,7 @@ class Processor:
 			index = int(s)
 			if index < 0 or index >= ls:
 				raise IndexError('Index ' + s + ' is out of the accepted range [0, ' + str(ls) + '].')
+			return index
 
 		index = Processor.__processor_get__(
 			obtain_input_from,
