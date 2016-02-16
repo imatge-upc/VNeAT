@@ -51,7 +51,7 @@ class GLMProcessor(Processor):
 			homogeneous = 1
 		else:
 			homogeneous = 0
-		
+
 		perp_norm_option = GLMProcessor._glmprocessor_perp_norm_options[super(GLMProcessor, self).__getoneof__(
 			GLMProcessor._glmprocessor_perp_norm_options,
 			default_value = 0,
