@@ -38,12 +38,12 @@ class GAMProcessor(Processor):
 		'''
 		TYPE_SMOOTHER=[PolynomialSmoother,SplinesSmoother]
 		self._gamprocessor_perp_norm_option = user_defined_parameters[0]
-		self._gamprocessor_smoother_parameters = user_defined_parameters[1:]
+		self._gamprocessor_smoother_parameters = user_defined_parameters[1]
 
 		sm_index = 0
 		corrector_smoothers=SmootherSet()
 		regressor_smoothers=SmootherSet()
-		for corr in self.correctors:
+		for corr in self.correctors.T:
 			smoother_function=TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](corr)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
@@ -51,7 +51,7 @@ class GAMProcessor(Processor):
 			smoother_function.set_parameters(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])
 			sm_index += n_param
 			corrector_smoothers.extend(smoother_function)
-		for reg in self.regressors:
+		for reg in self.regressors.T:
 			smoother_function=TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](reg)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
@@ -84,21 +84,24 @@ class GAMProcessor(Processor):
 			smoother_type = super(GAMProcessor, self).__getint__(
 				default_value = 1,
 				try_ntimes = 3,
-				show_text = 'GAM Processor: Please, enter the smoothing function of the feature \'' + str(cor) + '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
+				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (corrector) \'' + str(cor)
+							+ '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
 			smoothing_functions.append(smoother_type)
 
 			if smoother_type == 0:
+				smoothing_functions.append(1)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the feature '
+					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the polynomial '
 								'(or leave blank to set to 3) '
 				))
 			elif smoother_type == 1:
+				smoothing_functions.append(2)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the feature '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
 								'(or leave blank to set to 3) '
 				))
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
@@ -111,27 +114,30 @@ class GAMProcessor(Processor):
 			smoother_type = super(GAMProcessor, self).__getint__(
 				default_value = 1,
 				try_ntimes = 3,
-				show_text = 'GAM Processor: Please, enter the smoothing function of the feature \'' + str(cor) + '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
+				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (regressor) \'' + str(reg)
+							+ '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
 			smoothing_functions.append(smoother_type)
 
 			if smoother_type == 0:
+				smoothing_functions.append(1)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the feature '
+					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the polynomial '
 								'(or leave blank to set to 3) '
 				))
 			elif smoother_type == 1:
+				smoothing_functions.append(2)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the feature '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
 								'(or leave blank to set to 3) '
 				))
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the spline'
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the splines'
 								'(or leave it blank to set it to default: len(observations) '
 				))
 

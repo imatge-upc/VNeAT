@@ -36,26 +36,31 @@ regressor_smoother.append(SplinesSmoother(x2,order=2,smoothing_factor=30))
 
 gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
 gam.fit(y)
-y_pred_r=gam.predict(homogenous=True)
+y_pred_r=gam.predict()
 
 
 plt.figure()
-plt.plot(y, 'k.')
-plt.plot(z, 'b-', label='true')
+plt.plot(gam.correct(y), 'k.')
+plt.plot(gam.correct(z), 'b-', label='true')
 plt.plot(y_pred_r, 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
 
+reg_params=gam.regression_parameters
+indx_smthr = 0
 
 plt.figure()
 plt.subplot(2,1,1)
 plt.plot(x1,standarize(y-gam.alpha-f2(x2)),'k.')
-plt.plot(x1, standarize(gam.predict(gam.regressors[:,0][...,None],gam._crvfitter_regression_parameters.T[0].T,homogenous=False)), 'r-', label='AdditiveModel')
+plt.plot(x1, standarize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+         'r-', label='AdditiveModel')
 plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
 
+indx_smthr = 2+reg_params[indx_smthr+1]
 plt.subplot(2,1,2)
 plt.plot(x2,standarize(y-gam.alpha-f1(x1)),'k.')
-plt.plot(x2, standarize(gam.predict(gam.regressors[:,1][...,None],gam._crvfitter_regression_parameters.T[1].T,homogenous=False)), 'r-', label='AdditiveModel')
+plt.plot(x2, standarize(gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+         'r-', label='AdditiveModel')
 plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
 
 plt.show()

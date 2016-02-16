@@ -5,3 +5,4 @@ data/*
 *.nii
 *.txt
 *.sh
+nonlinear2/FPMAlfa_GAM.py

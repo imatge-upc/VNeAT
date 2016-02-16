@@ -678,7 +678,7 @@ class CurveFitter:
 			params = self._crvfitter_regression_parameters
 			dims = (1,) + self._crvfitter_dims
 		else:
-			params = nparray(regression_parameters) #Allow any dtype, since each element can have different nature
+			params = nparray(regression_parameters, dtype=float64)
 			# Keep original dimensions (to reset dimensions of prediction)
 			dims = params.shape
 			# Make matrix 2-dimensional
@@ -800,8 +800,8 @@ class CurveFitter:
 			if 0 in params.shape:
 				raise ValueError('There are no elements in argument \'correction_parameters\'')
 
-		# if obs.shape[1] != params.shape[1]:
-		# 	raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+		if obs.shape[1] != params.shape[1]:
+			raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
 
 		## Compute corrected data
 		corrected_data = self.__correct__(obs, cors, params, *args, **kwargs)
