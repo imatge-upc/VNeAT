@@ -678,7 +678,7 @@ class CurveFitter:
 			params = self._crvfitter_regression_parameters
 			dims = (1,) + self._crvfitter_dims
 		else:
-			params = nparray(regression_parameters, dtype=float64)
+			params = nparray(regression_parameters, dtype = float64)
 			# Keep original dimensions (to reset dimensions of prediction)
 			dims = params.shape
 			# Make matrix 2-dimensional
