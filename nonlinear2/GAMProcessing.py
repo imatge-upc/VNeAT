@@ -101,15 +101,16 @@ class GAMProcessor(Processor):
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
-								'(or leave blank to set to 3) '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the spline'
+								'(or leave it blank to set it to default: len(observations) '
 				))
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the spline'
-								'(or leave it blank to set it to default: len(observations) '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
+								'(or leave blank to set to 3) '
 				))
+
 		for reg in regressor_names:
 			smoother_type = super(GAMProcessor, self).__getint__(
 				default_value = 1,
@@ -131,14 +132,14 @@ class GAMProcessor(Processor):
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
-								'(or leave blank to set to 3) '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the splines'
+								'(or leave it blank to set it to default: len(observations) '
 				))
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
 					try_ntimes = 3,
-					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the splines'
-								'(or leave it blank to set it to default: len(observations) '
+					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the degree of the splines '
+								'(or leave blank to set to 3) '
 				))
 
 

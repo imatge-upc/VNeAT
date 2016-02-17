@@ -62,6 +62,7 @@ class GAM(AdditiveCurveFitter):
         while self.__cont(observations,alpha+mu,maxiter,rtol):
             for smoother in smoother_functions:
                 mu = mu - smoother.predict()
+                print(r)
                 r = observations - alpha - mu
                 smoother.fit(r)
                 f_i_pred = smoother.predict()
