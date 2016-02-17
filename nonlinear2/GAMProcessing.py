@@ -1,6 +1,6 @@
 from Processing import Processor
-from GAM import GAM, PolynomialSmoother, SplinesSmoother, SmootherSet
-from numpy import zeros
+from GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
+from numpy import zeros, array as nparray
 
 
 class GAMProcessor(Processor):
@@ -30,13 +30,13 @@ class GAMProcessor(Processor):
 		lambda *args, **kwargs: None
 	]
 
+	TYPE_SMOOTHER=[InterceptSmoother,PolynomialSmoother,SplinesSmoother]
 
 	def __fitter__(self, user_defined_parameters):
 		'''Initializes the PolyGLM fitter to be used to process the data.
 
 
 		'''
-		TYPE_SMOOTHER=[PolynomialSmoother,SplinesSmoother]
 		self._gamprocessor_perp_norm_option = user_defined_parameters[0]
 		self._gamprocessor_smoother_parameters = user_defined_parameters[1]
 
@@ -44,19 +44,19 @@ class GAMProcessor(Processor):
 		corrector_smoothers=SmootherSet()
 		regressor_smoothers=SmootherSet()
 		for corr in self.correctors.T:
-			smoother_function=TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](corr)
+			smoother_function=GAMProcessor.TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](corr)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])
+			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
 			corrector_smoothers.extend(smoother_function)
 		for reg in self.regressors.T:
-			smoother_function=TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](reg)
+			smoother_function=GAMProcessor.TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](reg)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])
+			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
 			regressor_smoothers.extend(smoother_function)
 
@@ -85,10 +85,10 @@ class GAMProcessor(Processor):
 				default_value = 1,
 				try_ntimes = 3,
 				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (corrector) \'' + str(cor)
-							+ '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
+							+ '\' (1: Polynomial Smoother, 2: Splines Smoother): ')
 			smoothing_functions.append(smoother_type)
 
-			if smoother_type == 0:
+			if smoother_type == GAMProcessor.TYPE_SMOOTHER.index(PolynomialSmoother):
 				smoothing_functions.append(1)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
@@ -96,7 +96,7 @@ class GAMProcessor(Processor):
 					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the polynomial '
 								'(or leave blank to set to 3) '
 				))
-			elif smoother_type == 1:
+			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
@@ -115,10 +115,10 @@ class GAMProcessor(Processor):
 				default_value = 1,
 				try_ntimes = 3,
 				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (regressor) \'' + str(reg)
-							+ '\' (0: Polynomial Smoother, 1: Splines Smoother): ')
+							+ '\' (1: Polynomial Smoother, 2: Splines Smoother): ')
 			smoothing_functions.append(smoother_type)
 
-			if smoother_type == 0:
+			if smoother_type == GAMProcessor.TYPE_SMOOTHER.index(PolynomialSmoother):
 				smoothing_functions.append(1)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
@@ -126,7 +126,7 @@ class GAMProcessor(Processor):
 					show_text = 'GAM Processor: You have selected Polynomial smoother. Please, enter the degree of the polynomial '
 								'(or leave blank to set to 3) '
 				))
-			elif smoother_type == 1:
+			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
 				smoothing_functions.append(super(GAMProcessor, self).__getint__(
 					default_value = 1,
