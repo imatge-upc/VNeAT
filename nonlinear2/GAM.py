@@ -62,7 +62,6 @@ class GAM(AdditiveCurveFitter):
         while self.__cont(observations,alpha+mu,maxiter,rtol):
             for smoother in smoother_functions:
                 mu = mu - smoother.predict()
-                print(r)
                 r = observations - alpha - mu
                 smoother.fit(r)
                 f_i_pred = smoother.predict()
@@ -75,8 +74,12 @@ class GAM(AdditiveCurveFitter):
         self.corrector_smoothers=SmootherSet(smoother_functions[:self.corrector_smoothers.n_smoothers])
         self.regressor_smoothers=SmootherSet(smoother_functions[self.corrector_smoothers.n_smoothers:])
 
-        return (np.concatenate((np.concatenate((([self.TYPE_SMOOTHER.index(InterceptSmoother),1]*np.ones((observations.shape[1],1))).T,self.alpha[:,None].T)),self.__code_parameters(self.corrector_smoothers)))
+        return (np.concatenate((
+            np.concatenate((([self.TYPE_SMOOTHER.index(InterceptSmoother),1]*np.ones((observations.shape[1],1))).T,
+                            self.alpha[:,None].T)),self.__code_parameters(self.corrector_smoothers)))
                 ,self.__code_parameters(self.corrector_smoothers))
+
+
 
         # return (np.concatenate((np.array([self.TYPE_SMOOTHER.index(InterceptSmoother),1,self.alpha]),
         #                         self.__code_parameters(self.corrector_smoothers))), self.__code_parameters(self.regressor_smoothers))
@@ -103,13 +106,11 @@ class GAM(AdditiveCurveFitter):
         return self.alpha,mu,offset
 
     def __cont(self,observations,observations_pred,maxiter,rtol):
-        print(self.iter)
         if self.iter == 0:
             self.iter += 1
             return True
 
         curdev = (((observations - observations_pred)**2)).sum()
-        print(((self.dev - curdev) / curdev))
         if self.iter > maxiter:
             return False
         if ((self.dev - curdev) / curdev) < rtol:
@@ -214,6 +215,8 @@ class SplinesSmoother(Smoother):
         else:
             for obs in ydata.T:
                 spline=UnivariateSpline(self.xdata , obs, k=self.order,s=self.smoothing_factor)
+                if any(np.isnan(spline._eval_args[1])):
+                    raise ValueError ('The smoothing factor  is too small, please consider another value')
                 params.append(spline._eval_args) # spline.get_knots(),spline.get_coeffs(),self.order
         self.spline_parameters=np.array(params)
 
@@ -327,10 +330,10 @@ class PolynomialSmoother(Smoother):
         return y_pred
 
     def get_parameters(self):
-        return np.append(self.order,self.coefficients)
+        return np.concatenate((self.order*np.ones((1,self.coefficients.shape[1])),self.coefficients))
 
     def set_parameters(self,parameters):
-        self.order = int(parameters[0])
+        self.order = int(parameters[0][0])
         self.coefficients = parameters[1:]
 
     def get_covariate(self):

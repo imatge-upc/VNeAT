@@ -10,10 +10,10 @@ from numpy import array as nparray
 
 
 print 'Obtaining data from Excel file...'
-DATA_DIR = join('/','mnt','imatge-work','acasamitjana','FPM','data_backup','Non-linear','Nonlinear_NBA_15')
-EXCEL_FILE = join('/','mnt','imatge-work','acasamitjana','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
-#DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
-#EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
+# DATA_DIR = join('/','mnt','imatge-work','acasamitjana','FPM','data_backup','Non-linear','Nonlinear_NBA_15')
+# EXCEL_FILE = join('/','mnt','imatge-work','acasamitjana','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
+DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
+EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
 
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
