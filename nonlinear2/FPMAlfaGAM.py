@@ -48,7 +48,7 @@ gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex], correctors = [S
 
 
 print 'Processing data...'
-results = gamp.process()
+results = gamp.process(x1=55,x2=57,y1=34,y2=36,z1=77,z2=79)
 
 print 'Formatting obtained data to display it...'
 z_scores, labels = gamp.fit_score(results.fitting_scores, produce_labels = True)

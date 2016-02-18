@@ -74,15 +74,20 @@ class GAM(AdditiveCurveFitter):
         self.corrector_smoothers=SmootherSet(smoother_functions[:self.corrector_smoothers.n_smoothers])
         self.regressor_smoothers=SmootherSet(smoother_functions[self.corrector_smoothers.n_smoothers:])
 
-        return (np.concatenate((
-            np.concatenate((([self.TYPE_SMOOTHER.index(InterceptSmoother),1]*np.ones((observations.shape[1],1))).T,
-                            self.alpha[:,None].T)),self.__code_parameters(self.corrector_smoothers)))
-                ,self.__code_parameters(self.corrector_smoothers))
+        _coded_corrector_params = self.__code_parameters(self.corrector_smoothers)
+        if len(_coded_corrector_params) == 0:
+            _coded_corrector_params = _coded_corrector_params.reshape((0,observations.shape[1]))
+
+        _coded_regressor_params = self.__code_parameters(self.regressor_smoothers)
+        if len(_coded_regressor_params) == 0:
+            _coded_regressor_params = _coded_regressor_params.reshape((0,observations.shape[1]))
+
+        _coded_header_params = np.concatenate((([self.TYPE_SMOOTHER.index(InterceptSmoother),1]*np.ones((observations.shape[1],1))).T,
+                                               self.alpha[:,None].T))
+
+        return (np.concatenate((_coded_header_params,_coded_corrector_params)),_coded_regressor_params)
 
 
-
-        # return (np.concatenate((np.array([self.TYPE_SMOOTHER.index(InterceptSmoother),1,self.alpha]),
-        #                         self.__code_parameters(self.corrector_smoothers))), self.__code_parameters(self.regressor_smoothers))
 
     def __predict__(self,regressors,regression_parameters):
 

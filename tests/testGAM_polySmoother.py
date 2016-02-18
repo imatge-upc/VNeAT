@@ -36,11 +36,11 @@ regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
 regressor_smoother.append(PolynomialSmoother(x1,order=1))
 regressor_smoother.append(PolynomialSmoother(x2,order=2))
-# regressor_smoother.append(PolynomialSmoother(x3,order=2))
+# corrector_smoother.append(PolynomialSmoother(x3,order=2))
 
 gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
 gam.fit(y)
-y_pred_r=gam.predict(homogenous=True)
+y_pred_r=gam.predict()
 
 
 plt.figure()
