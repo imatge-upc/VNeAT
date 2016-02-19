@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
 from GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
@@ -17,12 +19,12 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= np.zeros(nobs)#0.005*R.standard_normal(nobs)#
+y= np.zeros(nobs)#R.standard_normal(nobs)#
 f1 = lambda x1: (1 + x1 )
 f2 = lambda x2: (1 + x2 - x2**2)
-f3 = lambda x3: (1 - x3 - x3**2)
+f3 = lambda x3: (1 - x3 + x3**2)
 
-z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
+z = standardize(f1(x1)) + standardize(f2(x2)) #+ standardize(f3(x3))
 z = standardize(z)
 
 y += z
@@ -33,20 +35,33 @@ y += z
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
 regressor_smoother.append(PolynomialSmoother(x1,order=1))
-# regressor_smoother.append(PolynomialSmoother(x2,order=2))
-# regressor_smoother.append(PolynomialSmoother(x3,order=2,name='PolySmoother3'))
+regressor_smoother.append(PolynomialSmoother(x2,order=2))
+# regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
-gam=GAM(regressor_smoothers=regressor_smoother)
+gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
 gam.fit(y)
-y_pred_r=gam.predict()
+y_pred_r=gam.predict(homogenous=True)
 
 
 plt.figure()
 plt.plot(y, '.')
 plt.plot(z, 'b-', label='true')
-plt.plot(standardize(y_pred_r), 'r-', label='AdditiveModel')
+plt.plot(y_pred_r, 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
+
+
+plt.figure()
+plt.subplot(2,1,1)
+plt.plot(x1,standarize(y-gam.alpha-f2(x2)),'k.')
+plt.plot(x1, standarize(gam.predict(gam.regressors[:,0][...,None],gam._crvfitter_regression_parameters.T[0].T)), 'r-', label='AdditiveModel')
+plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
+
+plt.subplot(2,1,2)
+plt.plot(x2,standarize(y-gam.alpha-f1(x1)),'k.')
+plt.plot(x2, standarize(gam.predict(gam.regressors[:,1][...,None],gam._crvfitter_regression_parameters.T[1].T)), 'r-', label='AdditiveModel')
+plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
+
 plt.show()
 
 # plt.figure()
