@@ -60,13 +60,13 @@ affine = nparray(
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), 'fpmalfa_cparams.nii')
-nib.save(niiFile(results.regression_parameters, affine), 'fpmalfa_rparams.nii')
-nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_fitscores.nii')
-nib.save(niiFile(z_scores, affine), 'fpmalfa_zscores.nii')
-nib.save(niiFile(labels, affine), 'fpmalfa_labels.nii')
+nib.save(niiFile(results.correction_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_cparams.nii')
+nib.save(niiFile(results.regression_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_rparams.nii')
+nib.save(niiFile(results.fitting_scores, affine), '/Users/Asier/Documents/git/fpmalfa_fitscores.nii')
+nib.save(niiFile(z_scores, affine), '/Users/Asier/Documents/git/fpmalfa_zscores.nii')
+nib.save(niiFile(labels, affine), '/Users/Asier/Documents/git/fpmalfa_labels.nii')
 
-with open('fpmalfa_userdefparams.txt', 'wb') as f:
+with open('/Users/Asier/Documents/git/fpmalfa_userdefparams.txt', 'wb') as f:
 	f.write(str(pglmp.user_defined_parameters) + '\n')
 
 

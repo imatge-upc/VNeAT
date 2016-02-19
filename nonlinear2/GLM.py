@@ -109,17 +109,34 @@ class GLM(AdditiveCurveFitter):
 			        variables (same as that in the 'observations' argument) and R is the number of regression
 			        parameters for each variable (same as the number of regressors).
 		'''
+#		# All-at-once approach
+#		
+#		curve = LR(fit_intercept = False, normalize = False, copy_X = False, n_jobs = num_threads)
+#		
+#		ncols = correctors.shape[1]
+#		dims = (correctors.shape[0], ncols + regressors.shape[1])
+#		xdata = zeros(dims)
+#		xdata[:, :ncols] = correctors.view()
+#		xdata[:, ncols:] = regressors.view()
+#		
+#		curve.fit(xdata, observations, sample_weight)
+#		params = curve.coef_.T
+#		return (params[:ncols], params[ncols:])
+
+
+		# Divided-optimization approach
+
 		curve = LR(fit_intercept = False, normalize = False, copy_X = False, n_jobs = num_threads)
-		
-		ncols = correctors.shape[1]
-		dims = (correctors.shape[0], ncols + regressors.shape[1])
-		xdata = zeros(dims)
-		xdata[:, :ncols] = correctors.view()
-		xdata[:, ncols:] = regressors.view()
-		
-		curve.fit(xdata, observations, sample_weight)
-		params = curve.coef_.T
-		return (params[:ncols], params[ncols:])
+
+		curve.fit(correctors, observations, sample_weight)
+		cparams = curve.coef_.T
+
+		corrected_data = observations - correctors.dot(cparams)
+
+		curve.fit(regressors, corrected_data, sample_weight)
+		rparams = curve.coef_.T
+
+		return (cparams, rparams)
 
 
 class PolyGLM(GLM):
