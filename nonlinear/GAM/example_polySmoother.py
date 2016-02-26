@@ -24,7 +24,7 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.5*R.standard_normal(nobs)#np.zeros(nobs)#
+y= 0*R.standard_normal(nobs)#np.zeros(nobs)#
 
 f1 = lambda x1: (1 + x1  )
 f2 = lambda x2: (1 + x2 - x2**2)

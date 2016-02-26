@@ -39,7 +39,7 @@ class GAM(AdditiveCurveFitter):
 
         super(GAM, self).__init__(regressors, correctors, True)
 
-    def __fit__(self,correctors,regressors,observations, rtol=1.0e-06, maxiter=50):
+    def __fit__(self,correctors,regressors,observations, rtol=1.0e-10, maxiter=50):
 
         dims=observations.shape
 
@@ -117,10 +117,12 @@ class GAM(AdditiveCurveFitter):
 
         curdev = (((observations - observations_pred)**2)).sum()
         if self.iter > maxiter:
+            print(self.iter)
             return False
-        if ((self.dev - curdev) / curdev) < rtol:
+        if ((self.dev - curdev) / (0.1 + self.dev)) < rtol:
 
             self.dev = curdev
+            print(self.iter)
             return False
 
         self.dev = curdev
