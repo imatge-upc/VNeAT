@@ -26,7 +26,7 @@ class GLMProcessor(Processor):
 		GLM.orthonormalize_correctors,
 		GLM.orthogonalize_correctors,
 		GLM.normalize_correctors,
-		lambda *args, **kwargs: None
+		lambda *args, **kwargs: zeros((0, 0))
 	]
 
 	def __fitter__(self, user_defined_parameters):
@@ -40,7 +40,7 @@ class GLMProcessor(Processor):
 		treat_data = GLMProcessor._glmprocessor_perp_norm_options_list[self._glmprocessor_perp_norm_option]
 
 		glm = GLM(regressors = self.regressors, correctors = self.correctors, homogeneous = self._glmprocessor_homogeneous)
-		treat_data(glm)
+		self._glmprocessor_orthonormalization_matrix = treat_data(glm)
 		return glm
 
 	def __user_defined_parameters__(self, fitter):
@@ -60,7 +60,9 @@ class GLMProcessor(Processor):
 
 		return (homogeneous, perp_norm_option)
 
-
+	def __curve__(self, fitter, regressor, regression_parameters):
+		#TODO
+		super(GLMProcessor, self).__curve__(fitter, regressor, regression_parameters)
 
 class PolyGLMProcessor(Processor):
 	_pglmprocessor_perp_norm_options_names = [
@@ -86,7 +88,7 @@ class PolyGLMProcessor(Processor):
 		PGLM.orthonormalize_correctors,
 		PGLM.orthogonalize_correctors,
 		PGLM.normalize_correctors,
-		lambda *args, **kwargs: None
+		lambda *args, **kwargs: zeros((0, 0))
 	]
 
 #		'Orthonormalize all': 0,
@@ -159,7 +161,6 @@ class PolyGLMProcessor(Processor):
 		pglm = PGLM(regressor, degrees = self._pglmprocessor_degrees[:1], homogeneous = False)
 		PolyGLMProcessor._pglmprocessor_perp_norm_options_list[self._pglmprocessor_perp_norm_option](pglm)
 		return pglm.predict(regression_parameters = regression_parameters)
-
 
 PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i] : i for i in xrange(len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))}
 

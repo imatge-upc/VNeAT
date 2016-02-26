@@ -47,10 +47,10 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Loading precomputed parameters'
-correction_parameters = nib.load(join('results', 'fpmalfa_cparams.nii')).get_data()
-regression_parameters = nib.load(join('results', 'fpmalfa_rparams.nii')).get_data()
+correction_parameters = nib.load(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_cparams.nii')).get_data()
+regression_parameters = nib.load(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_rparams.nii')).get_data()
 
-with open(join('results', 'fpmalfa_userdefparams.txt'), 'rb') as f:
+with open(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing PolyGLM Processor'
