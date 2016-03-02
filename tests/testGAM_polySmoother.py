@@ -5,23 +5,19 @@ import numpy as np
 import numpy.random as R
 import matplotlib.pyplot as plt
 
-a = np.array([[1, 2], [3, 4]])
-b = np.array([[5, 6]])
-np.concatenate((a, b), axis=0)
-
-
 standardize = lambda x: x#(x - x.mean()) / x.std()
 standarize = lambda x: (x - x.mean())# / x.std()
 nobs = 300
+R.seed(42)
 x1 = R.standard_normal(nobs)
 x1.sort()
 x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.5*R.standard_normal(nobs)#np.zeros(nobs)#
+y= 0.25*R.standard_normal(nobs)#np.zeros(nobs)#
 f1 = lambda x1: (1 + x1 )
-f2 = lambda x2: (1 - x2 - x2**2)
+f2 = lambda x2: (1 + x2 + x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
 
 z = standardize(f1(x1)) + standardize(f2(x2)) #+ standardize(f3(x3))
@@ -39,8 +35,9 @@ regressor_smoother.append(PolynomialSmoother(x2,order=2))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
 gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
+# gam.orthogonalize_all()
 gam.fit(y)
-y_pred_r=gam.predict(homogenous=True)
+y_pred_r=gam.predict()
 
 
 plt.figure()

@@ -54,7 +54,7 @@ class GAM(AdditiveCurveFitter):
             r = observations - alpha - mu
             smoother.fit(r)
             f_i_pred = smoother.predict()
-            offset = f_i_pred.sum() / smoother_functions.n_smoothers
+            offset = f_i_pred.sum() / observations.shape[0]
             f_i_pred -= offset
             mu += f_i_pred
         self.iter += 1
