@@ -9,8 +9,8 @@ from numpy import array as nparray
 
 
 print 'Obtaining data from Excel file...'
-DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
-EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
+DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
+EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -44,7 +44,7 @@ print 'Initializing PolyGLM Processor...'
 pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
-results = pglmp.process(x1=43,x2=45,y1=75,y2=77,z1=53,z2=55)
+results = pglmp.process()
 
 print 'Formatting obtained data to display it...'
 z_scores, labels = pglmp.fit_score(results.fitting_scores, produce_labels = True)
@@ -60,13 +60,13 @@ affine = nparray(
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_cparams.nii')
-nib.save(niiFile(results.regression_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_rparams.nii')
-nib.save(niiFile(results.fitting_scores, affine), '/Users/Asier/Documents/git/fpmalfa_fitscores.nii')
-nib.save(niiFile(z_scores, affine), '/Users/Asier/Documents/git/fpmalfa_zscores.nii')
-nib.save(niiFile(labels, affine), '/Users/Asier/Documents/git/fpmalfa_labels.nii')
+nib.save(niiFile(results.correction_parameters, affine), join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_cparams.nii"))
+nib.save(niiFile(results.regression_parameters, affine), join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_rparams.nii"))
+nib.save(niiFile(results.fitting_scores, affine), join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_fitscores.nii"))
+nib.save(niiFile(z_scores, affine), join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_zscores.nii"))
+nib.save(niiFile(labels, affine), join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_labels.nii"))
 
-with open('/Users/Asier/Documents/git/fpmalfa_userdefparams.txt', 'wb') as f:
+with open(join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "fpmalfa_userdefparams.txt"), 'wb') as f:
 	f.write(str(pglmp.user_defined_parameters) + '\n')
 
 
