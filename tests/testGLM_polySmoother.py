@@ -17,18 +17,18 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.5*R.standard_normal(nobs)#np.zeros(nobs)#
-f1 = lambda x1: (1 + x1 )
-f2 = lambda x2: (1 - x2 )
+y= R.standard_normal(nobs)#np.zeros(nobs)#
+f1 = lambda x1: (x1 )
+f2 = lambda x2: (x2 + x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
 
-z = standardize(f1(x1)) + standardize(f2(x2)) #+ standardize(f3(x3))
+z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
 z = standardize(z)
 
 y += z
 
-glm=PolyGLM(np.array([x1,x2]).T,degrees = [1,1])
-# glm.orthogonalize_all()
+glm=PolyGLM(np.array([x1]).T,degrees = [1])
+glm.orthogonalize_all()
 glm.fit(y)
 y_pred_r=glm.predict()
 
@@ -40,23 +40,18 @@ plt.plot(y_pred_r, 'r-', label='GLM')
 plt.legend()
 plt.title('glm.AdditiveModel')
 
-
-reg_params=glm.regression_parameters
-indx_smthr = 0
 plt.figure()
 plt.subplot(2,1,1)
-plt.plot(x1,standarize(y-glm.alpha-f2(x2)),'k.')
-plt.plot(x1, standarize(glm.predict(glm.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
-         'r-', label='AdditiveModel')
-plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
+plt.plot(x1,standardize(glm.correct(y) - f2(x2)),'k.')
+plt.plot(x1, standardize(np.dot(x1,glm.regression_parameters[0])),'r-', label='GLM')
+plt.plot(x1, standardize(f1(x1)),'b-',label='true', linewidth=2)
+plt.legend()
 
-indx_smthr = 2+reg_params[indx_smthr+1]
 plt.subplot(2,1,2)
-plt.plot(x2,standarize(y-glm.alpha-f1(x1)),'k.')
-plt.plot(x2, standarize(glm.predict(glm.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
-         'r-', label='AdditiveModel')
-plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
-
+plt.plot(x2,standardize(glm.correct(y)-f1(x1)),'k.')
+plt.plot(x2, standardize(np.dot(np.array([np.squeeze(x2)**i for i in np.arange(1,3)]).T,glm.regression_parameters[1:])),'r-', label='GLM')
+plt.plot(x2, standardize(f2(x2)),'b-',label='true', linewidth=2)
+plt.legend()
 plt.show()
 
 # plt.figure()

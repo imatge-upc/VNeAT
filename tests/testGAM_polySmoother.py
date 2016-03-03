@@ -15,12 +15,12 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.25*R.standard_normal(nobs)#np.zeros(nobs)#
-f1 = lambda x1: (1 + x1 )
-f2 = lambda x2: (1 + x2 + x2**2)
+y= R.standard_normal(nobs)#np.zeros(nobs)#
+f1 = lambda x1: (x1 )
+f2 = lambda x2: (x2 + x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
 
-z = standardize(f1(x1)) + standardize(f2(x2)) #+ standardize(f3(x3))
+z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
 z = standardize(z)
 
 y += z
@@ -31,12 +31,12 @@ y += z
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
 regressor_smoother.append(PolynomialSmoother(x1,order=1))
-regressor_smoother.append(PolynomialSmoother(x2,order=2))
+# regressor_smoother.append(PolynomialSmoother(x2,order=2))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
 gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
 # gam.orthogonalize_all()
-gam.fit(y)
+gam.fit(y,maxiter = 600,rtol=1e-10)
 y_pred_r=gam.predict()
 
 
@@ -52,18 +52,19 @@ reg_params=gam.regression_parameters
 indx_smthr = 0
 plt.figure()
 plt.subplot(2,1,1)
-plt.plot(x1,standarize(y-gam.alpha-f2(x2)),'k.')
-plt.plot(x1, standarize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x1,standardize(gam.correct(y)-f2(x2)),'k.')
+plt.plot(x1, standardize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
          'r-', label='AdditiveModel')
-plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
+plt.plot(x1, standardize(f1(x1)),'b-',label='true', linewidth=2)
+plt.legend()
 
 indx_smthr = 2+reg_params[indx_smthr+1]
 plt.subplot(2,1,2)
-plt.plot(x2,standarize(y-gam.alpha-f1(x1)),'k.')
-plt.plot(x2, standarize(gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x2,standardize(gam.correct(y)-gam.alpha-f1(x1)),'k.')
+plt.plot(x2, standardize(gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
          'r-', label='AdditiveModel')
-plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
-
+plt.plot(x2, standardize(f2(x2)),'b-',label='true', linewidth=2)
+plt.legend()
 plt.show()
 
 # plt.figure()

@@ -8,6 +8,8 @@ from sklearn.linear_model import LinearRegression as LR
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import splev
 import matplotlib.pyplot as plt
+from warnings import warn
+import copy
 
 
 
@@ -39,7 +41,7 @@ class GAM(AdditiveCurveFitter):
 
         super(GAM, self).__init__(regressors, correctors, True)
 
-    def __fit__(self,correctors,regressors,observations, rtol=1.0e-06, maxiter=50):
+    def __fit__(self,correctors,regressors,observations, rtol=1.0e-08, maxiter=500):
 
         dims=observations.shape
 
@@ -50,6 +52,7 @@ class GAM(AdditiveCurveFitter):
         smoother_functions = SmootherSet(self.corrector_smoothers+self.regressor_smoothers)
         alpha,mu,offset=self.__init_iter(observations,smoother_functions.n_smoothers)
 
+
         for smoother in smoother_functions:
             r = observations - alpha - mu
             smoother.fit(r)
@@ -59,15 +62,21 @@ class GAM(AdditiveCurveFitter):
             mu += f_i_pred
         self.iter += 1
 
-        while self.__cont(observations,alpha+mu,maxiter,rtol):
+        mu_old = 0
+        convergence_num = sum(mu**2)
+        while self.__cont(convergence_num,mu_old,maxiter,rtol):
+            mu_old = sum(mu**2)
+            convergence_num = 0
             for smoother in smoother_functions:
-                mu = mu - smoother.predict()
+                f_i_prev = smoother.predict() - smoother.predict().sum() / observations.shape[0]
+                mu = mu - f_i_prev
                 r = observations - alpha - mu
                 smoother.fit(r)
                 f_i_pred = smoother.predict()
                 offset = f_i_pred.sum() / observations.shape[0]
                 f_i_pred -= offset
                 mu += f_i_pred
+                convergence_num = convergence_num + sum((f_i_prev - f_i_pred)**2)
             self.iter += 1
 
         self.intercept_smoother.set_parameters(self.alpha)
@@ -91,28 +100,23 @@ class GAM(AdditiveCurveFitter):
 
     def __init_iter(self,observations,n_smoothers):
         self.iter = 0
-        self.dev = np.inf
         self.alpha=np.mean(observations)
         mu = np.zeros((observations.shape[0],1), np.float64)
         offset = np.zeros((n_smoothers,1),np.float64)
         return self.alpha,mu,offset
 
-    def __cont(self,observations,observations_pred,maxiter,rtol):
+    def __cont(self,convergence_num,convergence_den,maxiter,rtol):
         print(self.iter)
         if self.iter == 0:
             self.iter += 1
             return True
 
-        curdev = (((observations - observations_pred)**2)).sum()
-        print(((self.dev - curdev) / curdev))
         if self.iter > maxiter:
             return False
-        if ((self.dev - curdev) / curdev) < rtol:
 
-            self.dev = curdev
+        print(convergence_num/(1+convergence_den))
+        if (convergence_num/(1+convergence_den)) < rtol:
             return False
-
-        self.dev = curdev
 
         return True
 
@@ -218,7 +222,8 @@ class SplinesSmoother(Smoother):
 
         if spline_parameters is None:
             if self.spline_parameters is None:
-                raise ValueError("You should either fit first the model to the data or specify the parameters")
+                warn("Spline parameters are not specified, you should either fit a model or specify them. Output is set to 0")
+                return np.zeros((xdata.shape[0],1))
             else:
                 spline_parameters = self.spline_parameters
 
@@ -297,9 +302,11 @@ class PolynomialSmoother(Smoother):
 
         if coefficients is None:
             if self.coefficients is None:
-                raise ValueError("You should either fit first the model to the data or specify the parameters")
+                warn("Polynomial coefficients are not specified, you should either fit a model or specify them. Output is set to 0")
+                return np.zeros((xdata.shape[0],1))
             else:
                 coefficients = self.coefficients
+
         xdata=np.array([np.squeeze(xdata)**i for i in range(self.order+1)]).T
         y_pred = xdata.dot(self.coefficients)
         if len(y_pred.shape) == 1:
@@ -337,9 +344,9 @@ class PolynomialSmoother(Smoother):
 
 class InterceptSmoother(Smoother):
 
-    def __init__(self,xdata,parameters=None):
+    def __init__(self,xdata,alpha=None):
         self.xdata = xdata
-        self.alpha = parameters
+        self.alpha = alpha
 
     def fit(self,ydata):
         self.alpha = np.mean(ydata)
@@ -365,8 +372,8 @@ class InterceptSmoother(Smoother):
         pass
 
 
-    def set_parameters(self,parameters):
-        self.alpha = parameters
+    def set_parameters(self,alpha):
+        self.alpha = alpha
 
 
 class KernelSmoother(Smoother):
