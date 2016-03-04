@@ -18,8 +18,8 @@ x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
 y= R.standard_normal(nobs)#np.zeros(nobs)#
-f1 = lambda x1: (x1 )
-f2 = lambda x2: (x2 + x2**2)
+f1 = lambda x1: (1+ x1 )
+f2 = lambda x2: (1+ x2 + x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
 
 z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
@@ -28,7 +28,7 @@ z = standardize(z)
 y += z
 
 glm=PolyGLM(np.array([x1]).T,degrees = [1])
-glm.orthogonalize_all()
+# glm.orthogonalize_all()
 glm.fit(y)
 y_pred_r=glm.predict()
 
@@ -42,9 +42,9 @@ plt.title('glm.AdditiveModel')
 
 plt.figure()
 plt.subplot(2,1,1)
-plt.plot(x1,standardize(glm.correct(y) - f2(x2)),'k.')
+plt.plot(x1,standardize(glm.correct(y)),'k.')
 plt.plot(x1, standardize(np.dot(x1,glm.regression_parameters[0])),'r-', label='GLM')
-plt.plot(x1, standardize(f1(x1)),'b-',label='true', linewidth=2)
+plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
 plt.legend()
 
 plt.subplot(2,1,2)

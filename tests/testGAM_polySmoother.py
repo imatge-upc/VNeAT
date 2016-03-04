@@ -16,8 +16,8 @@ x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
 y= R.standard_normal(nobs)#np.zeros(nobs)#
-f1 = lambda x1: (x1 )
-f2 = lambda x2: (x2 + x2**2)
+f1 = lambda x1: (1 + x1 )
+f2 = lambda x2: (1 - x2 + x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
 
 z = standardize(f1(x1)) #+ standardize(f2(x2)) #+ standardize(f3(x3))
@@ -52,18 +52,18 @@ reg_params=gam.regression_parameters
 indx_smthr = 0
 plt.figure()
 plt.subplot(2,1,1)
-plt.plot(x1,standardize(gam.correct(y)-f2(x2)),'k.')
-plt.plot(x1, standardize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x1,gam.correct(y),'k.')
+plt.plot(x1, gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]]),
          'r-', label='AdditiveModel')
-plt.plot(x1, standardize(f1(x1)),'b-',label='true', linewidth=2)
+plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
 plt.legend()
 
 indx_smthr = 2+reg_params[indx_smthr+1]
 plt.subplot(2,1,2)
-plt.plot(x2,standardize(gam.correct(y)-gam.alpha-f1(x1)),'k.')
-plt.plot(x2, standardize(gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x2,gam.correct(y)-gam.alpha-f1(x1),'k.')
+plt.plot(x2, gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]]),
          'r-', label='AdditiveModel')
-plt.plot(x2, standardize(f2(x2)),'b-',label='true', linewidth=2)
+plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
 plt.legend()
 plt.show()
 

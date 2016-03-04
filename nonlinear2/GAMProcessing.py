@@ -144,10 +144,10 @@ class GAMProcessor(Processor):
 
 		return (perp_norm_option,smoothing_functions)
 
-	def __curve__(self, fitter, regressor, regression_parameters):
+	def __curve__(self, fitter, regressors, regression_parameters):
 		gam = GAM()
 		GAMProcessor._gamprocessor_perp_norm_options_list[self._gamprocessor_perp_norm_option](gam)
-		return gam.predict(regression_parameters = regression_parameters)
+		return gam.predict(regressors=regressors, regression_parameters = regression_parameters)
 
 
 GAMProcessor._gamprocessor_perp_norm_options = {GAMProcessor._gamprocessor_perp_norm_options_names[i] : i for i in xrange(len(GAMProcessor._gamprocessor_perp_norm_options_names))}
