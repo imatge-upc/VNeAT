@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
+from GLM import GLM, PolyGLM
 from GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
@@ -38,33 +39,34 @@ corrector_smoother=SmootherSet()
 regressor_smoother.append(PolynomialSmoother(x1,order=2))
 # regressor_smoother.append(PolynomialSmoother(x2,order=2))
 # corrector_smoother.append(PolynomialSmoother(x3,order=2))
-
-gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
-gam.fit(y)
-y_pred_r=gam.predict()
+glm1=PolyGLM(np.zeros((nobs,1)),homogeneous = True)
+glm2=PolyGLM(x1[:,None],degrees = [2])
+y_corr = glm1.fit(y)
+glm2.fit(glm1.correct(y))
+y_pred_r=glm2.predict()
 
 
 plt.figure()
-plt.plot(x1,gam.correct(y), 'k.')
-plt.plot(x1,gam.correct(z), 'b-', label='true')
+plt.plot(x1,glm1.correct(y), 'k.')
+plt.plot(x1,glm1.correct(z), 'b-', label='true')
 plt.plot(x1,y_pred_r, 'r-', label='AdditiveModel')
 plt.legend()
-plt.title('gam.AdditiveModel')
+plt.title('glm.AdditiveModel')
 
 
-reg_params=gam.regression_parameters
+reg_params=glm2.regression_parameters
 indx_smthr = 0
 plt.figure()
 plt.subplot(2,1,1)
-plt.plot(x1,standarize(y-gam.alpha),'k.')
-plt.plot(x1, standarize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x1,standarize(y-glm2.alpha),'k.')
+plt.plot(x1, standarize(glm2.predict(glm2.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
          'r-', label='AdditiveModel')
 plt.plot(x1, standarize(f1(x1)),'b-',label='true', linewidth=2)
 
 indx_smthr = 2+reg_params[indx_smthr+1]
 plt.subplot(2,1,2)
-plt.plot(x2,standarize(y-gam.alpha-f1(x1)),'k.')
-plt.plot(x2, standarize(gam.predict(gam.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(x2,standarize(y-glm2.alpha-f1(x1)),'k.')
+plt.plot(x2, standarize(glm2.predict(glm2.regressors[:,1][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
          'r-', label='AdditiveModel')
 plt.plot(x2, standarize(f2(x2)),'b-',label='true', linewidth=2)
 
@@ -72,5 +74,5 @@ plt.show()
 
 # plt.figure()
 # plt.plot(x1,y-standarize(f2(x2))-standarize(f3(x3))-smoother_results['mean'], 'k.')
-# plt.plot(x1, standardize(gam.__predict__()), 'r-', label='AdditiveModel')
+# plt.plot(x1, standardize(glm.__predict__()), 'r-', label='AdditiveModel')
 # plt.plot(x1, standarize(f1(x1)),label='true', linewidth=2)
