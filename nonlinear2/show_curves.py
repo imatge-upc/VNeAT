@@ -5,13 +5,14 @@ show_all = False
 
 from ExcelIO import ExcelSheet as Excel
 from GLMProcessing import PolyGLMProcessor as PGLMP
+from GAMProcessing import GAMProcessor as GAMP
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 
 import nibabel as nib
 from numpy import array as nparray, zeros
-from matplotlib.pyplot import plot, legend, show
+from matplotlib.pyplot import subplot, plot, legend, show, title
 
 
 print 'Obtaining data from Excel file'
@@ -46,15 +47,26 @@ for r in exc.get_rows( fieldstype = {
 		)
 	)
 
-print 'Loading precomputed parameters'
-correction_parameters = nib.load(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_cparams.nii')).get_data()
-regression_parameters = nib.load(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_rparams.nii')).get_data()
+print 'Loading precomputed parameters for PolyGLM'
+pglm_correction_parameters = nib.load(join('results', 'fpmalfa_pglm_cparams.nii')).get_data()
+pglm_regression_parameters = nib.load(join('results', 'fpmalfa_pglm_rparams.nii')).get_data()
 
-with open(join('/Users', 'Asier', 'Documents', 'git', 'fpmalfa_userdefparams.txt'), 'rb') as f:
+with open(join('results', 'fpmalfa_pglm_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing PolyGLM Processor'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex], user_defined_parameters = user_defined_parameters)
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
+
+print 'Loading precomputed parameters for GAM'
+gam_correction_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_cparams.nii')).get_data()
+gam_regression_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_rparams.nii')).get_data()
+
+with open(join('results', 'fpmalfa_gam_poly3_userdefparams.txt'), 'rb') as f:
+	user_defined_parameters = eval(f.read())
+
+print 'Initializing GAM Processor'
+gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
+
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], pglmp.subjects)
 diag = [[], [], [], []]
@@ -99,19 +111,22 @@ while True:
 	print 'Processing request... please wait'
 
 	try:
-
-		corrected_data = pglmp.corrected_values(correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+		# PolyGLM Curve
+		corrected_data = pglmp.corrected_values(pglm_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
 		if show_all:
-			lin_rparams = zeros(regression_parameters.shape)
-			lin_rparams[0] = regression_parameters[0]
+			lin_rparams = zeros(pglm_regression_parameters.shape)
+			lin_rparams[0] = pglm_regression_parameters[0]
 			_, lin_curve = pglmp.curve(lin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 			
-			nonlin_rparams = zeros(regression_parameters.shape)
-			nonlin_rparams[1:] = regression_parameters[1:]
+			nonlin_rparams = zeros(pglm_regression_parameters.shape)
+			nonlin_rparams[1:] = pglm_regression_parameters[1:]
 			_, nonlin_curve = pglmp.curve(nonlin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		axis, curve = pglmp.curve(regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = pglmp.curve(pglm_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+
+		subplot(2, 1, 1)
+		title('GLM')
 
 		if show_all:
 			plot(axis, lin_curve[:, 0, 0, 0], 'y', label = 'Fitted linear curve')
@@ -124,6 +139,23 @@ while True:
 			l = diag[i]
 			plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], label = Subject.Diagnostics[i])
 		legend()
+
+		# GAM Curve
+		corrected_data = gamp.corrected_values(gam_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+
+		axis, curve = gamp.curve(gam_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+
+		subplot(2, 1, 2)
+		title('GAM')
+
+		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
+
+		color = ['co', 'bo', 'mo', 'ko']
+		for i in xrange(len(diag)):
+			l = diag[i]
+			plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], label = Subject.Diagnostics[i])
+		legend()
+
 		show()
 		print
 	except Exception as e:

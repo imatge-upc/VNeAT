@@ -1,20 +1,20 @@
 from Processing import Processor
 from GLM import GLM, PolyGLM as PGLM
-from numpy import zeros
+from numpy import zeros, array as nparray
 
 class GLMProcessor(Processor):
-	_glmprocessor_perp_norm_options = {
-		'Orthonormalize all': 0,
-		'Orthogonalize all': 1,
-		'Normalize all': 2,
-		'Orthonormalize regressors': 3,
-		'Orthogonalize regressors': 4,
-		'Normalize regressors': 5,
-		'Orthonormalize correctors': 6,
-		'Orthogonalize correctors': 7,
-		'Normalize correctors': 8,
-		'Use correctors and regressors as they are': 9
-	}
+	_glmprocessor_perp_norm_options_names = [
+		'Orthonormalize all',
+		'Orthogonalize all',
+		'Normalize all',
+		'Orthonormalize regressors',
+		'Orthogonalize regressors',
+		'Normalize regressors',
+		'Orthonormalize correctors',
+		'Orthogonalize correctors',
+		'Normalize correctors',
+		'Use correctors and regressors as they are'
+	]
 
 	_glmprocessor_perp_norm_options_list = [
 		GLM.orthonormalize_all,
@@ -34,35 +34,89 @@ class GLMProcessor(Processor):
 
 
 		'''
+		regs = self.regressors.T
+		cors = self.correctors.T
+		num_features = regs.shape[0] + cors.shape[0] # R + C
+
 		self._glmprocessor_homogeneous = user_defined_parameters[0]
 		self._glmprocessor_perp_norm_option = user_defined_parameters[1]
+		self._glmprocessor_degrees = user_defined_parameters[2:(2 + num_features)]
+		self._glmprocessor_submodels = user_defined_parameters[(2+num_features):]
 
 		treat_data = GLMProcessor._glmprocessor_perp_norm_options_list[self._glmprocessor_perp_norm_option]
 
-		glm = GLM(regressors = self.regressors, correctors = self.correctors, homogeneous = self._glmprocessor_homogeneous)
+		regressors = []
+		correctors = []
+		for i in xrange(len(cors)):
+			cor = 1
+			for _ in xrange(self._glmprocessor_degrees[len(regs) + i]):
+				cor *= cors[i]
+				correctors.append(cor.copy())
+		j = 0
+		for i in xrange(len(regs)):
+			reg = 1
+			for _ in xrange(self._glmprocessor_degrees[i]):
+				reg *= regs[i]
+				if bool(self._glmprocessor_submodels[j]):
+					regressors.append(reg.copy())
+				else:
+					correctors.append(reg.copy())
+				j += 1
+
+		correctors = nparray(correctors).T
+		if 0 in correctors.shape:
+			correctors = None
+
+		glm = GLM(regressors = nparray(regressors).T, correctors = correctors, homogeneous = bool(self._glmprocessor_homogeneous))
 		self._glmprocessor_orthonormalization_matrix = treat_data(glm)
 		return glm
 
 	def __user_defined_parameters__(self, fitter):
-		return (self._glmprocessor_homogeneous, self._glmprocessor_perp_norm_option)
+		return (self._glmprocessor_homogeneous, self._glmprocessor_perp_norm_option) + tuple(self._glmprocessor_degrees) + tuple(self._glmprocessor_submodels)
 
 	def __read_user_defined_parameters__(self, regressor_names, corrector_names):
-		if super(GLMProcessor, self).__getyesorno__(default_value = True, show_text = 'GLM Processor: Do you want to include the homogeneous term? (Y/N, default Y): '):
-			homogeneous = 1
-		else:
-			homogeneous = 0
+		homogeneous = int(super(GLMProcessor, self).__getyesorno__(default_value = True, show_text = 'GLM Processor: Do you want to include the homogeneous term? (Y/N, default Y): '))
 
 		perp_norm_option = GLMProcessor._glmprocessor_perp_norm_options[super(GLMProcessor, self).__getoneof__(
-			GLMProcessor._glmprocessor_perp_norm_options,
-			default_value = 0,
+			GLMProcessor._glmprocessor_perp_norm_options_names,
+			default_value = 'Orthonormalize all',
 			show_text = 'GLM Processor: How do you want to treat the features? (default: Orthonormalize all)'
 		)]
 
-		return (homogeneous, perp_norm_option)
+		degrees = []
+		for reg in regressor_names:
+			degrees.append(super(GLMProcessor, self).__getint__(
+				default_value = 1,
+				lower_limit = 1,
+				try_ntimes = 3,
+				show_text = 'GLM Processor: Please, enter the degree of the feature (predictor) \'' + str(reg) + '\' (or leave blank to set to 1): '
+			))
+		for cor in corrector_names:
+			degrees.append(super(GLMProcessor, self).__getint__(
+				default_value = 1,
+				try_ntimes = 3,
+				show_text = 'GLM Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
+			))
+
+		submodels = []
+		for i in xrange(len(regressor_names)):
+			reg = regressor_names[i]
+			if super(GLMProcessor, self).__getyesorno__(default_value = False, show_text = 'GLM Processor: Would you like to analyze a submodel of ' + str(reg) + ' instead of the full model? (Y/N, default N): '):
+				# TODO: create a __getmultipleyesorno__ method that allows to check that at least 1 has been selected
+				for j in xrange(degrees[i]):
+					submodels.append(int(super(GLMProcessor, self).__getyesorno__(default_value = False, show_text = '    Should the power ' + str(j+1) + ' term be considered a predictor? (Y/N, default N): ')))
+			else:
+				submodels += [int(True)]*degrees[i]
+
+		return (homogeneous, perp_norm_option) + tuple(degrees) + tuple(submodels)
 
 	def __curve__(self, fitter, regressor, regression_parameters):
 		#TODO
 		super(GLMProcessor, self).__curve__(fitter, regressor, regression_parameters)
+
+GLMProcessor._glmprocessor_perp_norm_options = {GLMProcessor._glmprocessor_perp_norm_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_perp_norm_options_names))}
+
+
 
 class PolyGLMProcessor(Processor):
 	_pglmprocessor_perp_norm_options_names = [
@@ -90,19 +144,6 @@ class PolyGLMProcessor(Processor):
 		PGLM.normalize_correctors,
 		lambda *args, **kwargs: zeros((0, 0))
 	]
-
-#		'Orthonormalize all': 0,
-#		'Orthogonalize all': 1,
-#		'Normalize all': 2,
-#		'Orthonormalize regressors': 3,
-#		'Orthogonalize regressors': 4,
-#		'Normalize regressors': 5,
-#		'Orthonormalize correctors': 6,
-#		'Orthogonalize correctors': 7,
-#		'Normalize correctors': 8,
-#		'Use correctors and regressors as they are': 9
-#	}
-
 
 
 	def __fitter__(self, user_defined_parameters):

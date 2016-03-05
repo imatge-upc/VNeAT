@@ -5,45 +5,43 @@ class Subject:
 	Sexes = ['Unknown', 'Male', 'Female']
 	APOE4s = ['Unknown', 'Yes', 'No']
 
-	Attributes = \
-		 '''- Subject.Diagnostic: A 0-based index indicating the diagnostic of the subject (see Subject.Diagnostics).
-			    None if it was not indicated.
+	class Attribute:
+		def __init__(self, name, description = 'Undefined subject attribute'):
+			self._description = description
+			self._name = str(name)
 
-			- Subject.Age: integer that indicates the age of the subject.
-			    None if it was not indicated.
+		@property
+		def description(self):
+			return self._description
 
-			- Subject.Sex: integer indicating the genre of the subject.
-			    -1 if Female.
-			     1 if Male.
-			     0 if Not Indicated.
+		def __repr__(self):
+			return 'Subject.' + self._name
 
-			- Subject.APOE4: integer indicating if the apoe-4 protein is present in the subject's organism.
-			    -1 if Not Present.
-			     1 if Present.
-			     0 if Not Indicated.
+		def __str__(self):
+			return self._name
 
-			- Subject.Education: integer that indicates the level of academical education of the subject.
-			    None if it was not indicated.
+	Diagnostic = Attribute('Diagnostic', 'A 0-based index indicating the diagnostic of the subject (see Subject.Diagnostics). None if it was not indicated.')
+	Age = Attribute('Age', 'An integer that indicates the age of the subject. None if it was not indicated.')
+	Sex = Attribute('Sex', 'An integer indicating the genre of the subject (-1 if Female, 1 if Male, 0 if Not Indicated).')
+	APOE4 = Attribute('APOE-4', 'An integer indicating if the apoe-4 protein is present in the subject\'s organism (-1 if Not Present, 1 if Present, 0 if Not Indicated).')
+	Education = Attribute('Education', 'An integer that indicates the level of academical education of the subject. None if it was not indicated.')
+	ADCSFIndex = Attribute('AD-CSF Index', 'A float that represents the AD-CSF index (t-tau) value of the subject. None if it was not indicated.')
 
-			- Subject.ADCSFIndex: float thar represents the AD-CSF index (t-tau) value of the subject.
-			    None if it was not indicated.
-		 '''
-	Diagnostic = 'diag'
-	Age = 'age'
-	Sex = 'sex'
-	APOE4 = 'apoe4'
-	Education = 'ed'
-	ADCSFIndex = 'adcsf'
+	Attributes = [Diagnostic, Age, Sex, APOE4, Education, ADCSFIndex]
+	for index in xrange(len(Attributes)):
+		Attributes[index].index = index
 
 	def __init__(self, identifier, graymatter_filename, diagnostic = None, age = None, sex = None, apoe4 = None, education = None, adcsfIndex = None):
 		self._id = identifier
 		self._gmfile = graymatter_filename
-		setattr(self, Subject.Diagnostic, diagnostic)
-		setattr(self, Subject.Age, age)
-		setattr(self, Subject.Sex, sex if not sex is None else 0)
-		setattr(self, Subject.APOE4, apoe4 if not apoe4 is None else 0)
-		setattr(self, Subject.Education, education)
-		setattr(self, Subject.ADCSFIndex, adcsfIndex)
+		self._attributes = [None]*len(Subject.Attributes)
+
+		self._attributes[Subject.Diagnostic.index] = diagnostic
+		self._attributes[Subject.Age.index] = age
+		self._attributes[Subject.Sex.index] = sex if not sex is None else 0
+		self._attributes[Subject.APOE4.index] = apoe4 if not apoe4 is None else 0
+		self._attributes[Subject.Education.index] = education
+		self._attributes[Subject.ADCSFIndex.index] = adcsfIndex
 
 	@property
 	def id(self):
@@ -66,7 +64,7 @@ class Subject:
 				- list containing the values of the attributes specified in the 'attribute_list' argument,
 				    in the same order.
 		'''
-		return [getattr(self, attr_name) for attr_name in attribute_list]
+		return map(lambda attr: self._attributes[attr.index], attribute_list)
 
 	def __hash__(self):
 		return hash(self.id)

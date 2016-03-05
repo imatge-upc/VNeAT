@@ -252,9 +252,9 @@ class SplinesSmoother(Smoother):
         for param in self.spline_parameters:
             pp=[]
             pp.append(self.smoothing_factor)
-            print(pp)
+            # print(pp)
             for par in param:
-                print(par)
+                # print(par)
                 try:
                     pp.append(len(par))
                     pp.extend([p for p in par])

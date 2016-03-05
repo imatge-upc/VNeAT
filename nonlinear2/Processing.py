@@ -36,16 +36,22 @@ class Processor:
 			return s
 
 	def __init__(self, subjects, regressors, correctors = [], user_defined_parameters = ()):
-		self._processor_subjects = subjects
-		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), subjects), dtype = float64)
-		self._processor_correctors = nparray(map(lambda subject: subject.get(correctors), subjects), dtype = float64)
+		self._processor_subjects = list(subjects)
+		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), self._processor_subjects), dtype = float64)
+		self._processor_correctors = nparray(map(lambda subject: subject.get(correctors), self._processor_subjects), dtype = float64)
+
+		if 0 in self._processor_regressors.shape:
+			self._processor_regressors = zeros((len(self._processor_subjects), 0))
+		if 0 in self._processor_correctors.shape:
+			self._processor_correctors = zeros((len(self._processor_subjects), 0))
+
+		self._processor_progress = 0.0
+		self._processor_mem_usage = 500.0
+
 		if (len(user_defined_parameters) != 0):
 			self._processor_fitter = self.__fitter__(user_defined_parameters)
 		else:
 			self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(regressors, correctors))
-
-		self._processor_progress = 0.0
-		self._processor_mem_usage = 500.0
 
 	@property
 	def subjects(self):
@@ -227,7 +233,8 @@ class Processor:
 		dx, dy, dz = cparams.shape[1:]
 		correction_parameters[:, :dx, :dy, :dz] = cparams
 		regression_parameters[:, :dx, :dy, :dz] = rparams
-		fitting_scores[:dx, :dy, :dz] = self._processor_fitter.evaluate_fit(chunk.data, **evaluation_kwargs)
+		unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(chunk.data, **evaluation_kwargs)
+		fitting_scores[:dx, :dy, :dz] = [[[elem if isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
 		# Update progress
 		self.__processor_update_progress(prog_inc*dx*dy*dz)
@@ -301,7 +308,7 @@ class Processor:
 		rparams = regression_parameters[:, x1:x2, y1:y2, z1:z2]
 
 		regs = zeros((tpoints, 1), dtype = float64)
-		step = float(t2 - t1)/tpoints
+		step = float(t2 - t1)/(tpoints-1)
 		t = t1
 		for i in xrange(tpoints):
 			regs[i][0] = t
@@ -353,7 +360,7 @@ class Processor:
 	#TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
 	# since such values affect the values inside the region (if not considered, the clusters could potentially
 	# seem smaller and thus be filtered accordingly)
-	def fit_score(self, fitting_scores, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None, gm_threshold = 0.1, fit_threshold = 0.99, cluster_threshold = 100, produce_labels = False):
+	def fit_score(self, fitting_scores, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None, gm_threshold = 0.1, fit_threshold = 0.999, cluster_threshold = 100, produce_labels = False):
 		if x1 is None:
 			x1 = 0
 		if x2 is None:

@@ -3,7 +3,6 @@ from Documentation import docstring_inheritor
 from numpy import array as nparray, zeros, ones, float64
 from scipy.stats import f as f_stat
 
-
 class abstractstatic(staticmethod):
 	__slots__ = ()
 	__isabstractmethod__ = True
@@ -32,7 +31,7 @@ class CurveFitter:
 			    - correctors: NxC (2-dimensional) matrix (default None), representing the covariates,
 			        i.e., features that (may) explain a part of the observational data in which we are
 			        not interested, where C is the number of correctors and N the number of elements
-			        for each corrector (this number must be the same as that in the 'regressors' argu-
+			        for each corrector (the latter must be the same as that in the 'regressors' argu-
 			        ment).
 
 			    - homogeneous: bool (default True), indicating whether the homogeneous term (a.k.a.
@@ -120,20 +119,56 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Deorthogonalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
+			        original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
+			        is, given the original 'correctors' matrix, OC, and the new, orthogonalized 'correctors'
+			        matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
 		'''
-		# Gram-Schmidt
+
+		# Original 'correctors' matrix:
+		# 	V = ( v_1 | v_2 | ... | v_C )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+
+		# New 'correctors' matrix (orthonormalized):
+		#	U = ( u_1 | u_2 | ... | u_C )
+
+		# Deorthogonalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< u_i, v_j > / < u_i, u_i >,	if i < j
+		#	 		1,								if i = j
+		#	 		0,								if i > j
+
+		C = self._crvfitter_correctors.shape[1]
+		D = zeros((C, C)) # D[i, j] = 0, if i > j
+		if (C == 0):
+			return D
+
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_correctors.shape[1] - 1):
-			u = self._crvfitter_correctors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(C - 1):
+			D[i, i] = 1.0 # D[i, j] = 1, if i = j
+
+			u_i = self._crvfitter_correctors[:, i]
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = sq(||u_i||)
+
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+				# work, hopefully with a small enough precision error)
 				continue
-			u2 = u/norm_sq
-			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
-				v = self._crvfitter_correctors[:, j]
-				v -= v.dot(u)*u2
+
+			for j in xrange(i+1, C): # for j > i
+				v_j = self._crvfitter_correctors[:, j]
+
+				D[i, j] = u_i.dot(v_j)/norm_sq # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
+
+		D[-1, -1] = 1.0 # D[i, j] = 1, if i = j
+
+		return D
+
 
 	def normalize_correctors(self):
 		'''Normalizes the energy of each corrector (the magnitude of each feature interpreted as a vector,
@@ -145,16 +180,41 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Denormalization matrix: A CxC (2-dimensional) diagonal matrix that yields the original
+			        'correctors' matrix when right-multiplied with the new 'correctors' matrix. That is,
+			        given the original 'correctors' matrix, OC, and the new, normalized 'correctors' matrix,
+			        NC, the return value is a diagonal matrix D such that OC = NC x D (matrix multiplication).
 		'''
+
+		# Original 'correctors' matrix:
+		#	V = ( v_1 | v_2 | ... | v_C )
+
+		# Normalization:
+		#	u_j = v_j / ||v_j||
+
+		# New 'correctors' matrix (normalized):
+		#	U = ( u_1 | u_2 | ... | u_C )
+
+		# Deorthogonalization matrix (diagonal):
+		#	D[i, j] = 
+		#	 		||u_i||,	if i = j
+		#	 		0,			if i != j
+
+		C = self._crvfitter_correctors.shape[1]
+		D = zeros((C, C)) # D[i, j] = 0, if i != j
+
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_correctors.shape[1]):
-			u = self._crvfitter_correctors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(C):
+			u_i = self._crvfitter_correctors[:, i]
+			norm_sq = u_i.dot(u_i)
 			if norm_sq >= threshold:
-				u /= norm_sq**0.5
+				D[i, i] = norm_sq**0.5 # D[i, j] = ||u_i||, if i = j
+				u_i /= D[i, i] # Normalization
 			elif norm_sq != 0.0:
-				u[:] = 0.0
+				u_i[:] = 0.0
+
+		return D
 
 	def orthonormalize_correctors(self):
 		'''Orthogonalizes each corrector with respect to all the previous ones, and normalizes the results.
@@ -163,25 +223,58 @@ class CurveFitter:
 			
 			Modifies:
 
-			    - Correctors: each column has been orthogonalized w.r.t. the previous ones, and normal-
-			        ized afterwards.
+			    - Correctors: each column has been orthogonalized w.r.t. the previous ones, and normalized
+			        afterwards.
 
 			Returns:
 
-			    - None
+			    - Deorthonormalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
+			        original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
+			        is, given the original 'correctors' matrix, OC, and the new, orthonormalized 'correctors'
+			        matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
 		'''
-		# Gram-Schmidt
+
+		# Original 'correctors' matrix:
+		# 	V = ( v_1 | v_2 | ... | v_C )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+
+		# New 'correctors' matrix (orthonormalized):
+		#	W = ( w_1 | w_2 | ... | w_C )
+
+		# Deorthonormalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< w_i, v_j >,		if i < j
+		#	 		||u_i||,			if i = j
+		#	 		0,					if i > j
+
+		C = self._crvfitter_correctors.shape[1]
+		D = zeros((C, C)) # D[i, j] = 0, if i > j
+
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_correctors.shape[1]):
-			u = self._crvfitter_correctors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(C):
+			u_i = self._crvfitter_correctors[:, i]
+
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = ||u_i||**2
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+				# the deorthonormalization will still work, hopefully with a small enough precision error)
 				continue
-			u /= norm_sq**0.5 # Normalize u
-			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
-				v = self._crvfitter_correctors[:, j]
-				v -= v.dot(u)*u # Orthogonalize v with respect to u
+
+			D[i, i] = norm_sq**0.5 # D[i, j] = ||u_i||, if i = j
+			u_i /= D[i, i] # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+
+			for j in xrange(i+1, C): # for j > i
+				v_j = self._crvfitter_correctors[:, j]
+
+				D[i, j] = u_i.dot(v_j) # D[i, j] = < w_i, v_j >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+
+		return D
 
 	def orthogonalize_regressors(self):
 		'''Orthogonalizes each regressor in the structure w.r.t. all the previous ones. That is, for each
@@ -194,20 +287,56 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Deorthogonalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
+			        original 'regressors' matrix when right-multiplied with the new 'regressors' matrix. That
+			        is, given the original 'regressors' matrix, OR, and the new, orthogonalized 'regressors'
+			        matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
 		'''
-		# Gram-Schmidt
+
+
+		# Original 'regressors' matrix:
+		# 	V = ( v_1 | v_2 | ... | v_C )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+
+		# New 'regressors' matrix (orthonormalized):
+		#	U = ( u_1 | u_2 | ... | u_C )
+
+		# Deorthogonalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< u_i, v_j > / < u_i, u_i >,	if i < j
+		#	 		1,								if i = j
+		#	 		0,								if i > j
+
+		R = self._crvfitter_regressors.shape[1]
+		D = zeros((R, R)) # D[i, j] = 0, if i > j
+		if (R == 0):
+			return D
+
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_regressors.shape[1] - 1):
-			u = self._crvfitter_regressors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(R - 1):
+			D[i, i] = 1.0 # D[i, j] = 1, if i = j
+
+			u_i = self._crvfitter_regressors[:, i]
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = sq(||u_i||)
+
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+				# work, hopefully with a small enough precision error)
 				continue
-			u2 = u/norm_sq
-			for j in xrange(i+1, self._crvfitter_regressors.shape[1]):
-				v = self._crvfitter_regressors[:, j]
-				v -= v.dot(u)*u2
+
+			for j in xrange(i+1, R): # for j > i
+				v_j = self._crvfitter_regressors[:, j]
+
+				D[i, j] = u_i.dot(v_j)/norm_sq # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
+
+		D[-1, -1] = 1.0 # D[i, j] = 1, if i = j
+
+		return D
 
 	def normalize_regressors(self):
 		'''Normalizes the energy of each regressor (the magnitude of each feature interpreted as a vector,
@@ -219,16 +348,41 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Denormalization matrix: An RxR (2-dimensional) diagonal matrix that yields the original
+			        'regressors' matrix when right-multiplied with the new 'regressors' matrix. That is,
+			        given the original 'regressors' matrix, OR, and the new, normalized 'regressors' matrix,
+			        NR, the return value is a diagonal matrix D such that OR = NR x D (matrix multiplication).
 		'''
+
+		# Original 'regressors' matrix:
+		#	V = ( v_1 | v_2 | ... | v_C )
+
+		# Normalization:
+		#	u_j = v_j / ||v_j||
+
+		# New 'regressors' matrix (normalized):
+		#	U = ( u_1 | u_2 | ... | u_C )
+
+		# Deorthogonalization matrix (diagonal):
+		#	D[i, j] = 
+		#	 		||u_i||,	if i = j
+		#	 		0,			if i != j
+
+		R = self._crvfitter_regressors.shape[1]
+		D = zeros((R, R)) # D[i, j] = 0, if i != j
+
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_regressors.shape[1]):
-			u = self._crvfitter_regressors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(R):
+			u_i = self._crvfitter_regressors[:, i]
+			norm_sq = u_i.dot(u_i)
 			if norm_sq >= threshold:
-				u /= norm_sq**0.5
+				D[i, i] = norm_sq**0.5 # D[i, j] = ||u_i||, if i = j
+				u_i /= D[i, i] # Normalization
 			elif norm_sq != 0.0:
-				u[:] = 0.0
+				u_i[:] = 0.0
+
+		return D
 
 	def orthonormalize_regressors(self):
 		'''Orthogonalizes each regressors with respect to all the previous ones, and normalizes the results.
@@ -237,25 +391,59 @@ class CurveFitter:
 			
 			Modifies:
 
-			    - Regressors: each column has been orthogonalized w.r.t. the previous ones, and normal-
-			        ized afterwards.
+			    - Regressors: each column has been orthogonalized w.r.t. the previous ones, and normalized
+			        afterwards.
 
 			Returns:
 
-			    - None
+			    - Deorthonormalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
+			        original 'regressors' matrix when right-multiplied with the new 'regressors' matrix. That
+			        is, given the original 'regressors' matrix, OR, and the new, orthonormalized 'regressors'
+			        matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
 		'''
-		# Gram-Schmidt
+
+
+		# Original 'regressors' matrix:
+		# 	V = ( v_1 | v_2 | ... | v_C )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+
+		# New 'regressors' matrix (orthonormalized):
+		#	W = ( w_1 | w_2 | ... | w_C )
+
+		# Deorthonormalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< w_i, v_j >,		if i < j
+		#	 		||u_i||,			if i = j
+		#	 		0,					if i > j
+
+		R = self._crvfitter_regressors.shape[1]
+		D = zeros((R, R))
+
 		threshold = self._crvfitter_regressors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_regressors.shape[1]):
-			u = self._crvfitter_regressors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(R):
+			u_i = self._crvfitter_regressors[:, i]
+
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = ||u_i||**2
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+				# the deorthonormalization will still work, hopefully with a small enough precision error)
 				continue
-			u /= norm_sq**0.5 # Normalize u
-			for j in xrange(i+1, self._crvfitter_regressors.shape[1]):
-				v = self._crvfitter_regressors[:, j]
-				v -= v.dot(u)*u # Orthogonalize v with respect to u
+
+			D[i, i] = norm_sq**0.5 # D[i, j] = ||u_i||, if i = j
+			u_i /= D[i, i] # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+
+			for j in xrange(i+1, R): # for j > i
+				v_j = self._crvfitter_regressors[:, j]
+
+				D[i, j] = u_i.dot(v_j) # D[i, j] = < w_i, v_j >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+
+		return D
 
 	def orthogonalize_all(self):
 		'''Orthogonalizes each regressor w.r.t the others, all correctors w.r.t. the others, and all the
@@ -264,29 +452,68 @@ class CurveFitter:
 			Modifies:
 
 			    - Correctors: each column has been orthogonalized with respect to the previous ones.
-			    - Regressors: each column has been orthogonalized with respect to all the columns in
-			        the correctors matrix and all the previous columns in the regressors matrix.
+			    - Regressors: each column has been orthogonalized with respect to all the columns in the correctors
+			        matrix and all the previous columns in the regressors matrix.
 
 			Returns:
 
-			    - None
+			    - Deorthogonalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields the
+			        original 'correctors' and 'regressors' matrices when right-multiplied with the new 'correctors' and
+			        'regressors' matrices. More specifically, given the original 'correctors' matrix, OC, the original
+			        'regressors' matrix, OR, and the new, orthogonalized 'correctors' and 'regressors' matrices, NC
+			        and NR respectively, the return value is a matrix, D, such that (OC | OR) = (NC | NR) x D (matrix
+			        multiplication).
 		'''
-		# Gram-Schmidt
+
+		# Original 'features' matrix:
+		# 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+
+		# New 'features' matrix (orthonormalized):
+		#	U = ( u_1 | u_2 | ... | u_(C+R) )
+
+		# Deorthogonalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< u_i, v_j > / < u_i, u_i >,	if i < j
+		#	 		1,								if i = j
+		#	 		0,								if i > j
+
+		C = self._crvfitter_correctors.shape[1]
+		R = self._crvfitter_regressors.shape[1]
+		CR = C + R
+		D = zeros((CR, CR)) # D[i, j] = 0, if i > j
+
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_correctors.shape[1]):
-			u = self._crvfitter_correctors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(C):
+			D[i, i] = 1.0 # D[i, j] = 1, if i = j
+
+			u_i = self._crvfitter_correctors[:, i]
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = sq(||u_i||)
+
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+				# work, hopefully with a small enough precision error)
 				continue
-			u2 = u/norm_sq
-			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
-				v = self._crvfitter_correctors[:, j]
-				v -= v.dot(u)*u2
-			for j in xrange(self._crvfitter_regressors.shape[1]):
-				v = self._crvfitter_regressors[:, j]
-				v -= v.dot(u)*u2
-		self.orthogonalize_regressors()
+
+			for j in xrange(i+1, C):
+				v_j = self._crvfitter_correctors[:, j]
+
+				D[i, j] = u_i.dot(v_j)/norm_sq # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+				v_j -= D[i, j]*u_i
+
+			for j in xrange(C, CR):
+				v_j = self._crvfitter_regressors[:, j - C]
+
+				D[i, j] = u_i.dot(v_j)/norm_sq # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+				v_j -= D[i, j]*u_i
+
+		D[C:, C:] = self.orthogonalize_regressors() # R x R
+
+		return D
 
 	def normalize_all(self):
 		'''Normalizes the energy of each corrector and each regressor (the magnitude of each feature
@@ -300,10 +527,28 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Denormalization matrix: A (C+R)x(C+R) (2-dimensional) diagonal matrix that yields the original
+			        'correctors' and 'regressors' matrices when right-multiplied with the new 'correctors' and
+			        'regressors' matrices. That is, given the original 'correctors' matrix, namely OC, the original
+			        'regressors' matrix, OR, and the new, normalized 'correctors' and 'regressors' matrices, NC and
+			        NR respectively, the return value is a diagonal matrix D such that (OC | OR) = (NC | NR) x D
+			        (matrix multiplication).
 		'''
-		self.normalize_correctors()
-		self.normalize_regressors()
+
+		# Deorthogonalization matrix (diagonal):
+		#	D[i, j] = 
+		#	 		||u_i||,	if i = j
+		#	 		0,			if i != j
+
+		C = self._crvfitter_correctors.shape[1]
+		R = self._crvfitter_regressors.shape[1]
+		CR = C + R
+		D = zeros((CR, CR))
+
+		D[:C, :C] = self.normalize_correctors()
+		D[C:, C:] = self.normalize_regressors()
+
+		return D
 
 	def orthonormalize_all(self):
 		'''Orthogonalizes each regressor w.r.t the others, all correctors w.r.t. the others, and all the
@@ -320,24 +565,65 @@ class CurveFitter:
 
 			Returns:
 
-			    - None
+			    - Deorthonormalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields
+			        the original 'correctors' and 'regressors' matrices when right-multiplied with the new
+			        'correctors and 'regressors' matrices. More specifically, given the original 'correctors'
+			        matrix, namely OC, the original 'regressors' matrix, OR, and the new, orthonormalized
+			        'correctors' and 'regressors' matrices, NC and NR respectively, the return value is a matrix,
+			        D, such that (OC | OR) = (NC | NR) x D (matrix multiplication).
 		'''
-		# Gram-Schmidt
+
+		# Original 'features' matrix:
+		# 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
+
+		# Gram-Schmidt:
+		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+
+		# New 'features' matrix (orthonormalized):
+		#	W = ( w_1 | w_2 | ... | w_(C+R) )
+
+		# Deorthonormalization matrix (upper triangular):
+		#	D[i, j] = 
+		#			< w_i, v_j >,		if i < j
+		#	 		||u_i||,			if i = j
+		#	 		0,					if i > j
+
+		C = self._crvfitter_correctors.shape[1]
+		R = self._crvfitter_regressors.shape[1]
+		CR = C + R
+		D = zeros((CR, CR))
+
 		threshold = self._crvfitter_correctors.shape[0]*CurveFitter.__threshold
-		for i in xrange(self._crvfitter_correctors.shape[1]):
-			u = self._crvfitter_correctors[:, i]
-			norm_sq = u.dot(u)
+
+		for i in xrange(C):
+			u_i = self._crvfitter_correctors[:, i]
+
+			norm_sq = u_i.dot(u_i) # < u_i, u_i > = ||u_i||**2
 			if norm_sq < threshold:
-				u[:] = 0.0
+				u_i[:] = 0.0 # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+				# the deorthonormalization will still work, hopefully with a small enough precision error)
 				continue
-			u /= norm_sq**0.5 # Normalize u
-			for j in xrange(i+1, self._crvfitter_correctors.shape[1]):
-				v = self._crvfitter_correctors[:, j]
-				v -= v.dot(u)*u # Orthogonalize v with respect to u
-			for j in xrange(self._crvfitter_regressors.shape[1]):
-				v = self._crvfitter_regressors[:, j]
-				v -= v.dot(u)*u # Orthogonalize v with respect to u
-		self.orthonormalize_regressors()
+
+			D[i, i] = norm_sq**0.5 # D[i, j] = ||u_i||, if i = j
+			u_i /= D[i, i] # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+
+			for j in xrange(i+1, C):
+				v_j = self._crvfitter_correctors[:, j]
+				
+				D[i, j] = u_i.dot(v_j) # D[i, j] = < w_i, v_j >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+
+			for j in xrange(C, CR):
+				v_j = self._crvfitter_regressors[:, j - C]
+
+				D[i, j] = u_i.dot(v_j) # D[i, j] = < w_i, v_j >, if i < j
+				v_j -= D[i, j]*u_i # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+
+		D[C:, C:] = self.orthonormalize_regressors() # R x R
+
+		return D
 
 	@abstractstatic
 	def __fit__(correctors, regressors, observations, *args, **kwargs):
@@ -350,10 +636,10 @@ class CurveFitter:
 			        (may) explain a part of the observational data in which we are not interested, where C
 			        is the number of correctors and N the number of elements for each corrector.
 
-			    - regressors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
-			        to try to explain/predict the observations (experimental data), where R is the number of
-			        regressors and N the number of elements for each regressor (the latter is ensured to be the
-			        same as that in the 'correctors' argument).
+			    - regressors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be
+			        used to try to explain/predict the observations (experimental data), where R is the number
+			        of regressors and N the number of elements for each regressor (the latter is ensured to be
+			        the same as that in the 'correctors' argument).
 
 			    - observations: NxM (2-dimensional) matrix, representing the observational data, i.e., values
 			        obtained by measuring the variables of interest, whose behaviour is wanted to be explained
@@ -371,24 +657,24 @@ class CurveFitter:
 			        for each variable.
 
 			    - Regression parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best
-			        fit the regressors to the corrected observations for each variable, where M is the number of
-			        variables (same as that in the 'observations' argument) and Kr is the number of regression
-			        parameters for each variable.
+			        fit the regressors to the corrected observations for each variable, where M is the number
+			        of variables (same as that in the 'observations' argument) and Kr is the number of
+			        regression parameters for each variable.
 
 
 			[Developer notes]
-			    - Assertions regarding the size and type of the arguments have already been performed before the
-			        call to this method to ensure that the sizes of the arguments are coherent and the observations
-			        matrix has at least one element.
+			    - Assertions regarding the size and type of the arguments have already been performed before
+			        the call to this method to ensure that the sizes of the arguments are coherent and the
+			        observations matrix has at least one element.
 
 			    - The 'correctors' and 'regressors' matrices may have zero elements, in which case the behaviour
 			        of the method is left to be decided by the subclass.
 
-			    - You may modify the 'observations' matrix if needed, but both the 'correctors' and the 'regressors'
-			        arguments should be left unchanged.
+			    - You may modify the 'observations' matrix if needed, but both the 'correctors' and the
+			        'regressors' arguments should be left unchanged.
 
-			    - The result should be returned as a tuple of 2 elements, containing the correction parameters in
-			        the first position and the regression parameters in the second position.
+			    - The result should be returned as a tuple of 2 elements, containing the correction parameters
+			        in the first position and the regression parameters in the second position.
 
 			    - Although it is defined as a static method here, this method supports a non-static implementation.
 		'''
@@ -399,24 +685,24 @@ class CurveFitter:
 
 			Parameters:
 
-			    - observations: array-like structure of shape (N, X1, ..., Xn), representing the observational data,
-			        i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
-			        explained by the correctors and regressors in the system, where M = X1*...*Xn is the number of
-			        variables and N the number of observations for each variable.
+			    - observations: array-like structure of shape (N, X1, ..., Xn), representing the observational
+			        data, i.e., values obtained by measuring the variables of interest, whose behaviour is wanted
+			        to be explained by the correctors and regressors in the system, where M = X1*...*Xn is the
+			        number of variables and N the number of observations for each variable.
 
 			    - any other arguments will be passed to the __fit__ method.
 
 			Modifies:
 
-			    - [created] Correction parameters: array-like structure of shape (Kc, X1, ..., Xn), representing the
-			        parameters that best fit the correctors to the observations, where X1, ..., Xn are the original
-			        dimensions of the 'observations' argument and Kc is the number of correction parameters for each
-			        variable.
+			    - [created] Correction parameters: array-like structure of shape (Kc, X1, ..., Xn), representing
+			        the parameters that best fit the correctors to the observations, where X1, ..., Xn are the
+			        original dimensions of the 'observations' argument and Kc is the number of correction parameters
+			        for each variable.
 
-			    - [created] Regression parameters: array-like structure of shape (Kr, X1, ..., Xn), representing the
-			        parameters that best fit the regressors to the observations, where X1, ..., Xn are the original
-			        dimensions of the 'observations' argument and Kr is the number of regression parameters for each
-			        variable.
+			    - [created] Regression parameters: array-like structure of shape (Kr, X1, ..., Xn), representing
+			        the parameters that best fit the regressors to the observations, where X1, ..., Xn are the
+			        original dimensions of the 'observations' argument and Kr is the number of regression parameters
+			        for each variable.
 		'''
 		obs = nparray(observations, dtype = float64)
 		dims = obs.shape
@@ -439,12 +725,12 @@ class CurveFitter:
 			Parameters:
 
 			    - correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that (may)
-			        explain a part of the observational data in which we are not interested, where C is the number
-			        of correctors and N the number of elements for each corrector.
+			        explain a part of the observational data in which we are not interested, where C is the
+			        number of correctors and N the number of elements for each corrector.
 
 			    - correction_parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best fit
-			        the correctors to the observations for each variable, where M is the number of variables and Kc
-			        is the number of correction parameters for each variable.
+			        the correctors to the observations for each variable, where M is the number of variables and
+			        Kc is the number of correction parameters for each variable.
 
 			    - regressors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
 			        to try to explain/predict the observations (experimental data), where R is the number of
@@ -452,8 +738,8 @@ class CurveFitter:
 			        same as that in the 'correctors' argument).
 
 			    - regression_parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best fit
-			        the regressors to the corrected observations for each variable, where M is the number of variables
-			        and Kr is the number of regression parameters for each variable.
+			        the regressors to the corrected observations for each variable, where M is the number of
+			        variables and Kr is the number of regression parameters for each variable.
 
 			    - observations: NxM (2-dimensional) matrix, representing the observational data, i.e., values
 			        obtained by measuring the variables of interest, whose behaviour is wanted to be explained
@@ -465,10 +751,10 @@ class CurveFitter:
 
 			Returns:
 
-			    - fitting scores: array of length M, containing floats between 0 and 1 that indicate the degree
+			    - Fitting scores: array of length M, containing floats between 0 and 1 that indicate the degree
 			        to which the correctors and regressors fit the observations for each variable; the significance
-			        of the regressors in the behaviour of the observations for each variable; the greater the score,
-			        the greater the significance, and thus, the better the fit.
+			        of the regressors in the behaviour of the observations for each variable; the greater the
+			        score, the greater the significance, and thus, the better the fit.
 
 			[Developer notes]
 			    - Assertions regarding the size and type of the arguments have already been performed before the
@@ -521,7 +807,7 @@ class CurveFitter:
 
 			Returns:
 
-			    - fitting scores: array-like structure of shape (X1, ..., Xn), containing floats between 0 and 1
+			    - Fitting scores: array-like structure of shape (X1, ..., Xn), containing floats between 0 and 1
 			        that indicate the significance of the regressors in the behaviour of the observations for each
 			        variable; the greater the score, the greater the significance, and thus, the better the fit.
 		'''
@@ -717,7 +1003,7 @@ class CurveFitter:
 
 			Returns:
 
-			    - corrected data: NxM (2-dimensional) matrix, containing the observational data after having sub-
+			    - Corrected data: NxM (2-dimensional) matrix, containing the observational data after having sub-
 			        tracted the contribution of the correctors by using the correction parameters.
 
 			[Developer notes]
@@ -833,6 +1119,7 @@ class AdditiveCurveFitter(CurveFitter):
 			F-test. In particular, the null hypothesis states that the regressors do not explain the variation of
 			the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
 		'''
+
 		if 0 in correctors.shape:
 			# There is no correction -> Correction error is same as observations
 			correction_error = observations
@@ -849,11 +1136,11 @@ class AdditiveCurveFitter(CurveFitter):
 		## Now compare the variances of the errors
 
 		# Residual Sum of Squares for restricted model
-		rss1 = sum((correction_error - correction_error.mean())**2)
+		rss1 = ((correction_error - correction_error.mean(axis = 0))**2).sum(axis = 0)
 		p1 = correctors.shape[1]
 
 		# Residual Sum of Squares for full model
-		rss2 = sum(regression_error**2)
+		rss2 = (regression_error**2).sum(axis = 0)
 		p2 = p1 + regressors.shape[1]
 
 		# Degrees of freedom

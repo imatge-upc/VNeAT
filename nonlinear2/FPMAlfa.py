@@ -41,13 +41,10 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Initializing PolyGLM Processor...'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex])#, correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
-results = pglmp.process(x1=43,x2=45,y1=75,y2=77,z1=53,z2=55)
-
-print 'Formatting obtained data to display it...'
-z_scores, labels = pglmp.fit_score(results.fitting_scores, produce_labels = True)
+results = pglmp.process()
 
 print 'Saving results to files...'
 
@@ -60,14 +57,22 @@ affine = nparray(
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_cparams.nii')
-nib.save(niiFile(results.regression_parameters, affine), '/Users/Asier/Documents/git/fpmalfa_rparams.nii')
-nib.save(niiFile(results.fitting_scores, affine), '/Users/Asier/Documents/git/fpmalfa_fitscores.nii')
-nib.save(niiFile(z_scores, affine), '/Users/Asier/Documents/git/fpmalfa_zscores.nii')
-nib.save(niiFile(labels, affine), '/Users/Asier/Documents/git/fpmalfa_labels.nii')
+nib.save(niiFile(results.correction_parameters, affine), join('results', 'fpmalfa_pglm_cparams.nii'))
+nib.save(niiFile(results.regression_parameters, affine), join('results', 'fpmalfa_pglm_rparams.nii'))
+nib.save(niiFile(results.fitting_scores, affine), join('results', 'fpmalfa_pglm_fitscores.nii'))
 
-with open('/Users/Asier/Documents/git/fpmalfa_userdefparams.txt', 'wb') as f:
+with open(join('results', 'fpmalfa_pglm_userdefparams.txt'), 'wb') as f:
 	f.write(str(pglmp.user_defined_parameters) + '\n')
+
+print 'Obtaining, filtering and saving z-scores and labels to display them...'
+for fit_threshold in [0.99, 0.995, 0.999]:
+	print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
+	z_scores, labels = pglmp.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True)
+
+	print '    Saving z-scores and labels to file...'
+	nib.save(niiFile(z_scores, affine), join('results', 'fpmalfa_pglm_zscores_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(labels, affine), join('results', 'fpmalfa_pglm_labels_' + str(fit_threshold) + '.nii'))
 
 
 print 'Done.'
+
