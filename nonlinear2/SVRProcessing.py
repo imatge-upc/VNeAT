@@ -113,7 +113,7 @@ class PolySVRProcessor(Processor):
             default_value = 1.0,
             try_ntimes= 3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 1.0)'
+            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 1000.0)'
         )
 
         # epsilon regularization parameter
@@ -164,7 +164,7 @@ class PolySVRProcessor(Processor):
 
         """
         # Call parent function process with additional parameters obtained through __read_user_defined_parameters__
-        super(PolySVRProcessor, self).process(x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon, *args, **kwargs)
+        return super(PolySVRProcessor, self).process(x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon, *args, **kwargs)
 
 
 

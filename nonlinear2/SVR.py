@@ -5,8 +5,9 @@
 """
 from CurveFitting import AdditiveCurveFitter
 from sklearn.svm import SVR
+import sklearn.preprocessing as preprocessing
 import numpy as np
-from numpy import array
+from numpy import array, zeros, ravel
 from Transforms import polynomial
 
 class LinearSVR(AdditiveCurveFitter):
@@ -32,7 +33,7 @@ class LinearSVR(AdditiveCurveFitter):
 
         """
         # Parameters for linear SVR
-        C = kwargs['C'] if 'C' in kwargs else 1.0
+        C = kwargs['C'] if 'C' in kwargs else 1000.0
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
         shrinking = kwargs['shrinking'] if 'shrinking' in kwargs else True
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
@@ -42,16 +43,23 @@ class LinearSVR(AdditiveCurveFitter):
         # Initialize linear SVR from scikit-learn
         svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
 
-        # Fit data
+        # Create features matrix and standardize data
         X = np.concatenate((correctors, regressors), axis=1)
-        svr_fitter.fit(X, observations, sample_weight=sample_weight)
+        num_features = X.shape[1]
+        num_variables = observations.shape[1]
+        X_std = preprocessing.scale(X)
+
+        # Fit data per voxel
+        params = zeros( (num_features, num_variables) )
+        for ind in range(num_variables):
+            svr_fitter.fit(X_std, observations[:, ind], sample_weight=sample_weight)
+            params[:, ind] = ravel(svr_fitter.coef_).T
 
         # Get correction and regression coefficients
         end_correctors = int(correctors.shape[1])
-        begin_regressors = end_correctors + 1
-        c_params = svr_fitter.coef_[:end_correctors]
-        r_params = svr_fitter.coef_[begin_regressors:]
-        return (c_params, r_params)
+        c_params = params[:end_correctors, :]
+        r_params = params[end_correctors:, :]
+        return c_params, r_params
 
     @staticmethod
     def __predict__(regressors, regression_parameters, *args, **kwargs):
