@@ -34,7 +34,7 @@ class LinearSVR(AdditiveCurveFitter):
         """
         # Parameters for linear SVR
         C = kwargs['C'] if 'C' in kwargs else 1000.0
-        epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
+        epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.01
         shrinking = kwargs['shrinking'] if 'shrinking' in kwargs else True
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
