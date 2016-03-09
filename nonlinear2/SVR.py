@@ -54,7 +54,7 @@ class LinearSVR(AdditiveCurveFitter):
         params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
                                         (svr_fitter, X_std, observations[:, i], sample_weight)
                                          for i in range(num_variables))
-        params = array(params)
+        params = array(params).T
 
         # Get correction and regression coefficients
         end_correctors = int(correctors.shape[1])
@@ -195,4 +195,5 @@ def __fit_features__(fitter, X, y, sample_weight=None):
         -------
         Fx1 vector with the fitting coefficients
         """
-        return ravel(fitter.fit(X, y, sample_weight=sample_weight).coef_).T
+        fitter.fit(X, y, sample_weight=sample_weight)
+        return ravel(fitter.coef_).T
