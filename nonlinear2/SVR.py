@@ -7,8 +7,9 @@ from CurveFitting import AdditiveCurveFitter
 from sklearn.svm import SVR
 import sklearn.preprocessing as preprocessing
 import numpy as np
-from numpy import array, zeros, ravel
+from numpy import array, ravel
 from Transforms import polynomial
+from joblib import Parallel, delayed
 
 class LinearSVR(AdditiveCurveFitter):
     """
@@ -39,27 +40,28 @@ class LinearSVR(AdditiveCurveFitter):
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
         sample_weight = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
+        n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
         svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
 
         # Create features matrix and standardize data
         X = np.concatenate((correctors, regressors), axis=1)
-        num_features = X.shape[1]
         num_variables = observations.shape[1]
         X_std = preprocessing.scale(X)
 
         # Fit data per voxel
-        params = zeros( (num_features, num_variables) )
-        for ind in range(num_variables):
-            svr_fitter.fit(X_std, observations[:, ind], sample_weight=sample_weight)
-            params[:, ind] = ravel(svr_fitter.coef_).T
+        params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
+                                        (svr_fitter, X_std, observations[:, i], sample_weight)
+                                         for i in range(num_variables))
+        params = array(params)
 
         # Get correction and regression coefficients
         end_correctors = int(correctors.shape[1])
         c_params = params[:end_correctors, :]
         r_params = params[end_correctors:, :]
         return c_params, r_params
+
 
     @staticmethod
     def __predict__(regressors, regression_parameters, *args, **kwargs):
@@ -175,3 +177,22 @@ class PolySVR(LinearSVR):
 class GaussianSVR(object):
     """ GAUSSIAN SVR """
     pass
+
+
+""" HELPER FUNCTIONS """
+
+def __fit_features__(fitter, X, y, sample_weight=None):
+        """
+        Fits the features from X to the observation y given the linear fitter and the optional sample_weights
+        Parameters
+        ----------
+        fitter sklearn linear fitter, must have the fit method and the coef_ attribute
+        X NxF matrix, where N is the number of observations and F the number of features
+        y Nx1 the variable that we want to explain with the features
+        [sample_weight]
+
+        Returns
+        -------
+        Fx1 vector with the fitting coefficients
+        """
+        return ravel(fitter.fit(X, y, sample_weight=sample_weight).coef_).T
