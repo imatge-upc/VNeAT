@@ -4,4 +4,5 @@ data/*
 **/.DS_STORE
 *.nii
 *.txt
+!requirements.txt
 *.sh
