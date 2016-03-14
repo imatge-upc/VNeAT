@@ -51,12 +51,12 @@ if __name__ == "__main__":
 		)
 
 	print 'Initializing PolySVR Processor...'
-	user_defined_parameters = (1, 0, 100.0, 0.05, 3, 2, 1)
+	user_defined_parameters = (1, 0, 50.0, 0.1, 3, 2, 1)
 	psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex], \
 				user_defined_parameters=user_defined_parameters)
 
 	print 'Processing data...'
-	results = psvr.process(n_jobs=8)
+	results = psvr.process(n_jobs=12, mem_usage=10)
 
 	print 'Formatting obtained data to display it...'
 	z_scores, labels = psvr.fit_score(results.fitting_scores, produce_labels = True)

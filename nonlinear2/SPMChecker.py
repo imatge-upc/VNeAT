@@ -42,7 +42,7 @@ print("Transforming F-scores into fit scores and Z-values for the SPM...")
 # number of regressors
 dfn = 3
 # number of subjects - number of regressors
-dfd = 129 - dfn
+dfd = 122
 F_rv = f(dfn=dfn, dfd=dfd)
 fit_scores = F_rv.cdf(spm_data)
 # Z-scores
