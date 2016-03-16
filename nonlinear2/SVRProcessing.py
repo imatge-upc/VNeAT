@@ -110,10 +110,10 @@ class PolySVRProcessor(Processor):
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
-            default_value = 1000.0,
+            default_value = 100.0,
             try_ntimes= 3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 1000.0)'
+            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 100.0)'
         )
 
         # epsilon regularization parameter
