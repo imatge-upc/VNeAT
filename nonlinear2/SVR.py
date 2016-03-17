@@ -4,7 +4,7 @@
         * Gaussian SVR
 """
 from CurveFitting import AdditiveCurveFitter
-from sklearn.svm import SVR
+from sklearn.svm import SVR, LinearSVR
 import sklearn.preprocessing as preprocessing
 import numpy as np
 from numpy import array, ravel, zeros, ones
@@ -41,13 +41,16 @@ class LinSVR(AdditiveCurveFitter):
         C = kwargs['C'] if 'C' in kwargs else 100.0
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.01
         shrinking = kwargs['shrinking'] if 'shrinking' in kwargs else True
-        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
+        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 1000
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
         sample_weight = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
+
+        #svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
+        svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_homogeneous,
+                               intercept_scaling=C, max_iter=max_iter)
 
         # Create features matrix
         if correctors.size != 0:
@@ -209,12 +212,13 @@ def __fit_features__(fitter, X, y, sample_weight=None, homogeneous=True):
         {numpy array} (F+1)x1 array with the fitting coefficients and the intercept term if homogeneous=True,
         otherwise Fx1 array with only the fitting coefficients
         """
-        fitter.fit(X, y, sample_weight=sample_weight)
+        fitter.fit(X, y)
         num_features = X.shape[1]
         if homogeneous:
             params = zeros((num_features + 1, 1))
             params[0, :] = float(fitter.intercept_)
-            params[1:, :] = fitter.coef_.T
+            coefficients = np.atleast_2d(fitter.coef_)
+            params[1:, :] = coefficients.T
         else:
             params = fitter.coef_.T
         return ravel(params)

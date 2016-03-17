@@ -86,17 +86,17 @@ if __name__ == "__main__":
         )
 
     # Coordinates of the voxels to fit
-    x1 = 10
-    x2 = 30
-    y1 = 10
-    y2 = 20
-    z1 = 10
-    z2 = 20
+    x1 = 40
+    x2 = 70
+    y1 = 35
+    y2 = 75
+    z1 = 35
+    z2 = 65
 
     # Execution params
-    C = 50
-    epsilon = 1e-6
-    n_jobs = 2
+    C = 500
+    epsilon = 1e-4
+    n_jobs = 8
 
     # Get regressors, correctors and observations
     aet_regressors = array(map(lambda subject: subject.get([Subject.ADCSFIndex]), subjects), dtype = float64)

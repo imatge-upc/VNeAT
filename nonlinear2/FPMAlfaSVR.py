@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
 	print 'Obtaining data from Excel file...'
 
-	"""
+
 	DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
 	EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
 	RESULTS_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "PSVR")
@@ -20,7 +20,7 @@ if __name__ == "__main__":
 	DATA_DIR = join("/", "imatge", "spuch", "data-neuroimatge", "Nonlinear_NBA_15")
 	EXCEL_FILE = join("/", "imatge", "spuch", "data-neuroimatge", "work_DB_CSF.R1.final.xls")
 	RESULTS_DIR = join("/", "imatge", "spuch", "work", "neuro", "PolySVR")
-
+	"""
 
 	filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 	filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -51,12 +51,12 @@ if __name__ == "__main__":
 		)
 
 	print 'Initializing PolySVR Processor...'
-	user_defined_parameters = (1, 0, 50.0, 0.1, 3, 2, 1)
+	user_defined_parameters = (1, 0, 500.0, 1e-4, 3, 2, 1)
 	psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex], \
 				user_defined_parameters=user_defined_parameters)
 
 	print 'Processing data...'
-	results = psvr.process(n_jobs=12, mem_usage=10)
+	results = psvr.process(n_jobs=8, mem_usage=100)
 
 	print 'Formatting obtained data to display it...'
 	z_scores, labels = psvr.fit_score(results.fitting_scores, produce_labels = True)
@@ -80,6 +80,5 @@ if __name__ == "__main__":
 
 	with open(join(RESULTS_DIR, 'psvr_userdefparams.txt'), 'wb') as f:
 		f.write(str(psvr.user_defined_parameters) + '\n')
-
 
 	print 'Done.'
