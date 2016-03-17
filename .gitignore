@@ -6,6 +6,4 @@ data/*
 *.txt
 *.sh
 nonlinear2/FPMAlfa_GAM.py
-tests/FPMAlfaGAM.py
-tests/show_curves_GAM.py
 tests/*

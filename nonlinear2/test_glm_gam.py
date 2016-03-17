@@ -7,7 +7,6 @@ from GAMProcessing import GAMProcessor
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
-from matplotlib import pyplot as plt
 import nibabel as nib
 from numpy import array as nparray
 
@@ -43,15 +42,24 @@ for r in exc.get_rows( fieldstype = {
 			r.get('ad_csf_index_ttau', None)
 		)
 	)
-print 'Initializing GAM Processor...'
-gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex])
 
+print 'Initializing PolyGLM Processor...'
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age,Subject.Sex])
+gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex],correctors = [Subject.Age,Subject.Sex])
 
 print 'Processing data...'
-results = gamp.process(x1=73,x2=74,y1=84,y2=85,z1=41,z2=42)
+x1=54#105
+x2=x1+1
+y1=101#67
+y2=y1+1
+z1=89#53
+z2=z1+1
+results_glm = pglmp.process(x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
+results_gam = gamp.process(x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
 
 print 'Formatting obtained data to display it...'
-z_scores, labels = gamp.fit_score(results.fitting_scores, produce_labels = True)
+z_scores_glm, labels_glm = pglmp.fit_score(results_glm.fitting_scores, produce_labels = True)
+z_scores_gam, labels_gam = gamp.fit_score(results_gam.fitting_scores, produce_labels = True)
 
 print 'Saving results to files...'
 
@@ -61,24 +69,44 @@ affine = nparray(
 		 [ -1.36305018e-16,  -1.38272305e-16,   1.50000000e+00,  -7.20000000e+01],
 		 [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00]]
 )
-from matplotlib import pyplot as plt
-import numpy as np
-corrected_data = gamp.corrected_values(results.correction_parameters, x1=73,x2=74,y1=84,y2=85,z1=41,z2=42)
-x=np.array(np.sort([sbj.adcsf for sbj in subjects]))
-x_cub = np.array([np.squeeze(x)**i for i in range(4)]).T
-plt.plot(x,np.squeeze(corrected_data),'k.')
-plt.plot(x,x_cub.dot(np.squeeze(results.regression_parameters[3:])))
+
+# from matplotlib import pyplot as plt
+# import numpy as np
+# plt.figure()
+# corrected_data_glm = pglmp.corrected_values(results_glm.correction_parameters, x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
+# x_glm=np.array(np.sort([sbj.adcsf for sbj in subjects]))
+# x_cub_glm = np.array([np.squeeze(x_glm)**i for i in np.arange(1,4)]).T
+# plt.plot(x_glm,np.squeeze(corrected_data_glm),'k.')
+# plt.plot(x_glm,x_cub_glm.dot(np.squeeze(results_glm.regression_parameters)),'y')
+#
+#
+# corrected_data_gam = gamp.corrected_values(results_gam.correction_parameters, x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
+# x_gam=np.array(np.sort([sbj.adcsf for sbj in subjects]))
+# x_cub_gam = np.array([np.squeeze(x_gam)**i for i in range(4)]).T
+# plt.plot(x_gam,np.squeeze(corrected_data_gam),'r.')
+# plt.plot(x_gam,x_cub_gam.dot(np.squeeze(results_gam.regression_parameters[3:])),'b')
+#
+# plt.show()
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), 'fpmalfa_gam_cparams.nii')
-nib.save(niiFile(results.regression_parameters, affine), 'fpmalfa_gam_rparams.nii')
-nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_gam_fitscores.nii')
-nib.save(niiFile(z_scores, affine), 'fpmalfa_gam_zscores.nii')
-nib.save(niiFile(labels, affine), 'fpmalfa_gam_labels.nii')
+nib.save(niiFile(results_glm.correction_parameters, affine), 'fpmalfa_glm_cparams.nii')
+nib.save(niiFile(results_glm.regression_parameters, affine), 'fpmalfa_glm_rparams.nii')
+nib.save(niiFile(results_glm.fitting_scores, affine), 'fpmalfa_glm_fitscores.nii')
+nib.save(niiFile(z_scores_glm, affine), 'fpmalfa_glm_zscores.nii')
+nib.save(niiFile(labels_glm, affine), 'fpmalfa_glm_labels.nii')
+
+with open('fpmalfa_glm_userdefparams.txt', 'wb') as f:
+	f.write(str(pglmp.user_defined_parameters) + '\n')
+
+
+nib.save(niiFile(results_gam.correction_parameters, affine), 'fpmalfa_gam_cparams.nii')
+nib.save(niiFile(results_gam.regression_parameters, affine), 'fpmalfa_gam_rparams.nii')
+nib.save(niiFile(results_gam.fitting_scores, affine), 'fpmalfa_gam_fitscores.nii')
+nib.save(niiFile(z_scores_gam, affine), 'fpmalfa_gam_zscores.nii')
+nib.save(niiFile(labels_gam, affine), 'fpmalfa_gam_labels.nii')
 
 with open('fpmalfa_gam_userdefparams.txt', 'wb') as f:
 	f.write(str(gamp.user_defined_parameters) + '\n')
-
 
 print 'Done.'

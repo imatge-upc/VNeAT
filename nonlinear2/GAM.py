@@ -48,59 +48,35 @@ class GAM(AdditiveCurveFitter):
         [smoother.set_covariate(corr.reshape(dims[0],-1)) for smoother,corr in  zip(self.corrector_smoothers,correctors.T[1:])]
         [smoother.set_covariate(reg.reshape(dims[0],-1)) for smoother,reg in  zip(self.regressor_smoothers,regressors.T)]
 
-
         smoother_functions = SmootherSet(self.corrector_smoothers+self.regressor_smoothers)
-        alpha,mu,offset=self.__init_iter(observations,smoother_functions.n_smoothers)
+        crv_reg=[]
+        crv_corr=[]
+        for obs in observations.T:
+            corr,reg = self.__backfitting_algorithm(obs[:,None],smoother_functions,rtol=rtol,maxiter=maxiter)
+            crv_corr.append(corr)
+            crv_reg.append(reg)
 
-
-        for smoother in smoother_functions:
-            r = observations - alpha - mu
-            smoother.fit(r)
-            f_i_pred = smoother.predict()
-            offset = f_i_pred.sum() / observations.shape[0]
-            f_i_pred -= offset
-            mu += f_i_pred
-        self.iter += 1
-
-        mu_old = 0
-        convergence_num = sum(mu**2)
-        while self.__cont(convergence_num,mu_old,maxiter,rtol):
-            mu_old = sum(mu**2)
-            convergence_num = 0
-            for smoother in smoother_functions:
-                f_i_prev = smoother.predict() - smoother.predict().sum() / observations.shape[0]
-                mu = mu - f_i_prev
-                r = observations - alpha - mu
-                smoother.fit(r)
-                f_i_pred = smoother.predict()
-                offset = f_i_pred.sum() / observations.shape[0]
-                f_i_pred -= offset
-                mu += f_i_pred
-                convergence_num = convergence_num + sum((f_i_prev - f_i_pred)**2)
-            self.iter += 1
-
-        self.intercept_smoother.set_parameters(self.alpha)
-        self.corrector_smoothers=SmootherSet(smoother_functions[:self.corrector_smoothers.n_smoothers])
-        self.regressor_smoothers=SmootherSet(smoother_functions[self.corrector_smoothers.n_smoothers:])
-        return (np.concatenate((np.array([self.TYPE_SMOOTHER.index(InterceptSmoother),1,self.alpha])[...,None],
-                                self.__code_parameters(self.corrector_smoothers))), self.__code_parameters(self.regressor_smoothers))
+        return (np.array(crv_corr).T,np.array(crv_reg).T)
 
     def __predict__(self,regressors,regression_parameters):
 
-        y_pred=np.zeros((regressors.shape[0],1))
-        indx_smthr = 0
-        for reg in regressors.T:
-            smoother=self.TYPE_SMOOTHER[int(regression_parameters[indx_smthr])](reg)
-            n_params = int(regression_parameters[indx_smthr+1])
-            smoother.set_parameters(regression_parameters[indx_smthr+2:indx_smthr+2+n_params])
-            indx_smthr+=n_params+2
-            y_pred += smoother.predict()
+        y_predict=[]
+        for reg_param in regression_parameters.T:
+            y_pred=np.zeros((regressors.shape[0],))
+            indx_smthr = 0
+            for reg in regressors.T:
+                smoother=self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](reg)
+                n_params = int(reg_param[indx_smthr+1])
+                smoother.set_parameters(reg_param[indx_smthr+2:indx_smthr+2+n_params])
+                indx_smthr+=n_params+2
+                y_pred += smoother.predict()
+            y_predict.append(y_pred)
 
-        return y_pred
+        return np.asarray(y_predict).T
 
     def __init_iter(self,observations,n_smoothers):
         self.iter = 0
-        self.alpha=np.mean(observations)
+        self.alpha=np.mean(observations,axis=0)
         mu = np.zeros((observations.shape[0],1), np.float64)
         offset = np.zeros((n_smoothers,1),np.float64)
         return self.alpha,mu,offset
@@ -125,7 +101,44 @@ class GAM(AdditiveCurveFitter):
         for smoother in smoother_set:
             params=smoother.get_parameters()
             parameters=np.concatenate((parameters,[self.TYPE_SMOOTHER.index(smoother.__class__),len(params)],params))
-        return parameters[...,None]
+        return parameters
+
+    def __backfitting_algorithm(self,observation,smoother_functions,rtol=1e-8,maxiter=500):
+
+        N=observation.shape[0]
+        alpha,mu,offset=self.__init_iter(observation,smoother_functions.n_smoothers)
+
+        for smoother in smoother_functions:
+            r = observation - alpha - mu
+            smoother.fit(r)
+            f_i_pred = smoother.predict()
+            offset = f_i_pred.sum() / N
+            f_i_pred -= offset
+            mu += f_i_pred
+        self.iter += 1
+
+        mu_old = 0
+        convergence_num = sum(mu**2)
+        while self.__cont(convergence_num,mu_old,maxiter,rtol):
+            mu_old = sum(mu**2)
+            convergence_num = 0
+            for smoother in smoother_functions:
+                f_i_prev = smoother.predict() - smoother.predict().sum() / N
+                mu = mu - f_i_prev
+                r = observation - alpha - mu
+                smoother.fit(r)
+                f_i_pred = smoother.predict()
+                offset = f_i_pred.sum() / N
+                f_i_pred -= offset
+                mu += f_i_pred
+                convergence_num = convergence_num + sum((f_i_prev - f_i_pred)**2)
+            self.iter += 1
+
+        self.intercept_smoother.set_parameters(self.alpha)
+        self.corrector_smoothers=SmootherSet(smoother_functions[:self.corrector_smoothers.n_smoothers])
+        self.regressor_smoothers=SmootherSet(smoother_functions[self.corrector_smoothers.n_smoothers:])
+        return (np.concatenate((np.array([self.TYPE_SMOOTHER.index(InterceptSmoother),1,self.alpha]),
+                                self.__code_parameters(self.corrector_smoothers))), self.__code_parameters(self.regressor_smoothers))
 
 
 class SmootherSet(list):
@@ -228,8 +241,8 @@ class SplinesSmoother(Smoother):
                 spline_parameters = self.spline_parameters
 
         y_pred=splev(xdata,spline_parameters)
-        if len(y_pred.shape) == 1:
-            y_pred=y_pred[...,None]
+        # if len(y_pred.shape) == 1:
+        #     y_pred=y_pred[...,None]
         return y_pred
 
     def get_parameters(self):
@@ -309,8 +322,8 @@ class PolynomialSmoother(Smoother):
 
         xdata=np.array([np.squeeze(xdata)**i for i in range(self.order+1)]).T
         y_pred = xdata.dot(self.coefficients)
-        if len(y_pred.shape) == 1:
-            y_pred=y_pred[...,None]
+        # if len(y_pred.shape) == 1:
+        #     y_pred=y_pred[...,None]
         return y_pred
 
     def get_parameters(self):
