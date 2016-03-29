@@ -9,18 +9,18 @@ class PolySVRProcessor(Processor):
     """
     Processor for Polynomic Support Vector Regression
     """
-    _psvrprocessor_perp_norm_options = {
-        'Orthonormalize all': 0,
-        'Orthogonalize all': 1,
-        'Normalize all': 2,
-        'Orthonormalize regressors': 3,
-        'Orthogonalize regressors': 4,
-        'Normalize regressors': 5,
-        'Orthonormalize correctors': 6,
-        'Orthogonalize correctors': 7,
-        'Normalize correctors': 8,
-        'Use correctors and regressors as they are': 9
-    }
+    _psvrprocessor_perp_norm_options_names = [
+		'Orthonormalize all',
+		'Orthogonalize all',
+		'Normalize all',
+		'Orthonormalize regressors',
+		'Orthogonalize regressors',
+		'Normalize regressors',
+		'Orthonormalize correctors',
+		'Orthogonalize correctors',
+		'Normalize correctors',
+		'Use correctors and regressors as they are'
+	]
 
     _psvrprocessor_perp_norm_options_list = [
         PolySVR.orthonormalize_all,
@@ -103,10 +103,10 @@ class PolySVRProcessor(Processor):
 
         # Treat data option
         perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
-            PolySVRProcessor._psvrprocessor_perp_norm_options,
-            default_value = 'Orthonormalize all',
-            show_text = 'PolySVR Processor: How do you want to treat the features? (default: Orthonormalize all)'
-        )]
+			PolySVRProcessor._psvrprocessor_perp_norm_options_names,
+			default_value = 'Orthonormalize all',
+			show_text = 'GLM Processor: How do you want to treat the features? (default: Orthonormalize all)'
+		)]
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
@@ -142,9 +142,28 @@ class PolySVRProcessor(Processor):
 
         return (homogeneous, perp_norm_option, C, epsilon) + tuple(degrees)
 
-    def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
+    def __curve__(self, fitter, regressor, regression_parameters):
         """
+        Returns the curve values when predicting the y values associated to the x values (regressor)
+        using the regression_parameters
+        Parameters
+        ----------
+        fitter
+        regressor
+        regression_parameters
 
+        Returns
+        -------
+
+        """
+        psvr = PolySVR(regressor, degrees = self._psvrprocessor_degrees[:1], homogeneous = False)
+        PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option](psvr)
+        return psvr.predict(regression_parameters = regression_parameters)
+
+    def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
+                mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
+        """
+        Processes the given voxel coordinates (x1:x2, y1:y2, z1:z2)
         Parameters
         ----------
         self
@@ -166,7 +185,7 @@ class PolySVRProcessor(Processor):
         # Call parent function process with additional parameters obtained through __read_user_defined_parameters__
         return super(PolySVRProcessor, self).process(x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon, *args, **kwargs)
 
-
+PolySVRProcessor._psvrprocessor_perp_norm_options = {PolySVRProcessor._psvrprocessor_perp_norm_options_names[i] : i for i in xrange(len(PolySVRProcessor._psvrprocessor_perp_norm_options_names))}
 
 
 

@@ -9,8 +9,9 @@ from numpy import array as nparray
 
 
 print 'Obtaining data from Excel file...'
-DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
-EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
+DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
+EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
+RESULTS_DIR = join("results", "GAM")
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -40,8 +41,8 @@ for r in exc.get_rows( fieldstype = {
 		)
 	)
 
-print 'Initializing PolyGLM Processor...'
-gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex])#, correctors = [Subject.Age, Subject.Sex])
+print 'Initializing GAM Processor...'
+gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
 results = gamp.process()
@@ -57,11 +58,11 @@ affine = nparray(
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), join('results', 'fpmalfa_gam_poly3_cparams.nii'))
-nib.save(niiFile(results.regression_parameters, affine), join('results', 'fpmalfa_gam_poly3_rparams.nii'))
-nib.save(niiFile(results.fitting_scores, affine), join('results', 'fpmalfa_gam_poly3_fitscores.nii'))
+nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR, 'fpmalfa_gam_poly3_cparams.nii'))
+nib.save(niiFile(results.regression_parameters, affine), join(RESULTS_DIR, 'fpmalfa_gam_poly3_rparams.nii'))
+nib.save(niiFile(results.fitting_scores, affine), join(RESULTS_DIR, 'fpmalfa_gam_poly3_fitscores.nii'))
 
-with open(join('results', 'fpmalfa_gam_poly3_userdefparams.txt'), 'wb') as f:
+with open(join(RESULTS_DIR, 'fpmalfa_gam_poly3_userdefparams.txt'), 'wb') as f:
 	f.write(str(gamp.user_defined_parameters) + '\n')
 
 print 'Obtaining, filtering and saving z-scores and labels to display them...'
@@ -70,8 +71,8 @@ for fit_threshold in [0.99, 0.995, 0.999]:
 	z_scores, labels = gamp.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True)
 
 	print '    Saving z-scores and labels to file...'
-	nib.save(niiFile(z_scores, affine), join('results', 'fpmalfa_gam_poly3_zscores_' + str(fit_threshold) + '.nii'))
-	nib.save(niiFile(labels, affine), join('results', 'fpmalfa_gam_poly3_labels_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(z_scores, affine), join(RESULTS_DIR, 'fpmalfa_gam_poly3_zscores_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(labels, affine), join(RESULTS_DIR, 'fpmalfa_gam_poly3_labels_' + str(fit_threshold) + '.nii'))
 
 
 print 'Done.'

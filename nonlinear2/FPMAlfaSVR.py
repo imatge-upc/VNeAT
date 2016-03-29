@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
 	DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
 	EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
-	RESULTS_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "PSVR")
+	RESULTS_DIR = join("results", "PSVR")
 	"""
 	DATA_DIR = join("/", "imatge", "spuch", "data-neuroimatge", "Nonlinear_NBA_15")
 	EXCEL_FILE = join("/", "imatge", "spuch", "data-neuroimatge", "work_DB_CSF.R1.final.xls")
@@ -51,15 +51,10 @@ if __name__ == "__main__":
 		)
 
 	print 'Initializing PolySVR Processor...'
-	user_defined_parameters = (1, 0, 500.0, 1e-4, 3, 2, 1)
-	psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex], \
-				user_defined_parameters=user_defined_parameters)
+	psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 	print 'Processing data...'
-	results = psvr.process(n_jobs=8, mem_usage=100)
-
-	print 'Formatting obtained data to display it...'
-	z_scores, labels = psvr.fit_score(results.fitting_scores, produce_labels = True)
+	results = psvr.process(n_jobs=8)
 
 	print 'Saving results to files...'
 
@@ -72,13 +67,21 @@ if __name__ == "__main__":
 
 	niiFile = nib.Nifti1Image
 
-	nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR, 'psvr_cparams.nii'))
-	nib.save(niiFile(results.regression_parameters, affine), join(RESULTS_DIR, 'psvr_rparams.nii'))
-	nib.save(niiFile(results.fitting_scores, affine), join(RESULTS_DIR, 'psvr_fitscores.nii'))
-	nib.save(niiFile(z_scores, affine), join(RESULTS_DIR, 'psvr_zscores.nii'))
-	nib.save(niiFile(labels, affine), join(RESULTS_DIR, 'psvr_labels.nii'))
+	nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR, 'fpmalfa_psvr_cparams.nii'))
+	nib.save(niiFile(results.regression_parameters, affine), join(RESULTS_DIR, 'fpmalfa_psvr_rparams.nii'))
+	nib.save(niiFile(results.fitting_scores, affine), join(RESULTS_DIR, 'fpmalfa_psvr_fitscores.nii'))
 
-	with open(join(RESULTS_DIR, 'psvr_userdefparams.txt'), 'wb') as f:
+	with open(join(RESULTS_DIR, 'fpmalfa_psvr_userdefparams.txt'), 'wb') as f:
 		f.write(str(psvr.user_defined_parameters) + '\n')
+
+	print 'Obtaining, filtering and saving z-scores and labels to display them...'
+	for fit_threshold in [0.99, 0.995, 0.999]:
+		print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
+		z_scores, labels = psvr.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True)
+
+		print '    Saving z-scores and labels to file...'
+		nib.save(niiFile(z_scores, affine), join(RESULTS_DIR, 'fpmalfa_psvr_zscores_' + str(fit_threshold) + '.nii'))
+		nib.save(niiFile(labels, affine), join(RESULTS_DIR, 'fpmalfa_psvr_labels_' + str(fit_threshold) + '.nii'))
+
 
 	print 'Done.'
