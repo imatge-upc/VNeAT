@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
+sys.path.insert(1, '/Users/acasamitjana/Repositories/neuroimatge/nonlinear2')
 from GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
@@ -15,7 +16,7 @@ x2 = R.standard_normal(nobs)
 x2.sort()
 x3 = R.standard_normal(nobs)
 x3.sort()
-y= 0.1*R.standard_normal(nobs)#np.zeros(nobs)#
+y= 0.4*R.standard_normal(nobs)#np.zeros(nobs)#
 f1 = lambda x1: (1 + x1 )
 f2 = lambda x2: (1 + x2 - x2**2)
 f3 = lambda x3: (1 - x3 + x3**2)
@@ -30,7 +31,7 @@ y += z
 
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
-regressor_smoother.append(SplinesSmoother(x1,order=1,smoothing_factor=40))
+regressor_smoother.append(PolynomialSmoother(x1,order=1))
 regressor_smoother.append(SplinesSmoother(x2,order=2,smoothing_factor=30))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
