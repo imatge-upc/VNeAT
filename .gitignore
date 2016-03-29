@@ -6,3 +6,4 @@ data/*
 *.txt
 *.sh
 nonlinear2/FPMAlfa_GAM.py
+tests/*
