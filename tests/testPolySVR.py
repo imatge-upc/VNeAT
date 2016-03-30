@@ -1,6 +1,5 @@
-from nonlinear2.SVR import LinSVR, PolySVR as PSVR
+from nonlinear2.SVR import PolySVR as PSVR
 from nonlinear2.GLM import PolyGLM as PGLM
-from sklearn.metrics import explained_variance_score
 from numpy import array, zeros, float64, asarray, linspace, atleast_2d
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,11 +12,90 @@ import time
 
 if __name__ == "__main__":
 
-    C_vals = [10, 100, 1000, 10000]
-    epsilon_vals = [0.5, 0.1, 0.05, 0.01]
+    # Input from user
+    show_artificial = raw_input("Show artificial data fitting (Y/N, default is N): ")
+    voxel = eval(raw_input("Voxel to be fitted (use the following input format: X, Y, Z): "))
+
+    if show_artificial == 'Y':
+        # Get artificial data
+        print("Getting artificial data...")
+        X = np.sort(6 * np.random.rand(50, 1), axis=0)
+        y = 0.5 + X + 0.2*X ** 2
+        y[::5] += 5 * (0.5 - np.random.rand(10, 1))
+        y = atleast_2d(y)
+
+        # Init Polynomial SVR fitters
+        print("Creating SVR fitter for artificial data...")
+        artificial_svr = PSVR(X, 0, [3], True)
+
+    # Get data from Excel and nii files
+    print("Loading Aetionomy data...")
+    DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
+    EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
+    RESULTS_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "PSVR")
+
+    filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
+    filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
+
+    exc = Excel(EXCEL_FILE)
+
+    subjects = []
+    for r in exc.get_rows( fieldstype = {
+                    'id':(lambda s: str(s).strip().split('_')[0]),
+                    'diag':(lambda s: int(s) - 1),
+                    'age':int,
+                    'sex':(lambda s: 2*int(s) - 1),
+                    'apoe4_bin':(lambda s: 2*int(s) - 1),
+                    'escolaridad':int,
+                    'ad_csf_index_ttau':float
+                 } ):
+        subjects.append(
+            Subject(
+                r['id'],
+                filenames_by_id[r['id']],
+                r.get('diag', None),
+                r.get('age', None),
+                r.get('sex', None),
+                r.get('apoe4_bin', None),
+                r.get('escolaridad', None),
+                r.get('ad_csf_index_ttau', None)
+            )
+        )
+
+    # Coordinates of the voxels to fit
+    x1 = voxel[0] #74
+    x2 = x1+1
+    y1 = voxel[1] #82
+    y2 = y1+1
+    z1 = voxel[2] #39
+    z2 = z1+1
+
+    # Get regressors, correctors and observations
+    aet_regressors = array(map(lambda subject: subject.get([Subject.ADCSFIndex]), subjects), dtype = float64)
+    aet_correctors = array(map(lambda subject: subject.get([Subject.Age, Subject.Sex]), subjects), dtype = float64)
+    observations = asarray(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
+    real_obs = observations[:, x1:x2, y1:y2, z1:z2]
+    del observations
+
+    # LinSVR fitter
+    print("Creating SVR fitter for Aetionomy data...")
+    # Construct data matrix from correctors and regressors
+    num_regs = aet_regressors.shape[1]
+    num_correc = aet_correctors.shape[1]
+    features = zeros((aet_regressors.shape[0], num_regs + num_correc))
+    features[:, :num_regs] = aet_regressors
+    features[:, num_regs:] = aet_correctors
+    # PGLM to correct data
+    poly_glm = PGLM(features=features, regressors=range(num_regs), degrees=[3, 2, 1], homogeneous=True)
+    # PSVR to predict data
+    poly_svr = PSVR(features=aet_regressors, regressors=range(num_regs), degrees=[3], homogeneous=True)
+
+
+    # Exploratory Grid Search
+    C_vals = [10, 50, 75, 100, 250, 500, 1000]
+    epsilon_vals = [0.5, 0.1, 0.05, 0.01, 0.001]
     n_jobs = 1
 
-    # EXPLORATORY GRID SEARCH
     for C in C_vals:
         for epsilon in epsilon_vals:
 
@@ -26,97 +104,24 @@ if __name__ == "__main__":
             print("epsilon --> " + str(epsilon))
 
             """ PART 1: ARTIFICIAL DATA """
+            if show_artificial == 'Y':
+                # Fit data
+                print("Fitting artificial data...")
+                artificial_svr.fit(y, C=C, epsilon=epsilon, n_jobs=n_jobs)
 
-            # Get artificial data
-            print("Getting artificial data...")
-            X = np.sort(6 * np.random.rand(50, 1), axis=0)
-            y = 0.5 + X + 2*X ** 2 - 20*X ** 3
-            y[::5] += 5 * (0.5 - np.random.rand(10, 1))
-            y = atleast_2d(y)
-
-            # Init Polynomial SVR fitters
-            print("Creating instance of SVR fitters...")
-            poly_svr = PSVR(X, 0, [3], True)  # First feature regressor and second feature corrector
-
-            # Fit data
-            print("Fitting data...")
-            poly_svr.fit(y, C=C, epsilon=epsilon, n_jobs=n_jobs)
-
-            # Plot prediction
-            print("Plotting curves...")
-            plt.scatter(X, y, c='r', label='Original data')
-            poly_predicted = poly_svr.predict()
-            plt.plot(X, poly_predicted, c='g', label='Poly SVR prediction')
-            plt.xlabel('data')
-            plt.ylabel('target')
-            plt.title('Polynomial Support Vector Regression')
-            plt.legend()
-            plt.show()
+                # Plot prediction
+                print("Plotting curves...")
+                plt.scatter(X, y, c='r', label='Original data')
+                poly_predicted = artificial_svr.predict()
+                plt.plot(X, poly_predicted, c='g', label='Poly SVR prediction')
+                plt.xlabel('data')
+                plt.ylabel('target')
+                plt.title('Polynomial Support Vector Regression')
+                plt.legend()
+                plt.show()
 
 
             """ PART 2: AETIONOMY DATA """
-
-            # Get data from Excel and nii files
-            print("Loading Aetionomy data...")
-            DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
-            EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
-            RESULTS_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "PSVR")
-
-            filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
-            filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
-
-            exc = Excel(EXCEL_FILE)
-
-            subjects = []
-            for r in exc.get_rows( fieldstype = {
-                            'id':(lambda s: str(s).strip().split('_')[0]),
-                            'diag':(lambda s: int(s) - 1),
-                            'age':int,
-                            'sex':(lambda s: 2*int(s) - 1),
-                            'apoe4_bin':(lambda s: 2*int(s) - 1),
-                            'escolaridad':int,
-                            'ad_csf_index_ttau':float
-                         } ):
-                subjects.append(
-                    Subject(
-                        r['id'],
-                        filenames_by_id[r['id']],
-                        r.get('diag', None),
-                        r.get('age', None),
-                        r.get('sex', None),
-                        r.get('apoe4_bin', None),
-                        r.get('escolaridad', None),
-                        r.get('ad_csf_index_ttau', None)
-                    )
-                )
-
-            # Coordinates of the voxels to fit
-            x1 = 74
-            x2 = x1+1
-            y1 = 82
-            y2 = y1+1
-            z1 = 39
-            z2 = z1+1
-
-            # Get regressors, correctors and observations
-            aet_regressors = array(map(lambda subject: subject.get([Subject.ADCSFIndex]), subjects), dtype = float64)
-            aet_correctors = array(map(lambda subject: subject.get([Subject.Age, Subject.Sex]), subjects), dtype = float64)
-            observations = asarray(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
-            real_obs = observations[:, x1:x2, y1:y2, z1:z2]
-            del observations
-
-            # LinSVR fitter
-            print("Creating fitters...")
-            # Construct data matrix from correctors and regressors
-            num_regs = aet_regressors.shape[1]
-            num_correc = aet_correctors.shape[1]
-            features = zeros((aet_regressors.shape[0], num_regs + num_correc))
-            features[:, :num_regs] = aet_regressors
-            features[:, num_regs:] = aet_correctors
-            # PGLM to correct data
-            poly_glm = PGLM(features=features, regressors=range(num_regs), degrees=[3, 2, 1], homogeneous=True)
-            # PSVR to predict data
-            poly_svr = PSVR(features=aet_regressors, regressors=range(num_regs), degrees=[3], homogeneous=True)
 
             # Fit data
             print("Fitting Aetionomy data...")
@@ -143,7 +148,7 @@ if __name__ == "__main__":
             plt.plot(x, predicted, c='y', label='Poly SVR prediction')
             plt.xlabel('data')
             plt.ylabel('target')
-            plt.title('SVR fitting on Aetionomy data')
+            plt.title('C = ' + str(C) + ' / epsilon = ' + str(epsilon))
             plt.legend()
             plt.show()
 
