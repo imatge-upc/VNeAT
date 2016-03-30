@@ -98,7 +98,7 @@ class GAM(AdditiveCurveFitter):
         return True
 
     def __code_parameters(self,smoother_set):
-        parameters=[]
+        parameters=np.array([])
         for smoother in smoother_set:
             params=smoother.get_parameters()
             parameters=np.concatenate((parameters,[self.TYPE_SMOOTHER.index(smoother.__class__),len(params)],params))
