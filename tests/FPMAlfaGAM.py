@@ -8,6 +8,7 @@ from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 from matplotlib import pyplot as plt
+from GAM import SplinesSmoother
 import nibabel as nib
 from numpy import array as nparray
 
@@ -48,7 +49,13 @@ gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex])
 
 
 print 'Processing data...'
-results = gamp.process(x1=73,x2=74,y1=84,y2=85,z1=41,z2=42)
+x1=85#103#
+x2=x1+1
+y1=101#45#
+y2=y1+1
+z1=45#81#
+z2=z1+1
+results = gamp.process(x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
 
 print 'Formatting obtained data to display it...'
 z_scores, labels = gamp.fit_score(results.fitting_scores, produce_labels = True)
@@ -63,14 +70,23 @@ affine = nparray(
 )
 from matplotlib import pyplot as plt
 import numpy as np
-corrected_data = gamp.corrected_values(results.correction_parameters, x1=73,x2=74,y1=84,y2=85,z1=41,z2=42)
-x=np.array(np.sort([sbj.adcsf for sbj in subjects]))
-x_cub = np.array([np.squeeze(x)**i for i in range(4)]).T
+corrected_data = gamp.corrected_values(results.correction_parameters, x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
+x=np.array(np.sort([sbj._attributes[sbj.ADCSFIndex.index] for sbj in subjects]))
+
+# Poly=False
+# if Poly:
+# 	x_cub = np.array([np.squeeze(x)**i for i in range(4)]).T
+# 	predicted = x_cub.dot(np.squeeze(results.regression_parameters[3:]))
+# else:
+# 	SM_splines = SplinesSmoother(np.squeeze(x))
+# 	SM_splines.set_parameters(results.regression_parameters[2:])
+# 	predicted = SM_splines.predict()
 plt.plot(x,np.squeeze(corrected_data),'k.')
-plt.plot(x,x_cub.dot(np.squeeze(results.regression_parameters[3:])))
+plt.plot(x,gamp.__curve__(-1,x[:,np.newaxis],np.squeeze(results.regression_parameters)))
+plt.show()
+
 
 niiFile = nib.Nifti1Image
-
 nib.save(niiFile(results.correction_parameters, affine), 'fpmalfa_gam_cparams.nii')
 nib.save(niiFile(results.regression_parameters, affine), 'fpmalfa_gam_rparams.nii')
 nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_gam_fitscores.nii')

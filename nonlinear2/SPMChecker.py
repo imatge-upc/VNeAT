@@ -9,15 +9,13 @@ RESULTS_DIR = join(
     "C:\\", "Users", "santi", "Documents", "Santi",
     "Universitat", "TFG", "Results", "SPMvsGLM"
 )
+
 # FILES TO BE OPENED
-SPM = join(RESULTS_DIR, "spm_F_map.nii")
 PGLM = join(RESULTS_DIR, "fpmalfa_zscores.nii")
 PGLM_FIT = join(RESULTS_DIR, "fpmalfa_fitscores.nii")
 GAM = join(RESULTS_DIR, "fpmalfa_gam_zscores.nii")
 GAM_FIT = join(RESULTS_DIR, "fpmalfa_gam_fitscores.nii")
 # FILES TO BE SAVED
-SPM_Z_SCORES = join(RESULTS_DIR, "spm_Z_map.nii")
-SPM_FIT_SCORES = join(RESULTS_DIR, "spm_fitscores_map.nii")
 DIFF = join(RESULTS_DIR, "spmvspglm_diff.nii")
 DIFF_GAM = join(RESULTS_DIR, "spmvsgam_diff.nii")
 ABS_DIFF = join(RESULTS_DIR, "spmvspglm_abs.nii")
@@ -52,30 +50,30 @@ Z_scores = norm.ppf(fit_scores) - lim_value + 0.2
 
 
 # print("Saving Z-scores for SPM...")
-nii_z_scores = nib.Nifti1Image(Z_scores, spm.affine)
-nib.save(nii_z_scores, SPM_Z_SCORES)
-
-print("Saving fitscores for SPM...")
-nii_fit_scores = nib.Nifti1Image(fit_scores, spm.affine)
-nib.save(nii_fit_scores, SPM_FIT_SCORES)
-
-print("Calculating SPM vs PGLM (Diff)...")
-diff = pglm_data - Z_scores
-
-print("Calculating SPM vs GAM (Diff)...")
-diff_gam = gam_data - Z_scores
-
-print("Calculating SPM vs PGLM (Absolute Diff)...")
-abs_diff = abs(pglm_data - Z_scores)
-
-print("Calculating SPM vs GAM (Absolute Diff)...")
-abs_diff_gam = abs(gam_data - Z_scores)
-
-print("Calculating SPM vs PGLM (Squared Error)...")
-se = (pglm_data - Z_scores) ** 2
-
-print("Calculating SPM vs GAM (Squared Error)...")
-se_gam = (gam_data - Z_scores) ** 2
+# nii_z_scores = nib.Nifti1Image(Z_scores, spm.affine)
+# nib.save(nii_z_scores, SPM_Z_SCORES)
+#
+# print("Saving fitscores for SPM...")
+# nii_fit_scores = nib.Nifti1Image(fit_scores, spm.affine)
+# nib.save(nii_fit_scores, SPM_FIT_SCORES)
+#
+# print("Calculating SPM vs PGLM (Diff)...")
+# diff = pglm_data - Z_scores
+#
+# print("Calculating SPM vs GAM (Diff)...")
+# diff_gam = gam_data - Z_scores
+#
+# print("Calculating SPM vs PGLM (Absolute Diff)...")
+# abs_diff = abs(pglm_data - Z_scores)
+#
+# print("Calculating SPM vs GAM (Absolute Diff)...")
+# abs_diff_gam = abs(gam_data - Z_scores)
+#
+# print("Calculating SPM vs PGLM (Squared Error)...")
+# se = (pglm_data - Z_scores) ** 2
+#
+# print("Calculating SPM vs GAM (Squared Error)...")
+# se_gam = (gam_data - Z_scores) ** 2
 
 print ("Saving differential maps (SPM vs PGLM)...")
 niidiff = nib.Nifti1Image(diff, spm.affine)

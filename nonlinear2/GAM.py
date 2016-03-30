@@ -24,7 +24,6 @@ class GAM(AdditiveCurveFitter):
 
         self.TYPE_SMOOTHER=[InterceptSmoother,PolynomialSmoother,SplinesSmoother]
 
-
         if corrector_smoothers is None or not corrector_smoothers:
             correctors = None
         else:
@@ -52,7 +51,7 @@ class GAM(AdditiveCurveFitter):
         crv_reg=[]
         crv_corr=[]
         for obs in observations.T:
-            corr,reg = self.__backfitting_algorithm(obs[:,None],smoother_functions,rtol=rtol,maxiter=maxiter)
+            corr,reg = self.__backfitting_algorithm(obs,smoother_functions,rtol=rtol,maxiter=maxiter)
             crv_corr.append(corr)
             crv_reg.append(reg)
 
@@ -77,12 +76,11 @@ class GAM(AdditiveCurveFitter):
     def __init_iter(self,observations,n_smoothers):
         self.iter = 0
         self.alpha=np.mean(observations,axis=0)
-        mu = np.zeros((observations.shape[0],1), np.float64)
-        offset = np.zeros((n_smoothers,1),np.float64)
+        mu = np.zeros((observations.shape[0],), np.float64)
+        offset = np.zeros((n_smoothers,),np.float64)
         return self.alpha,mu,offset
 
     def __cont(self,convergence_num,convergence_den,maxiter,rtol):
-        print(self.iter)
         if self.iter == 0:
             self.iter += 1
             return True
@@ -90,7 +88,6 @@ class GAM(AdditiveCurveFitter):
         if self.iter > maxiter:
             print(self.iter)
             return False
-        print(convergence_num/(1+convergence_den))
         if (convergence_num/(1+convergence_den)) < rtol:
 
             return False
@@ -221,16 +218,11 @@ class SplinesSmoother(Smoother):
 
 
     def fit(self,ydata):
-        params=[]
         if ydata.ndim == 1:
             ydata = ydata[:,None]
-        else:
-            for obs in ydata.T:
-                spline=UnivariateSpline(self.xdata , obs, k=self.order,s=self.smoothing_factor)
-                if any(np.isnan(spline._eval_args[1])):
-                    raise ValueError ('The smoothing factor  is too small, please consider another value')
-                params.append(spline._eval_args) # spline.get_knots(),spline.get_coeffs(),self.order
-        self.spline_parameters=np.array(params)
+
+        spline=UnivariateSpline(self.xdata , ydata, k=self.order,s=self.smoothing_factor)
+        self.spline_parameters=spline._eval_args # spline.get_knots(),spline.get_coeffs(),self.order
 
     def predict(self,xdata=None,spline_parameters=None):
 
@@ -247,26 +239,26 @@ class SplinesSmoother(Smoother):
                 spline_parameters = self.spline_parameters
 
         y_pred=splev(xdata,spline_parameters)
+        if np.any(np.isnan(y_pred)):
+            warn("Spline parameters are too restrictive that it cannot predict. Output is set to 0")
+            return np.zeros((xdata.shape[0],))
+
         # if len(y_pred.shape) == 1:
-        #     y_pred=y_pred[...,None]
+        #     y_pred=y_pred[...,np.newaxis]
         return y_pred
 
     def get_parameters(self):
-        parameters=[]
+        parameters=np.array([self.smoothing_factor])
         for param in self.spline_parameters:
-            pp=[]
-            pp.append(self.smoothing_factor)
-            # print(pp)
-            for par in param:
-                # print(par)
-                try:
-                    pp.append(len(par))
-                    pp.extend([p for p in par])
-                except:
-                    pp.append(1)
-                    pp.append(par)
-            parameters.append(pp)
-        return np.array(parameters, dtype=float64).T
+            try:
+                parameters = np.append(parameters, len(param))
+                parameters = np.append(parameters, [p for p in param])
+            except:
+                parameters = np.append(parameters, 1)
+                parameters = np.append(parameters, param)
+
+
+        return parameters
 
     def get_covariate(self):
         return np.array(self.xdata)
@@ -276,14 +268,11 @@ class SplinesSmoother(Smoother):
 
     def set_parameters(self,parameters):
 
+        parameters = np.squeeze(parameters)
         self.smoothing_factor = parameters[0]
-        self.order=int(parameters[-1][0])
-        n_knots = int(parameters[1][0])
-        self.spline_parameters=[]
-        for pp in parameters.T:
-            self.spline_parameters.append(tuple([pp[2:2+n_knots],pp[3+n_knots:-2],int(pp[-1])]))
-        self.spline_parameters = np.array(self.spline_parameters)
-        # self.spline_parameters = tuple([parameters[2:2+n_knots],parameters[3+n_knots:-2],int(parameters[-1])])
+        n_knots = int(parameters[1])
+        self.spline_parameters = tuple([parameters[2:2+n_knots],parameters[3+n_knots:-2],int(parameters[-1])])
+        self.order=int(parameters[-1])
 
     @property
     def name(self):
@@ -335,16 +324,16 @@ class PolynomialSmoother(Smoother):
                 coefficients = self.coefficients
 
         xdata=np.array([np.squeeze(xdata)**i for i in range(self.order+1)]).T
-        y_pred = xdata.dot(self.coefficients)
+        y_pred = xdata.dot(coefficients)
         # if len(y_pred.shape) == 1:
         #     y_pred=y_pred[...,None]
         return y_pred
 
     def get_parameters(self):
-        return np.concatenate((self.order*np.ones((1,self.coefficients.shape[1])),self.coefficients))
+        return np.append(self.order,self.coefficients)
 
     def set_parameters(self,parameters):
-        self.order = int(parameters[0][0])
+        self.order = int(parameters[0])
         self.coefficients = parameters[1:]
 
     def get_covariate(self):

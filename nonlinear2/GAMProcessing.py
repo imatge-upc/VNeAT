@@ -98,7 +98,7 @@ class GAMProcessor(Processor):
 				))
 			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
-				smoothing_functions.append(super(GAMProcessor, self).__getint__(
+				smoothing_functions.append(super(GAMProcessor, self).__getfloat__(
 					default_value = 500,
 					try_ntimes = 3,
 					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the spline'
@@ -129,7 +129,7 @@ class GAMProcessor(Processor):
 				))
 			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
-				smoothing_functions.append(super(GAMProcessor, self).__getint__(
+				smoothing_functions.append(super(GAMProcessor, self).__getfloat__(
 					default_value = 500,
 					try_ntimes = 3,
 					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the splines'

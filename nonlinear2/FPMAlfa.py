@@ -9,8 +9,11 @@ from numpy import array as nparray
 
 
 print 'Obtaining data from Excel file...'
-DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
-EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
+# DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
+# EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
+DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
+EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
+
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -41,7 +44,7 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Initializing PolyGLM Processor...'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex])#, correctors = [Subject.Age, Subject.Sex])
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
 results = pglmp.process()
