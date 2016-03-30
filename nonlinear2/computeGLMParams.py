@@ -1,5 +1,5 @@
 from ExcelIO import ExcelSheet as Excel
-from GAMProcessing import GAMProcessor as GAMP
+from GLMProcessing import GLMProcessor as GLMP
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
@@ -7,6 +7,14 @@ from os import listdir
 import nibabel as nib
 import numpy as np
 
+
+filename_prefix = join('results', 'GLM', 'glm_')
+
+
+
+
+
+niiFile = nib.Nifti1Image
 
 print 'Obtaining data from Excel file...'
 DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
@@ -40,11 +48,11 @@ for r in exc.get_rows( fieldstype = {
 		)
 	)
 
-print 'Initializing PolyGLM Processor...'
-gamp = GAMP(subjects, predictors = [Subject.ADCSFIndex])#, correctors = [Subject.Age, Subject.Sex])
+print 'Initializing GLM Processor...'
+glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
-results = gamp.process()
+results = glmp.process(mem_usage = 512)# x1 = 80, x2 = 81, y1 = 49, y2 = 50, z1 = 82, z2 = 83)
 
 print 'Saving results to files...'
 
@@ -55,24 +63,11 @@ affine = np.array(
 		 [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00]]
 )
 
-niiFile = nib.Nifti1Image
+nib.save(niiFile(results.correction_parameters, affine), filename_prefix + 'cparams.nii')
+nib.save(niiFile(results.prediction_parameters, affine), filename_prefix + 'pparams.nii')
 
-nib.save(niiFile(results.correction_parameters, affine), join('results', 'fpmalfa_gam_poly3_cparams.nii'))
-nib.save(niiFile(results.prediction_parameters, affine), join('results', 'fpmalfa_gam_poly3_pparams.nii'))
-nib.save(niiFile(results.fitting_scores, affine), join('results', 'fpmalfa_gam_poly3_fitscores.nii'))
-
-with open(join('results', 'fpmalfa_gam_poly3_userdefparams.txt'), 'wb') as f:
-	f.write(str(gamp.user_defined_parameters) + '\n')
-
-print 'Obtaining, filtering and saving z-scores and labels to display them...'
-for fit_threshold in [0.99, 0.995, 0.999]:
-	print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
-	z_scores, labels = gamp.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True)
-
-	print '    Saving z-scores and labels to file...'
-	nib.save(niiFile(z_scores, affine), join('results', 'fpmalfa_gam_poly3_zscores_' + str(fit_threshold) + '.nii'))
-	nib.save(niiFile(labels, affine), join('results', 'fpmalfa_gam_poly3_labels_' + str(fit_threshold) + '.nii'))
-
+with open(filename_prefix + 'userdefparams.txt', 'wb') as f:
+	f.write(str(glmp.user_defined_parameters) + '\n')
 
 print 'Done.'
 

@@ -1,7 +1,7 @@
 '''Module that defines useful functions to transform data
 	and data-structures'''
 
-from numpy import array as nparray, ndarray
+import numpy as np
 
 def combinatorial(func, elements, k, start = 0):
 	'''Generates func(x1, ...(func(x(k-2), func(x(k-1), xk))) for each possible
@@ -33,10 +33,10 @@ def combinatorial(func, elements, k, start = 0):
 def polynomial(degree, features, complete_polynomy = True, constant_term = False):
 	if constant_term:
 		assert len(features) > 0
-		yield nparray([1]*len(features[0]))
+		yield np.array([1]*len(features[0]))
 
-	if not isinstance(features, ndarray):
-		features = nparray(features)
+	if not isinstance(features, np.ndarray):
+		features = np.array(features)
 
 	if complete_polynomy:
 		init = 1

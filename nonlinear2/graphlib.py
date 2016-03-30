@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-class Graph:
+class Graph(object):
 	__metaclass__ = ABCMeta
 
 	'''[Abstract Class] Defines a Graph by specifying the list of nodes it contains and
@@ -177,36 +177,27 @@ class Graph:
 			self.t_index = index
 
 
+class UndirectedClusterization3DGraph(Graph):
 
-
-class NiftiGraph(Graph):
-	
-	def __init__(self, data, pvalue_threshold):
-		Graph.__init__(self)
-		self.pv = pvalue_threshold
+	def __init__(self, data, not_fulfilling_element):
+		super(UndirectedClusterization3DGraph, self).__init__()
 		self.dims = data.shape
 		new_dims = map(lambda d: d + 2, self.dims[:3])
-		lpv = [self.pv for _ in xrange(self.dims[2] + 2)]
-		matpv = [lpv for _ in xrange(self.dims[1] + 2)]
-		self.data = [matpv] + [[lpv] + [[self.pv] + list(l) + [self.pv] for l in mat] + [lpv] for mat in data] + [matpv]
-		
-		#	self.data = [matpv]
-		#	for mat in data:
-		#		mat2 = [lpv]
-		#		for l in mat:
-		#			mat2.append([self.pv] + list(l) + [self.pv])
-		#		mat2.append(lpv)
-		#		self.data.append(mat2)
-		#	self.data.append(matpv)
-		# self.data = self.pv*ones(new_dims)
-		# self.data[1 : (new_dims[0] - 1), 1 : (new_dims[1] - 1), 1 : (new_dims[2] - 1)] = data
+		self.default = not_fulfilling_element
+		l = [self.default for _ in xrange(self.dims[2] + 2)]
+		mat = [l for _ in xrange(self.dims[1] + 2)]
+		self.data = [mat] + [[l] + [[self.default] + list(l) + [self.default] for l in mat] + [l] for mat in data] + [mat]
+
+	@abstractmethod
+	def __condition_function__(self, elem):
+		raise NotImplementedError
 
 	def nodes(self):
 		return ((i, j, k) for i in xrange(self.dims[0]) for j in xrange(self.dims[1]) for k in xrange(self.dims[2]))
 
 	def neighbours(self, node):
 		x, y, z = map(lambda c: c + 1, node)
-		if self.data[x][y][z] >= self.pv:
+		if not self.__condition_function__(self.data[x][y][z]):
 			return
 		for dx in (-1, 0, 1):
 			for dy in (-1, 0, 1):
@@ -214,7 +205,7 @@ class NiftiGraph(Graph):
 					if dx == 0 and dy == 0 and dz == 0:
 						continue
 					i, j, k = x + dx, y + dy, z + dz
-					if self.data[i][j][k] < self.pv:
+					if self.__condition_function__(self.data[i][j][k]):
 						yield (i - 1, j - 1, k - 1)
 
 	def sccs(self):
@@ -244,6 +235,43 @@ class NiftiGraph(Graph):
 							scc.append(w) # queue.push(w)
 				yield scc
 
+
+class NiftiGraph(UndirectedClusterization3DGraph):
+	
+	def __init__(self, data, lower_threshold = None, upper_threshold = None):
+		self.lt = lower_threshold
+		self.ut = upper_threshold
+
+		if not (self.lt is None):
+			not_fulfilling_element = self.lt - 1
+		elif not (self.ut is None):
+			not_fulfilling_element = self.ut + 1
+		else:
+			not_fulfilling_element = 0.0
+
+		super(NiftiGraph, self).__init__(data, not_fulfilling_element)
+
+	def __condition_function__(self, elem):
+		if (not (self.lt is None)) and (elem < self.lt):
+			return False
+		if (not (self.ut is None)) and (elem >= self.ut):
+			return False
+		return True
+
+	def sccs(self):
+		'''Generates the Strongly Connected Components of the graph. Implemented by using the
+			Breadth First Search algorithm. Each component generated is a list of nodes s.t.
+			for each pair of nodes (u, v) in the component, there exists a path from u to v
+			in the graph (these nodes are strongly connected since this is a non-directed
+			graph and thus the same path in reverse order also exists).
+		'''
+
+		if self.lt is None and self.ut is None:
+			yield list(self.nodes())
+			return
+
+		for scc in super(NiftiGraph, self).sccs():
+			yield scc
 
 
 class GenericGraph(Graph):

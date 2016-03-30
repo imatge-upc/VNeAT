@@ -3,7 +3,7 @@ from manage_output import OutputData
 from os.path import join, isfile
 from os import listdir
 
-class Focus:
+class Focus(object):
 	pass
 
 cur_focus = Focus()

@@ -1,6 +1,6 @@
 from Processing import Processor
 from GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
-from numpy import zeros, array as nparray
+import numpy as np
 
 
 class GAMProcessor(Processor):
@@ -8,22 +8,22 @@ class GAMProcessor(Processor):
 		'Orthonormalize all',
 		'Orthogonalize all',
 		'Normalize all',
-		'Orthonormalize regressors',
-		'Orthogonalize regressors',
-		'Normalize regressors',
+		'Orthonormalize predictors',
+		'Orthogonalize predictors',
+		'Normalize predictors',
 		'Orthonormalize correctors',
 		'Orthogonalize correctors',
 		'Normalize correctors',
-		'Use correctors and regressors as they are'
+		'Use correctors and predictors as they are'
 	]
 
 	_gamprocessor_perp_norm_options_list = [
 		GAM.orthonormalize_all,
 		GAM.orthogonalize_all,
 		GAM.normalize_all,
-		GAM.orthonormalize_regressors,
-		GAM.orthogonalize_regressors,
-		GAM.normalize_regressors,
+		GAM.orthonormalize_predictors,
+		GAM.orthogonalize_predictors,
+		GAM.normalize_predictors,
 		GAM.orthonormalize_correctors,
 		GAM.orthogonalize_correctors,
 		GAM.normalize_correctors,
@@ -42,27 +42,27 @@ class GAMProcessor(Processor):
 
 		sm_index = 0
 		corrector_smoothers=SmootherSet()
-		regressor_smoothers=SmootherSet()
+		predictor_smoothers=SmootherSet()
 		for corr in self.correctors.T:
 			smoother_function=GAMProcessor.TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](corr)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
+			smoother_function.set_parameters(np.array(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
 			corrector_smoothers.extend(smoother_function)
-		for reg in self.regressors.T:
+		for reg in self.predictors.T:
 			smoother_function=GAMProcessor.TYPE_SMOOTHER[int(self._gamprocessor_smoother_parameters[sm_index])](reg)
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
+			smoother_function.set_parameters(np.array(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
-			regressor_smoothers.extend(smoother_function)
+			predictor_smoothers.extend(smoother_function)
 
 		treat_data = GAMProcessor._gamprocessor_perp_norm_options_list[self._gamprocessor_perp_norm_option]
 
-		gam = GAM(corrector_smoothers=corrector_smoothers, regressor_smoothers=regressor_smoothers)
+		gam = GAM(corrector_smoothers=corrector_smoothers, predictor_smoothers=predictor_smoothers)
 
 		treat_data(gam)
 		return gam
@@ -70,7 +70,7 @@ class GAMProcessor(Processor):
 	def __user_defined_parameters__(self, fitter):
 		return (self._gamprocessor_perp_norm_option,self._gamprocessor_smoother_parameters)
 
-	def __read_user_defined_parameters__(self, regressor_names, corrector_names):
+	def __read_user_defined_parameters__(self, predictor_names, corrector_names):
 
 		perp_norm_option = GAMProcessor._gamprocessor_perp_norm_options[super(GAMProcessor, self).__getoneof__(
 			GAMProcessor._gamprocessor_perp_norm_options_names,
@@ -111,11 +111,11 @@ class GAMProcessor(Processor):
 								'(or leave blank to set to 3) '
 				))
 
-		for reg in regressor_names:
+		for reg in predictor_names:
 			smoother_type = super(GAMProcessor, self).__getint__(
 				default_value = 1,
 				try_ntimes = 3,
-				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (regressor) \'' + str(reg)
+				show_text = 'GAM Processor: Please, enter the smoothing function of the feature (predictor) \'' + str(reg)
 							+ '\' (1: Polynomial Smoother, 2: Splines Smoother): ')
 			smoothing_functions.append(smoother_type)
 
@@ -145,10 +145,10 @@ class GAMProcessor(Processor):
 
 		return (perp_norm_option,smoothing_functions)
 
-#	def __curve__(self, fitter, regressor, regression_parameters):
+#	def __curve__(self, fitter, predictor, prediction_parameters):
 #		gam = GAM()
 #		GAMProcessor._gamprocessor_perp_norm_options_list[self._gamprocessor_perp_norm_option](gam)
-#		return gam.predict(regression_parameters = regression_parameters)
+#		return gam.predict(prediction_parameters = prediction_parameters)
 
 
 GAMProcessor._gamprocessor_perp_norm_options = {GAMProcessor._gamprocessor_perp_norm_options_names[i] : i for i in xrange(len(GAMProcessor._gamprocessor_perp_norm_options_names))}

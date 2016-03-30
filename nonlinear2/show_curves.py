@@ -11,7 +11,7 @@ from os.path import join, isfile, basename
 from os import listdir
 
 import nibabel as nib
-from numpy import array as nparray, zeros
+import numpy as np
 from matplotlib.pyplot import subplot, plot, legend, show, title
 
 
@@ -49,23 +49,23 @@ for r in exc.get_rows( fieldstype = {
 
 print 'Loading precomputed parameters for PolyGLM'
 pglm_correction_parameters = nib.load(join('results', 'fpmalfa_pglm_cparams.nii')).get_data()
-pglm_regression_parameters = nib.load(join('results', 'fpmalfa_pglm_rparams.nii')).get_data()
+pglm_prediction_parameters = nib.load(join('results', 'fpmalfa_pglm_pparams.nii')).get_data()
 
 with open(join('results', 'fpmalfa_pglm_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing PolyGLM Processor'
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
+pglmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
 
 print 'Loading precomputed parameters for GAM'
 gam_correction_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_cparams.nii')).get_data()
-gam_regression_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_rparams.nii')).get_data()
+gam_prediction_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_pparams.nii')).get_data()
 
 with open(join('results', 'fpmalfa_gam_poly3_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing GAM Processor'
-gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
+gamp = GAMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
 
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], pglmp.subjects)
@@ -73,7 +73,7 @@ diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
 	diag[diagnostics[i]].append(i)
 
-adcsf = pglmp.regressors.T[0]
+adcsf = pglmp.predictors.T[0]
 
 print
 print 'Program initialized correctly.'
@@ -115,15 +115,15 @@ while True:
 		corrected_data = pglmp.corrected_values(pglm_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
 		if show_all:
-			lin_rparams = zeros(pglm_regression_parameters.shape)
-			lin_rparams[0] = pglm_regression_parameters[0]
-			_, lin_curve = pglmp.curve(lin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+			lin_pparams = np.zeros(pglm_prediction_parameters.shape)
+			lin_pparams[0] = pglm_prediction_parameters[0]
+			_, lin_curve = pglmp.curve(lin_pparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 			
-			nonlin_rparams = zeros(pglm_regression_parameters.shape)
-			nonlin_rparams[1:] = pglm_regression_parameters[1:]
-			_, nonlin_curve = pglmp.curve(nonlin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+			nonlin_pparams = np.zeros(pglm_prediction_parameters.shape)
+			nonlin_pparams[1:] = pglm_prediction_parameters[1:]
+			_, nonlin_curve = pglmp.curve(nonlin_pparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		axis, curve = pglmp.curve(pglm_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = pglmp.curve(pglm_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
 		subplot(2, 1, 1)
 		title('GLM')
@@ -143,7 +143,7 @@ while True:
 		# GAM Curve
 		corrected_data = gamp.corrected_values(gam_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
-		axis, curve = gamp.curve(gam_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = gamp.curve(gam_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
 		subplot(2, 1, 2)
 		title('GAM')
@@ -159,7 +159,7 @@ while True:
 		show()
 		print
 	except Exception as e:
-		print '[ERROR] Unexpected error occured while computing and showing the results:'
+		print '[ERROR] Unexpected error occurred while computing and showing the results:'
 		print e
 		print
 		continue

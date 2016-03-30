@@ -24,7 +24,7 @@ plot(x, y2, 'bs', x, ydata[1], 'g^')
 show()
 
 glm = GLM(xdata[1:].T)
-glm.orthonormalize_all()
+deorthonormalization_matrix = glm.orthonormalize_all()
 glm.fit(ydata.T)
 
 corrected_data = glm.correct(ydata.T)

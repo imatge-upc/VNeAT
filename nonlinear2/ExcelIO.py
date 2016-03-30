@@ -2,7 +2,7 @@ from Dictionaries import TransformedDict as tdict
 from xlrd import open_workbook as open_wb
 from xlrd.sheet import ctype_text as type2text
 
-class ExcelSheet:
+class ExcelSheet(object):
 	'''Class that implements a reading method for a well-organized sheet in an Excel
 		file (.xls only).
 	'''
