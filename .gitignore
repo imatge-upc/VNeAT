@@ -6,3 +6,6 @@ data/*
 *.txt
 !requirements.txt
 *.sh
+nonlinear2/FPMAlfa_GAM.py
+tests/*
+*tmp.py

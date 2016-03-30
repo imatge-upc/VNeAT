@@ -98,7 +98,7 @@ class GAMProcessor(Processor):
 				))
 			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
-				smoothing_functions.append(super(GAMProcessor, self).__getint__(
+				smoothing_functions.append(super(GAMProcessor, self).__getfloat__(
 					default_value = 500,
 					try_ntimes = 3,
 					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the spline'
@@ -129,7 +129,7 @@ class GAMProcessor(Processor):
 				))
 			elif smoother_type == GAMProcessor.TYPE_SMOOTHER.index(SplinesSmoother):
 				smoothing_functions.append(2)
-				smoothing_functions.append(super(GAMProcessor, self).__getint__(
+				smoothing_functions.append(super(GAMProcessor, self).__getfloat__(
 					default_value = 500,
 					try_ntimes = 3,
 					show_text = 'GAM Processor: You have selected Splines smoother. Please, enter the smoothing factor of the splines'
@@ -145,10 +145,11 @@ class GAMProcessor(Processor):
 
 		return (perp_norm_option,smoothing_functions)
 
-#	def __curve__(self, fitter, regressor, regression_parameters):
-#		gam = GAM()
-#		GAMProcessor._gamprocessor_perp_norm_options_list[self._gamprocessor_perp_norm_option](gam)
-#		return gam.predict(regression_parameters = regression_parameters)
+	def __curve__(self, fitter, regressors, regression_parameters):
+		gam = GAM()
+		GAMProcessor._gamprocessor_perp_norm_options_list[self._gamprocessor_perp_norm_option](gam)
+		return gam.predict(regressors=regressors, regression_parameters = regression_parameters)
+
 
 
 GAMProcessor._gamprocessor_perp_norm_options = {GAMProcessor._gamprocessor_perp_norm_options_names[i] : i for i in xrange(len(GAMProcessor._gamprocessor_perp_norm_options_names))}
