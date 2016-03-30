@@ -6,19 +6,17 @@ show_all = False
 from ExcelIO import ExcelSheet as Excel
 from GLMProcessing import PolyGLMProcessor as PGLMP
 from GAMProcessing import GAMProcessor as GAMP
+from SVRProcessing import PolySVRProcessor as PSVR
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 
 import nibabel as nib
-import numpy as np
+from numpy import array as nparray, zeros
 from matplotlib.pyplot import subplot, plot, legend, show, title
-
+from user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
 
 print 'Obtaining data from Excel file'
-DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
-EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
-
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 
@@ -48,24 +46,35 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Loading precomputed parameters for PolyGLM'
-pglm_correction_parameters = nib.load(join('results', 'fpmalfa_pglm_cparams.nii')).get_data()
-pglm_prediction_parameters = nib.load(join('results', 'fpmalfa_pglm_pparams.nii')).get_data()
+pglm_correction_parameters = nib.load(join(RESULTS_DIR, 'PGLM', 'fpmalfa_pglm_cparams.nii')).get_data()
+pglm_regression_parameters = nib.load(join(RESULTS_DIR, 'PGLM', 'fpmalfa_pglm_rparams.nii')).get_data()
 
-with open(join('results', 'fpmalfa_pglm_userdefparams.txt'), 'rb') as f:
+with open(join(RESULTS_DIR, 'PGLM', 'fpmalfa_pglm_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing PolyGLM Processor'
-pglmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
+pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
 
 print 'Loading precomputed parameters for GAM'
-gam_correction_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_cparams.nii')).get_data()
-gam_prediction_parameters = nib.load(join('results', 'fpmalfa_gam_poly3_pparams.nii')).get_data()
+gam_correction_parameters = nib.load(join(RESULTS_DIR, 'GAM', 'fpmalfa_gam_poly3_cparams.nii')).get_data()
+gam_regression_parameters = nib.load(join(RESULTS_DIR, 'GAM', 'fpmalfa_gam_poly3_rparams.nii')).get_data()
 
-with open(join('results', 'fpmalfa_gam_poly3_userdefparams.txt'), 'rb') as f:
+with open(join(RESULTS_DIR, 'GAM', 'fpmalfa_gam_poly3_userdefparams.txt'), 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing GAM Processor'
-gamp = GAMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
+gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
+
+
+print 'Loading precomputed parameters for PolySVR'
+psvr_correction_parameters = nib.load(join(RESULTS_DIR, 'PSVR', 'fpmalfa_psvr_cparams.nii')).get_data()
+psvr_regression_parameters = nib.load(join(RESULTS_DIR, 'PSVR', 'fpmalfa_psvr_rparams.nii')).get_data()
+
+with open(join(RESULTS_DIR, 'PSVR', 'fpmalfa_psvr_userdefparams.txt'), 'rb') as f:
+	user_defined_parameters = eval(f.read())
+
+print 'Initializing PolyGLM Processor'
+psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
 
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], pglmp.subjects)
@@ -73,7 +82,7 @@ diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
 	diag[diagnostics[i]].append(i)
 
-adcsf = pglmp.predictors.T[0]
+adcsf = pglmp.regressors.T[0]
 
 print
 print 'Program initialized correctly.'
@@ -115,17 +124,17 @@ while True:
 		corrected_data = pglmp.corrected_values(pglm_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
 		if show_all:
-			lin_pparams = np.zeros(pglm_prediction_parameters.shape)
-			lin_pparams[0] = pglm_prediction_parameters[0]
-			_, lin_curve = pglmp.curve(lin_pparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+			lin_rparams = zeros(pglm_regression_parameters.shape)
+			lin_rparams[0] = pglm_regression_parameters[0]
+			_, lin_curve = pglmp.curve(lin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 			
-			nonlin_pparams = np.zeros(pglm_prediction_parameters.shape)
-			nonlin_pparams[1:] = pglm_prediction_parameters[1:]
-			_, nonlin_curve = pglmp.curve(nonlin_pparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+			nonlin_rparams = zeros(pglm_regression_parameters.shape)
+			nonlin_rparams[1:] = pglm_regression_parameters[1:]
+			_, nonlin_curve = pglmp.curve(nonlin_rparams, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		axis, curve = pglmp.curve(pglm_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = pglmp.curve(pglm_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		subplot(2, 1, 1)
+		subplot(3, 1, 1)
 		title('GLM')
 
 		if show_all:
@@ -143,10 +152,26 @@ while True:
 		# GAM Curve
 		corrected_data = gamp.corrected_values(gam_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
-		axis, curve = gamp.curve(gam_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = gamp.curve(gam_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		subplot(2, 1, 2)
+		subplot(3, 1, 2)
 		title('GAM')
+
+		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
+
+		color = ['co', 'bo', 'mo', 'ko']
+		for i in xrange(len(diag)):
+			l = diag[i]
+			plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], label = Subject.Diagnostics[i])
+		legend()
+
+		# Poly SVR Curve
+		corrected_data = psvr.corrected_values(psvr_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+
+		axis, curve = psvr.curve(psvr_regression_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+
+		subplot(3, 1, 3)
+		title('Poly SVR')
 
 		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
 
@@ -159,7 +184,7 @@ while True:
 		show()
 		print
 	except Exception as e:
-		print '[ERROR] Unexpected error occurred while computing and showing the results:'
+		print '[ERROR] Unexpected error occured while computing and showing the results:'
 		print e
 		print
 		continue
