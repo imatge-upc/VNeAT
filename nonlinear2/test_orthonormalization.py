@@ -3,8 +3,8 @@ from GLM import GLM
 import numpy as np
 
 correctors = np.random.random((129, 10))
-regressors = np.random.random((129, 6))
-features = np.array(list(correctors.T) + list(regressors.T)).T
+predictors = np.random.random((129, 6))
+features = np.array(list(correctors.T) + list(predictors.T)).T
 
 
 # ------------------ Normalization ------------------
@@ -13,12 +13,12 @@ print
 print 'Normalization results:'
 print
 
-glm = GLM(regressors, correctors, False)
+glm = GLM(predictors, correctors, False)
 denormalization_matrix = glm.normalize_all()
 
 new_correctors = glm.correctors
-new_regressors = glm.regressors
-new_features = np.array(list(new_correctors.T) + list(new_regressors.T)).T
+new_predictors = glm.predictors
+new_features = np.array(list(new_correctors.T) + list(new_predictors.T)).T
 
 old_features = new_features.dot(denormalization_matrix)
 print '    Maximum difference between the original and the denormalized matrices:', np.abs(old_features - features).max()
@@ -34,12 +34,12 @@ print
 print 'Orthogonalization results:'
 print
 
-glm = GLM(regressors, correctors, False)
+glm = GLM(predictors, correctors, False)
 deorthogonalization_matrix = glm.orthogonalize_all()
 
 new_correctors = glm.correctors
-new_regressors = glm.regressors
-new_features = np.array(list(new_correctors.T) + list(new_regressors.T)).T
+new_predictors = glm.predictors
+new_features = np.array(list(new_correctors.T) + list(new_predictors.T)).T
 
 old_features = new_features.dot(deorthogonalization_matrix)
 print '    Maximum difference between the original and the deorthogonalized matrices:', np.abs(old_features - features).max()
@@ -63,12 +63,12 @@ print
 print 'Orthonormalization results:'
 print
 
-glm = GLM(regressors, correctors, False)
+glm = GLM(predictors, correctors, False)
 deorthonormalization_matrix = glm.orthonormalize_all()
 
 new_correctors = glm.correctors
-new_regressors = glm.regressors
-new_features = np.array(list(new_correctors.T) + list(new_regressors.T)).T
+new_predictors = glm.predictors
+new_features = np.array(list(new_correctors.T) + list(new_predictors.T)).T
 
 old_features = new_features.dot(deorthonormalization_matrix)
 print '    Maximum difference between the original and the deorthonormalized matrices:', np.abs(old_features - features).max()

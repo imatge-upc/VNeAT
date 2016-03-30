@@ -5,16 +5,12 @@ from os.path import join, isfile, basename
 from os import listdir
 
 import nibabel as nib
-from numpy import array as nparray
+import numpy as np
 
 
 print 'Obtaining data from Excel file...'
-# DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
-# EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
-# DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
-# EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
-DATA_DIR = join('/','imatge','spuch','data-neuroimatge', 'Nonlinear_NBA_15_corrected')
-EXCEL_FILE = join('/','imatge','spuch','data-neuroimatge',  'work_DB_CSF.R1.final.xls')
+from ..user_paths import DATA_DIR, EXCEL_FILE
+
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 
@@ -51,7 +47,7 @@ results = gamp.process()
 
 print 'Saving results to files...'
 
-affine = nparray(
+affine = np.array(
 		[[ -1.50000000e+00,   0.00000000e+00,   0.00000000e+00,   9.00000000e+01],
 		 [  1.99278252e-16,   1.50000000e+00,   2.17210575e-16,  -1.26000000e+02],
 		 [ -1.36305018e-16,  -1.38272305e-16,   1.50000000e+00,  -7.20000000e+01],
@@ -62,7 +58,7 @@ niiFile = nib.Nifti1Image
 
 nib.save(niiFile(results.correction_parameters, affine), join('results', filename + '_cparams.nii'))
 nib.save(niiFile(results.regression_parameters, affine), join('results', filename + '_rparams.nii'))
-nib.save(niiFile(results.fitting_scores, affine), join('results', 'fpmalfa_gam_fitscores.nii'))
+nib.save(niiFile(results.fitting_scores, affine), join('results', filename + '_fitscores.nii'))
 
 
 

@@ -1,5 +1,7 @@
+import niftiIO as nio
+import numpy as np
 
-class Subject:
+class Subject(object):
 
 	Diagnostics = ['NC', 'PC', 'MCI', 'AD']
 	Sexes = ['Unknown', 'Male', 'Female']
@@ -99,3 +101,34 @@ class Subject:
 			s += repr(adcsf)
 		s += '\n'
 		return s
+
+
+
+class chunks:
+	def __init__(self, subject_list, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None):
+		if mem_usage is None:
+			mem_usage = 512.0
+		self._gmdata_readers = map(lambda subject: nio.NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), subject_list)
+		self._dims = self._gmdata_readers[0].dims
+		self._num_subjects = np.float64(len(self._gmdata_readers))
+		self._iterators = map(lambda gmdata_reader: gmdata_reader.chunks(mem_usage/self._num_subjects), self._gmdata_readers)
+
+	@property
+	def dims(self):
+		return self._dims
+
+	@property
+	def num_subjects(self):
+		return self._num_subjects
+
+	def __iter__(self):
+		return self
+
+	def next(self):
+		reg = self._iterators[0].next() # throws StopIteration if there are not more chunks
+		chunkset = [reg.data]
+		chunkset += [it.next().data for it in self._iterators[1:]]
+		return nio.Region(reg.coords, np.array(chunkset, dtype = np.float64))
+
+
+

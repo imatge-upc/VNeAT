@@ -1,11 +1,11 @@
-from nibabel import load as nibload, save as nibsave, Nifti1Image as niiFile
-
+import nibabel as nib
+niiFile = nib.Nifti1Image
 
 class NiftiReader:
 
 	def __init__(self, filename, x1 = 0, y1 = 0, z1 = 0, x2 = None, y2 = None, z2 = None):
 		self.filename = filename
-		f = nibload(filename)
+		f = nib.load(filename)
 		self.dims = f.shape
 		del f
 		if x2 == None:
@@ -58,7 +58,7 @@ class NiftiReader:
 		for x in range(x1, x2, dx):
 			for y in range(y1, y2, dy):
 				for z in range(z1, z2, dz):
-					f = nibload(self.filename)
+					f = nib.load(self.filename)
 					chunk = Region((x, y, z), f.get_data('unchanged')[x:min(x2, x+dx), y:min(y2, y+dy), z:min(z2, z+dz)])
 					del f
 					yield chunk
@@ -67,7 +67,7 @@ class NiftiReader:
 		return self.chunks()
 
 	def affine(self):
-		f = nibload(self.filename)
+		f = nib.load(self.filename)
 		aff = f.affine
 		del f
 		return aff
@@ -76,7 +76,7 @@ class NiftiReader:
 class NiftiWriter(niiFile):
 	@staticmethod
 	def open(filename):
-		f = nibload(filename)
+		f = nib.load(filename)
 		nw = NiftiWriter(f.get_data('unchanged'), f.affine)
 		del f
 		return nw
@@ -84,7 +84,7 @@ class NiftiWriter(niiFile):
 	def save(self, filename = None, *args, **kwargs):
 		if filename != None:
 			self._filename = filename
-		nibsave(self, self._filename, *args, **kwargs)
+		nib.save(self, self._filename, *args, **kwargs)
 
 	def chunks(self, mem_usage = None, *args, **kwargs):
 		try:

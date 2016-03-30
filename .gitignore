@@ -6,6 +6,8 @@ data/*
 *.txt
 !requirements.txt
 *.sh
+*backup*
 nonlinear2/FPMAlfa_GAM.py
 tests/*
 *tmp.py
+user_paths.py
