@@ -14,7 +14,7 @@ filename_prefix = join('results', 'GLM', 'glm_')
 
 
 
-
+from ..user_paths import DATA_DIR, EXCEL_FILE
 
 niiFile = nib.Nifti1Image
 affine = np.array(

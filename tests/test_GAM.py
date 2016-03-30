@@ -1,23 +1,17 @@
 from ExcelIO import ExcelSheet as Excel
 from GLMProcessing import PolyGLMProcessor as PGLMP
+from GAMProcessing import GAMProcessor
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 
 import nibabel as nib
-import numpy as np
+from numpy import array as nparray
 
-
-filename_prefix = join('results', 'PGLM', 'pglm_')
-
-
-
-
-
-niiFile = nib.Nifti1Image
 
 print 'Obtaining data from Excel file...'
-from ..user_paths import DATA_DIR, EXCEL_FILE
+DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
+EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -46,31 +40,38 @@ for r in exc.get_rows( fieldstype = {
 			r.get('ad_csf_index_ttau', None)
 		)
 	)
+print 'Initializing GAM Processor...'
+gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
-print 'Initializing PolyGLM Processor...'
-<<<<<<< HEAD:nonlinear2/computePolyGLMParams.py
-pglmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
-=======
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
->>>>>>> f9e5efbaae34b83e614033f157a94c43cb6561f0:nonlinear2/FPMAlfa.py
 
 print 'Processing data...'
-results = pglmp.process(mem_usage = 512)# x1 = 80, x2 = 81, y1 = 49, y2 = 50, z1 = 82, z2 = 83)
+results = gamp.process(x1=73,x2=74,y1=84,y2=85,z1=41,z2=42)
+
+print 'Formatting obtained data to display it...'
+z_scores, labels = gamp.fit_score(results.fitting_scores, produce_labels = True)
 
 print 'Saving results to files...'
 
-affine = np.array(
+
+
+
+affine = nparray(
 		[[ -1.50000000e+00,   0.00000000e+00,   0.00000000e+00,   9.00000000e+01],
 		 [  1.99278252e-16,   1.50000000e+00,   2.17210575e-16,  -1.26000000e+02],
 		 [ -1.36305018e-16,  -1.38272305e-16,   1.50000000e+00,  -7.20000000e+01],
 		 [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,   1.00000000e+00]]
 )
 
-nib.save(niiFile(results.correction_parameters, affine), filename_prefix + 'cparams.nii')
-nib.save(niiFile(results.prediction_parameters, affine), filename_prefix + 'pparams.nii')
+niiFile = nib.Nifti1Image
 
-with open(filename_prefix + 'userdefparams.txt', 'wb') as f:
-	f.write(str(pglmp.user_defined_parameters) + '\n')
+nib.save(niiFile(results.correction_parameters, affine), 'fpmalfa_gam_cparams.nii')
+nib.save(niiFile(results.regression_parameters, affine), 'fpmalfa_gam_rparams.nii')
+nib.save(niiFile(results.fitting_scores, affine), 'fpmalfa_gam_fitscores.nii')
+nib.save(niiFile(z_scores, affine), 'fpmalfa_gam_zscores.nii')
+nib.save(niiFile(labels, affine), 'fpmalfa_gam_labels.nii')
+
+with open('fpmalfa_gam_userdefparams.txt', 'wb') as f:
+	f.write(str(gamp.user_defined_parameters) + '\n')
+
 
 print 'Done.'
-
