@@ -40,54 +40,14 @@ class GAM(AdditiveCurveFitter):
 
 		super(GAM, self).__init__(predictors, correctors, True)
 
-	def __fit__(self,correctors,regressors,observations, rtol=1.0e-08, maxiter=500):
+	def __fit__(self,correctors,predictors,observations, rtol=1.0e-08, maxiter=500):
 
 		dims=observations.shape
 
 		[smoother.set_covariate(corr.reshape(dims[0],-1)) for smoother,corr in  zip(self.corrector_smoothers,correctors.T[1:])]
 		[smoother.set_covariate(reg.reshape(dims[0],-1)) for smoother,reg in  zip(self.predictor_smoothers,predictors.T)]
 
-#        smoother_functions = SmootherSet(self.corrector_smoothers+self.predictor_smoothers)
-#        alpha,mu,offset=self.__init_iter(observations,smoother_functions.n_smoothers)
-#
-#        for smoother in smoother_functions:
-#            r = observations - alpha - mu
-#            smoother.fit(r)
-#            f_i_pred = smoother.predict()
-#            offset = f_i_pred.sum(axis=0) / observations.shape[0]
-#            f_i_pred -= offset
-#            mu += f_i_pred
-#        self.iter += 1
-#
-#        while self.__cont(observations,alpha+mu,maxiter,rtol):
-#            for smoother in smoother_functions:
-#                mu = mu - smoother.predict()
-#                r = observations - alpha - mu
-#                smoother.fit(r)
-#                f_i_pred = smoother.predict()
-#                offset = f_i_pred.sum(axis=0) / observations.shape[0]
-#                f_i_pred -= offset
-#                mu += f_i_pred
-#            self.iter += 1
-#
-#        self.intercept_smoother.set_parameters(self.alpha)
-#        self.corrector_smoothers=SmootherSet(smoother_functions[:self.corrector_smoothers.n_smoothers])
-#        self.predictor_smoothers=SmootherSet(smoother_functions[self.corrector_smoothers.n_smoothers:])
-#
-#        _coded_corrector_params = self.__code_parameters(self.corrector_smoothers)
-#        if len(_coded_corrector_params) == 0:
-#            _coded_corrector_params = _coded_corrector_params.reshape((0,observations.shape[1]))
-#
-#        _coded_predictor_params = self.__code_parameters(self.predictor_smoothers)
-#        if len(_coded_predictor_params) == 0:
-#            _coded_predictor_params = _coded_predictor_params.reshape((0,observations.shape[1]))
-#
-#        _coded_header_params = np.concatenate((([self.TYPE_SMOOTHER.index(InterceptSmoother),1]*np.ones((observations.shape[1],1))).T,
-#                                               self.alpha[:,None].T))
-#
-#        return (np.concatenate((_coded_header_params,_coded_corrector_params)),_coded_predictor_params)
-
-		smoother_functions = SmootherSet(self.corrector_smoothers+self.regressor_smoothers)
+		smoother_functions = SmootherSet(self.corrector_smoothers+self.predictor_smoothers)
 		crv_reg=[]
 		crv_corr=[]
 		for obs in observations.T:
@@ -110,9 +70,9 @@ class GAM(AdditiveCurveFitter):
 
 		y_predict=[]
 		for reg_param in regression_parameters.T:
-			y_pred=np.zeros((regressors.shape[0],))
+			y_pred=np.zeros((predictors.shape[0],))
 			indx_smthr = 0
-			for reg in regressors.T:
+			for reg in predictors.T:
 				smoother=self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](reg)
 				n_params = int(reg_param[indx_smthr+1])
 				smoother.set_parameters(reg_param[indx_smthr+2:indx_smthr+2+n_params])
