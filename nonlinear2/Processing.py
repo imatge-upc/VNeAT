@@ -339,7 +339,7 @@ class Processor:
 		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
 		dims = gmdata_readers[0].dims
 
-		correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+		correction_parameters = correction_parameters[:]
 		corrected_data = zeros(tuple([len(gmdata_readers)]) + dims, dtype = float64)
 
 		for chunk in self.__processor_chunks(gmdata_readers):
