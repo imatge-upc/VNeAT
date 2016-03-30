@@ -7,17 +7,12 @@ from os import listdir
 import nibabel as nib
 import numpy as np
 
-
 filename_prefix = join('results', 'PGLM', 'pglm_')
-
-
-
-
 
 niiFile = nib.Nifti1Image
 
 print 'Obtaining data from Excel file...'
-from ..user_paths import DATA_DIR, EXCEL_FILE
+from user_paths import DATA_DIR, EXCEL_FILE
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -48,11 +43,7 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Initializing PolyGLM Processor...'
-<<<<<<< HEAD:nonlinear2/computePolyGLMParams.py
 pglmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
-=======
-pglmp = PGLMP(subjects, regressors = [Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
->>>>>>> f9e5efbaae34b83e614033f157a94c43cb6561f0:nonlinear2/FPMAlfa.py
 
 print 'Processing data...'
 results = pglmp.process(mem_usage = 512)# x1 = 80, x2 = 81, y1 = 49, y2 = 50, z1 = 82, z2 = 83)
