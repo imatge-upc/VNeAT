@@ -40,7 +40,7 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Initializing PolyGLM Processor...'
-gamp = GAMP(subjects, predictors = [Subject.ADCSFIndex])#, correctors = [Subject.Age, Subject.Sex])
+gamp = GAMP(subjects, regressors = [Subject.ADCSFIndex])
 
 print 'Processing data...'
 results = gamp.process()
@@ -56,21 +56,27 @@ affine = np.array(
 
 niiFile = nib.Nifti1Image
 
-nib.save(niiFile(results.correction_parameters, affine), join('results', 'fpmalfa_gam_poly3_cparams.nii'))
-nib.save(niiFile(results.prediction_parameters, affine), join('results', 'fpmalfa_gam_poly3_pparams.nii'))
-nib.save(niiFile(results.fitting_scores, affine), join('results', 'fpmalfa_gam_poly3_fitscores.nii'))
+nib.save(niiFile(results.correction_parameters, affine), join('results', filename + '_cparams.nii'))
+nib.save(niiFile(results.regression_parameters, affine), join('results', filename + '_rparams.nii'))
+nib.save(niiFile(results.fitting_scores, affine), join('results', filename + '_fitscores.nii'))
 
-with open(join('results', 'fpmalfa_gam_userdefparams.txt'), 'wb') as f:
+
+
+filename = 'gam_splines_d5_s10'
+with open(join('results', filename + '_userdefparams.txt'), 'wb') as f:
 	f.write(str(gamp.user_defined_parameters) + '\n')
 
 print 'Obtaining, filtering and saving z-scores and labels to display them...'
 for fit_threshold in [0.99, 0.995, 0.999]:
 	print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
 	z_scores, labels = gamp.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True)
+	z_scores_2, labels_2 = gamp.fit_score(results.fitting_scores, fit_threshold = fit_threshold, produce_labels = True,cluster_threshold=0)
 
 	print '    Saving z-scores and labels to file...'
-	nib.save(niiFile(z_scores, affine), join('results', 'fpmalfa_gam_zscores_' + str(fit_threshold) + '.nii'))
-	nib.save(niiFile(labels, affine), join('results', 'fpmalfa_gam__labels_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(z_scores, affine), join('results', filename + '_zscores_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(labels, affine), join('results', filename + '_labels_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(z_scores, affine), join('results', filename + '_zscores_wo_cluster_' + str(fit_threshold) + '.nii'))
+	nib.save(niiFile(labels, affine), join('results', filename + '_labels_wo_cluster' + str(fit_threshold) + '.nii'))
 
 
 print 'Done.'

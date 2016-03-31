@@ -7,12 +7,7 @@ from os import listdir
 import nibabel as nib
 import numpy as np
 
-
 filename_prefix = join('results', 'PGLM', 'pglm_')
-
-
-
-
 
 niiFile = nib.Nifti1Image
 

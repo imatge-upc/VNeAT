@@ -4,21 +4,25 @@
         * Gaussian SVR
 """
 from CurveFitting import AdditiveCurveFitter
-from sklearn.svm import SVR
+from sklearn.svm import SVR, LinearSVR
 import sklearn.preprocessing as preprocessing
 import numpy as np
-from numpy import array, ravel
+from numpy import array, ravel, zeros, ones
 from Transforms import polynomial
 from joblib import Parallel, delayed
 
-class LinearSVR(AdditiveCurveFitter):
+class LinSVR(AdditiveCurveFitter):
     """
     LINEAR SVR
     Class that implements linear Support Vector Regression
     """
 
-    @staticmethod
-    def __fit__(correctors, regressors, observations, *args, **kwargs):
+    def __init__(self, regressors = None, correctors = None, homogeneous = True):
+        self._svr_homogeneous = homogeneous
+        # Don't allow a homogeneous feature to be created, use instead the intercept term from the fitter
+        super(LinSVR, self).__init__(regressors, correctors, homogeneous)
+
+    def __fit__(self, correctors, regressors, observations, *args, **kwargs):
         """
 
         Parameters
@@ -34,25 +38,38 @@ class LinearSVR(AdditiveCurveFitter):
 
         """
         # Parameters for linear SVR
-        C = kwargs['C'] if 'C' in kwargs else 1000.0
+        C = kwargs['C'] if 'C' in kwargs else 100.0
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.01
         shrinking = kwargs['shrinking'] if 'shrinking' in kwargs else True
-        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
+        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 1000
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
         sample_weight = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
 
-        # Create features matrix and standardize data
-        X = np.concatenate((correctors, regressors), axis=1)
-        num_variables = observations.shape[1]
+        #svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
+        svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_homogeneous,
+                               intercept_scaling=C, max_iter=max_iter)
+
+        # Create features matrix
+        if correctors.size != 0:
+            X = np.concatenate((correctors, regressors), axis=1)
+        else:
+            X = regressors
+
+        # Get rid of the homogeneous feature (column of 1s) if homogeneous is True, use instead the intercept term
+        # computed by the SVR fitter
+        if self._svr_homogeneous:
+            X = X[:, 1:]
+
+        # Standardize data to improve SVR performance
         X_std = preprocessing.scale(X)
 
         # Fit data per voxel
+        num_variables = observations.shape[1]
         params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                        (svr_fitter, X_std, observations[:, i], sample_weight)
+                                        (svr_fitter, X_std, observations[:, i], sample_weight, self._svr_homogeneous)
                                          for i in range(num_variables))
         params = array(params).T
 
@@ -61,7 +78,6 @@ class LinearSVR(AdditiveCurveFitter):
         c_params = params[:end_correctors, :]
         r_params = params[end_correctors:, :]
         return c_params, r_params
-
 
     @staticmethod
     def __predict__(regressors, regression_parameters, *args, **kwargs):
@@ -80,8 +96,7 @@ class LinearSVR(AdditiveCurveFitter):
         """
         return regressors.dot(regression_parameters)
 
-
-class PolySVR(LinearSVR):
+class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
     def __init__(self, features, regressors = None, degrees = None, homogeneous = True):
@@ -171,8 +186,9 @@ class PolySVR(LinearSVR):
         else:
             regressors = array(regressors).T
 
-        # Instance a LinearSVR (parent) with the expanded polynomial features
+        # Instance a LinSVR (parent) with the expanded polynomial features
         super(PolySVR, self).__init__(regressors, correctors, self._svr_homogeneous)
+
 
 class GaussianSVR(object):
     """ GAUSSIAN SVR """
@@ -181,19 +197,28 @@ class GaussianSVR(object):
 
 """ HELPER FUNCTIONS """
 
-def __fit_features__(fitter, X, y, sample_weight=None):
+def __fit_features__(fitter, X, y, sample_weight=None, homogeneous=True):
         """
         Fits the features from X to the observation y given the linear fitter and the optional sample_weights
         Parameters
         ----------
-        fitter sklearn linear fitter, must have the fit method and the coef_ attribute
-        X NxF matrix, where N is the number of observations and F the number of features
-        y Nx1 the variable that we want to explain with the features
-        [sample_weight]
+        fitter:  sklearn linear fitter, must have the fit method and the coef_ and intercept_ attributes
+        X:   NxF matrix, where N is the number of observations and F the number of features
+        y:   Nx1 the variable that we want to explain with the features
+        [sample_weight]:    array with weights assigned to each feature
 
         Returns
         -------
-        Fx1 vector with the fitting coefficients
+        {numpy array} (F+1)x1 array with the fitting coefficients and the intercept term if homogeneous=True,
+        otherwise Fx1 array with only the fitting coefficients
         """
-        fitter.fit(X, y, sample_weight=sample_weight)
-        return ravel(fitter.coef_).T
+        fitter.fit(X, y)
+        num_features = X.shape[1]
+        if homogeneous:
+            params = zeros((num_features + 1, 1))
+            params[0, :] = float(fitter.intercept_)
+            coefficients = np.atleast_2d(fitter.coef_)
+            params[1:, :] = coefficients.T
+        else:
+            params = fitter.coef_.T
+        return ravel(params)
