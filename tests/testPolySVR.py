@@ -148,7 +148,10 @@ if __name__ == "__main__":
             plt.plot(x, predicted, c='y', label='Poly SVR prediction')
             plt.xlabel('data')
             plt.ylabel('target')
-            plt.title('C = ' + str(C) + ' / epsilon = ' + str(epsilon))
+            # Title for figure
+            title = 'voxel (' + str(x1) + ', ' + str(y1) + ', ' + str(z1) + ')  '
+            title = title + 'C = ' + str(C) + ' / epsilon = ' + str(epsilon)
+            plt.title(title)
             plt.legend()
             plt.show()
 

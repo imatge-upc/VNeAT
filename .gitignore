@@ -6,3 +6,4 @@ data/*
 *.txt
 !requirements.txt
 *.sh
+user_paths.py
