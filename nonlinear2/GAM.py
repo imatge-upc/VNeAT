@@ -69,7 +69,7 @@ class GAM(AdditiveCurveFitter):
 #			y_pred += smoother.predict()
 
 		y_predict=[]
-		for reg_param in regression_parameters.T:
+		for reg_param in prediction_parameters.T:
 			y_pred=np.zeros((predictors.shape[0],))
 			indx_smthr = 0
 			for reg in predictors.T:
