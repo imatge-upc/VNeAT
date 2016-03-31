@@ -9,7 +9,7 @@ import numpy as np
 
 
 print 'Obtaining data from Excel file...'
-from ..user_paths import DATA_DIR, EXCEL_FILE
+from user_paths import DATA_DIR, EXCEL_FILE
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}

@@ -229,6 +229,24 @@ class GLMProcessor(Processor):
 		return (homogeneous, perp_norm_option) + tuple(degrees) + tuple(submodels)
 
 	def __curve__(self, fitter, predictor, prediction_parameters):
+
+		# Generate all the necessary terms of the predictor
+
+		preds = predictor.T
+
+		predictors = []
+		j = 0
+		for i in xrange(len(preds)):
+			reg = 1
+			for _ in xrange(self._glmprocessor_degrees[i]):
+				reg *= preds[i]
+				if bool(self._glmprocessor_submodels[j]):
+					predictors.append(reg.copy())
+				j += 1
+
+		# Initialize the glm with such predictors
+		glm = GLM(predictors = np.array(predictors).T, homogeneous = False)
+
 		# Get the prediction parameters for the original features matrix
 		if self._glmprocessor_perp_norm_option < 6:
 			Kx2 = prediction_parameters.shape[0]
@@ -237,7 +255,7 @@ class GLMProcessor(Processor):
 			pparams = prediction_parameters
 
 		# Call the normal function with such parameters
-		return super(GLMProcessor, self).__curve__(fitter, predictor, pparams)
+		return glm.predict(prediction_parameters = pparams)
 
 	@staticmethod
 	def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):

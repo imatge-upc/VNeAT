@@ -16,9 +16,8 @@ from matplotlib.pyplot import subplot, plot, legend, show, title
 
 
 print 'Obtaining data from Excel file'
-DATA_DIR = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'Nonlinear_NBA_15')
-EXCEL_FILE = join('/', 'Users', 'Asier', 'Documents', 'TFG', 'Alan T', 'work_DB_CSF.R1.final.xls')
 
+from user_paths import DATA_DIR, EXCEL_FILE
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 
