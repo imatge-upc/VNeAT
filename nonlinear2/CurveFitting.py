@@ -1145,6 +1145,8 @@ class AdditiveCurveFitter(CurveFitter):
 
 		# Degrees of freedom
 		n = observations.shape[0]
+		p1 = 4
+		p2 = p1 + 3
 		df1 = p2 - p1
 		df2 = n - p2
 

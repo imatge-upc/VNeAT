@@ -1,6 +1,6 @@
 from Processing import Processor
 from GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
-from numpy import zeros, array as nparray
+import numpy as np
 
 
 class GAMProcessor(Processor):
@@ -34,9 +34,19 @@ class GAMProcessor(Processor):
 
 	def __fitter__(self, user_defined_parameters):
 		'''Initializes the GAM fitter to be used to process the data.
-
-
 		'''
+
+		class newgam(GAM):
+
+			@property
+			def regression_parameters(self):
+				''' Implements an add-on that allows regression parameters to have flexible dimensions
+				'''
+				pparams = super(newgam, self).regression_parameters
+				res = np.zeros((277,) + pparams.shape[1:])
+				res[:pparams.shape[0]] = pparams
+				return res
+
 		self._gamprocessor_perp_norm_option = user_defined_parameters[0]
 		self._gamprocessor_smoother_parameters = user_defined_parameters[1]
 
@@ -48,7 +58,7 @@ class GAMProcessor(Processor):
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
+			smoother_function.set_parameters(np.array(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
 			corrector_smoothers.extend(smoother_function)
 		for reg in self.regressors.T:
@@ -56,7 +66,7 @@ class GAMProcessor(Processor):
 			sm_index += 1
 			n_param = self._gamprocessor_smoother_parameters[sm_index]
 			sm_index += 1
-			smoother_function.set_parameters(nparray(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
+			smoother_function.set_parameters(np.array(self._gamprocessor_smoother_parameters[sm_index:sm_index+n_param])[:,None])
 			sm_index += n_param
 			regressor_smoothers.extend(smoother_function)
 
@@ -65,7 +75,14 @@ class GAMProcessor(Processor):
 		gam = GAM(corrector_smoothers=corrector_smoothers, regressor_smoothers=regressor_smoothers)
 
 		treat_data(gam)
+
 		return gam
+
+	# def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
+	# 	results = super(self, GAMProcessor).process(x1 = x1, x2 = x2, y1 = y1, y2 = y2, z1 = z1, z2 = z2,mem_usage = mem_usage, evaluation_kwargs = evaluation_kwargs, *args, **kwargs)
+	# 	Mirar cual es el maximo numero de parametros en la matriz results.prediction_parameters
+	# 	Cortar matriz new_regression_parameters = results.regression_parameters[:max_num_params]
+	# 	return self.Results(new_regression_parameters, results.correction_parameters, results.fitting_scores)
 
 	def __user_defined_parameters__(self, fitter):
 		return (self._gamprocessor_perp_norm_option,self._gamprocessor_smoother_parameters)

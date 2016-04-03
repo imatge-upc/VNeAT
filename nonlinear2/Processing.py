@@ -6,6 +6,8 @@ from numpy import array as nparray, zeros, isfinite, float64
 from scipy.stats import norm
 from sys import stdout
 
+import pdb
+
 class Processor:
 	__metaclass__ = docstring_inheritor(ABCMeta)
 
@@ -250,7 +252,7 @@ class Processor:
 			# Get chunk data and its dimensions
 			cdata = chunk.data
 			dx, dy, dz = cdata.shape[1:]
-
+			# pdb.set_trace()
 			# Fit the parameters to the data in the chunk
 			self._processor_fitter.fit(cdata, *args, **kwargs)
 

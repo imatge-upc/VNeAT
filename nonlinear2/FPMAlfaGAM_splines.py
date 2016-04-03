@@ -45,22 +45,22 @@ for r in exc.get_rows( fieldstype = {
 		)
 	)
 
-print 'Initializing PolyGLM Processor...'
+print 'Initializing GAM Processor...'
 user_defined_parameters = [
-	(9,[1,1,3]),
-	(9,[1,1,1]),
-	(9,[1,1,2]),
-	(9,[1,1,4]),
-	(9,[1,1,5]),
+	(9,[2,2,1,1]),
+	(9,[2,2,1,2]),
+	(9,[2,2,1,3]),
+	(9,[2,2,1,4]),
+	(9,[2,2,1,5]),
 
 ]
 
 filenames = [
-	'gam_poly_d3',
-	'gam_poly_d1',
-	'gam_poly_d2',
-	'gam_poly_d4',
-	'gam_poly_d5',
+	'gam_splines_d1_s1',
+	'gam_splines_d2_s1',
+	'gam_splines_d3_s1',
+	'gam_splines_d4_s1',
+	'gam_splines_d5_s1',
 ]
 
 for udp,filename in zip(user_defined_parameters,filenames):

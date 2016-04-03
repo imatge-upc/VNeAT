@@ -7,7 +7,7 @@ from statsmodels.sandbox.nonparametric import kernels
 from sklearn.linear_model import LinearRegression as LR
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import splev
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from warnings import warn
 import copy
 
@@ -98,7 +98,7 @@ class GAM(AdditiveCurveFitter):
         parameters=np.array([])
         for smoother in smoother_set:
             params=smoother.get_parameters()
-            parameters=np.concatenate((parameters,[self.TYPE_SMOOTHER.index(smoother.__class__),len(params)],params))
+            parameters=np.concatenate((parameters,[self.TYPE_SMOOTHER.index(smoother.__class__)],params))
         return parameters
 
     def __backfitting_algorithm(self,observation,smoother_functions,rtol=1e-8,maxiter=500):
@@ -196,7 +196,7 @@ class SplinesSmoother(Smoother):
             smoothing_factor = len(xdata)
         self.smoothing_factor = smoothing_factor
         self.order=order
-        self.xdata=xdata
+        self.xdata=np.sort(xdata)
         self.spline_parameters=spline_parameters
         if name is None:
             name='SplinesSmoother'
@@ -248,7 +248,8 @@ class SplinesSmoother(Smoother):
         return y_pred
 
     def get_parameters(self):
-        parameters=np.array([self.smoothing_factor])
+        shape_parameters = 2*(self.xdata.shape[0]+self.order+1) + 6
+        parameters=np.array([self.smoothing_factor],dtype=float64)
         for param in self.spline_parameters:
             try:
                 parameters = np.append(parameters, len(param))
@@ -257,8 +258,11 @@ class SplinesSmoother(Smoother):
                 parameters = np.append(parameters, 1)
                 parameters = np.append(parameters, param)
 
+        parameters = np.append(len(parameters),parameters)
 
-        return parameters
+        parameters_reshaped = np.zeros((shape_parameters,))
+        parameters_reshaped[:len(parameters)]=parameters
+        return parameters_reshaped
 
     def get_covariate(self):
         return np.array(self.xdata)
@@ -330,7 +334,7 @@ class PolynomialSmoother(Smoother):
         return y_pred
 
     def get_parameters(self):
-        return np.append(self.order,self.coefficients)
+        return np.append((len(self.coefficients)+1,self.order),self.coefficients)
 
     def set_parameters(self,parameters):
         self.order = int(parameters[0])
