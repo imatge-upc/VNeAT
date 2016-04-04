@@ -1,57 +1,57 @@
 from abc import ABCMeta, abstractmethod
 from Documentation import docstring_inheritor
 from graphlib import NiftiGraph
-from niftiIO import NiftiReader, Region
-from numpy import array as nparray, zeros, isfinite, float64
+import numpy as np
 from scipy.stats import norm
+import Subject
 from sys import stdout
 
-class Processor:
+class Processor(object):
 	__metaclass__ = docstring_inheritor(ABCMeta)
 
 	class Results:
 
-		def __init__(self, regression_parameters, correction_parameters, fitting_scores):
-			self._regression_parameters = regression_parameters
+		def __init__(self, prediction_parameters, correction_parameters): # , fitting_scores):
+			self._prediction_parameters = prediction_parameters
 			self._correction_parameters = correction_parameters
-			self._fitting_scores = fitting_scores
+#			self._fitting_scores = fitting_scores
 		
 		@property
-		def regression_parameters(self):
-			return self._regression_parameters
+		def prediction_parameters(self):
+			return self._prediction_parameters
 		
 		@property
 		def correction_parameters(self):
 			return self._correction_parameters
 
-		@property
-		def fitting_scores(self):
-			return self._fitting_scores
+#		@property
+#		def fitting_scores(self):
+#			return self._fitting_scores
 
 		def __str__(self):
 			s = 'Results:'
 			s += '\n    Correction parameters:' + reduce(lambda x, y: x + '\n    ' + y, repr(self._correction_parameters).split('\n'))
-			s += '\n\n    Regression parameters:' + reduce(lambda x, y: x + '\n    ' + y, repr(self._regression_parameters).split('\n'))
-			s += '\n\n    Fitting scores:\n' + reduce(lambda x, y: x + '\n    ' + y, repr(self._fitting_scores).split('\n'))
+			s += '\n\n    Prediction parameters:' + reduce(lambda x, y: x + '\n    ' + y, repr(self._prediction_parameters).split('\n'))
+#			s += '\n\n    Fitting scores:\n' + reduce(lambda x, y: x + '\n    ' + y, repr(self._fitting_scores).split('\n'))
 			return s
 
-	def __init__(self, subjects, regressors, correctors = [], user_defined_parameters = ()):
+	def __init__(self, subjects, predictors, correctors = [], user_defined_parameters = ()):
 		self._processor_subjects = list(subjects)
-		self._processor_regressors = nparray(map(lambda subject: subject.get(regressors), self._processor_subjects), dtype = float64)
-		self._processor_correctors = nparray(map(lambda subject: subject.get(correctors), self._processor_subjects), dtype = float64)
+		self._processor_predictors = np.array(map(lambda subject: subject.get(predictors), self._processor_subjects), dtype = np.float64)
+		self._processor_correctors = np.array(map(lambda subject: subject.get(correctors), self._processor_subjects), dtype = np.float64)
 
-		if 0 in self._processor_regressors.shape:
-			self._processor_regressors = zeros((len(self._processor_subjects), 0))
+		if 0 in self._processor_predictors.shape:
+			self._processor_predictors = np.zeros((len(self._processor_subjects), 0))
 		if 0 in self._processor_correctors.shape:
-			self._processor_correctors = zeros((len(self._processor_subjects), 0))
+			self._processor_correctors = np.zeros((len(self._processor_subjects), 0))
 
 		self._processor_progress = 0.0
-		self._processor_mem_usage = 500.0
+		self._processor_mem_usage = 512.0
 
 		if (len(user_defined_parameters) != 0):
 			self._processor_fitter = self.__fitter__(user_defined_parameters)
 		else:
-			self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(regressors, correctors))
+			self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(predictors, correctors))
 
 	@property
 	def subjects(self):
@@ -69,14 +69,14 @@ class Processor:
 		return self._processor_correctors
 
 	@property
-	def regressors(self):
-		'''Matrix of regressors of this instance.
+	def predictors(self):
+		'''Matrix of predictors of this instance.
 
 			NxR (2-dimensional) matrix, representing the values of the features of the subjects that are to be
-			used as regressors in the fitter, where N is the number of subjects and R the number of regressors.
+			used as predictors in the fitter, where N is the number of subjects and R the number of predictors.
 		'''
 
-		return self._processor_regressors
+		return self._processor_predictors
 
 	@property
 	def progress(self):
@@ -94,7 +94,7 @@ class Processor:
 			Parameters:
 
 			    - user_defined_parameters: tuple of ints, containing the additional parameters (apart from correctors
-			    	and regressors) necessary to succesfully initialize a new instance of a fitter (see 
+			    	and predictors) necessary to succesfully initialize a new instance of a fitter (see 
 			        __read_user_defined_parameters__ method).
 
 			Returns:
@@ -122,7 +122,7 @@ class Processor:
 
 			Returns:
 
-			    - A tuple with the values of the additional parameters (apart from the correctors and regressors) that
+			    - A tuple with the values of the additional parameters (apart from the correctors and predictors) that
 			        have been used to succesfully initialize and use the fitter of this instance.
 
 			[Developer notes]
@@ -139,14 +139,14 @@ class Processor:
 		return self.__user_defined_parameters__(self._processor_fitter)
 
 	@abstractmethod
-	def __read_user_defined_parameters__(self, regressor_names, corrector_names):
-		'''[Abstract method] Read the additional parameters (apart from correctors and regressors)
+	def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+		'''[Abstract method] Read the additional parameters (apart from correctors and predictors)
 			necessary to succesfully initialize a new instance of the fitter from the user.
 
 			Parameters:
 
-			    - regressor_names: iterable of subject attributes (e.g. Subject.ADCSFIndex) that represent the
-			        names of the features to be used as regressors.
+			    - predictor_names: iterable of subject attributes (e.g. Subject.ADCSFIndex) that represent the
+			        names of the features to be used as predictors.
 
 			    - corrector_names: iterable of subject attributes (e.g. Subject.Age) that represent the names of
 			        the features to be used as correctors.
@@ -154,7 +154,7 @@ class Processor:
 			Returns:
 			    
 			    - A tuple of numerical elements, containing the coded additional parameters (apart from correctors
-			    	and regressors) necessary to succesfully initialize a new instance of a fitter; this tuple will
+			    	and predictors) necessary to succesfully initialize a new instance of a fitter; this tuple will
 					be past as is to the __fitter__ method.
 
 			[Developer notes]
@@ -178,19 +178,6 @@ class Processor:
 
 		raise NotImplementedError
 
-	def __processor_chunks(self, gmdata_readers):
-		num_subjects = len(gmdata_readers)
-
-		iterators = map(lambda gmdata_reader: gmdata_reader.chunks(self._processor_mem_usage/num_subjects), gmdata_readers)
-		try:
-			while True:
-				reg = iterators[0].next()
-				chunkset = [reg.data]
-				chunkset += [it.next().data for it in iterators[1:]]
-				yield Region(reg.coords, nparray(chunkset, dtype = float64))
-		except StopIteration:
-			pass
-
 	def __processor_update_progress(self, prog_inc):
 		self._processor_progress += prog_inc
 		print '\r  ' + str(int(self._processor_progress)/100.0) + '%',
@@ -198,43 +185,42 @@ class Processor:
 			print
 		stdout.flush()
 
-	def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
-		if mem_usage != None:
+	def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None, *args, **kwargs):
+		if not mem_usage is None:
 			self._processor_mem_usage = float(mem_usage)
 
-		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
-		dims = gmdata_readers[0].dims
+		chunks = Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+		dims = chunks.dims
 
 		# Initialize progress
 		self._processor_progress = 0.0
-		total_num_voxels = dims[0]*dims[1]*dims[2]
+		total_num_voxels = dims[-3]*dims[-2]*dims[-1]
 		prog_inc = 10000./total_num_voxels
 
 		# Get the results of the first chunk to initialize dimensions of the solution matrices
 		
-		# Get frist chunk and fit the parameters
-		chunks = self.__processor_chunks(gmdata_readers)
+		# Get first chunk and fit the parameters
 		chunk = chunks.next()
 
 		self._processor_fitter.fit(chunk.data, *args, **kwargs)
 
 		# Get the parameters and the dimensions of the solution matrices
 		cparams = self._processor_fitter.correction_parameters
-		rparams = self._processor_fitter.regression_parameters
-		cpdims = (cparams.shape[0],) + dims
-		rpdims = (rparams.shape[0],) + dims
+		pparams = self._processor_fitter.prediction_parameters
+		cpdims = tuple(cparams.shape[:-3] + dims)
+		rpdims = tuple(pparams.shape[:-3] + dims)
 		
 		# Initialize solution matrices
-		fitting_scores = zeros(dims, dtype = float64)
-		correction_parameters = zeros(cpdims, dtype = float64)
-		regression_parameters = zeros(rpdims, dtype = float64)
+		# fitting_scores = np.zeros(dims, dtype = np.float64) 
+		correction_parameters = np.zeros(cpdims, dtype = np.float64)
+		prediction_parameters = np.zeros(rpdims, dtype = np.float64)
 
 		# Assign first chunk's solutions to solution matrices
-		dx, dy, dz = cparams.shape[1:]
+		dx, dy, dz = cparams.shape[-3:]
 		correction_parameters[:, :dx, :dy, :dz] = cparams
-		regression_parameters[:, :dx, :dy, :dz] = rparams
-		unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(chunk.data, **evaluation_kwargs)
-		fitting_scores[:dx, :dy, :dz] = [[[elem if isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
+		prediction_parameters[:, :dx, :dy, :dz] = pparams
+		# unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(chunk.data, **evaluation_kwargs)
+		# fitting_scores[:dx, :dy, :dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
 		# Update progress
 		self.__processor_update_progress(prog_inc*dx*dy*dz)
@@ -249,100 +235,104 @@ class Processor:
 
 			# Get chunk data and its dimensions
 			cdata = chunk.data
-			dx, dy, dz = cdata.shape[1:]
+			dx, dy, dz = cdata.shape[-3:]
 
 			# Fit the parameters to the data in the chunk
 			self._processor_fitter.fit(cdata, *args, **kwargs)
 
 			# Get the optimal parameters and insert them in the solution matrices
 			correction_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.correction_parameters
-			regression_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.regression_parameters
+			prediction_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.prediction_parameters
 
 			# Evaluate the fit for the voxels in this chunk and store them
-			unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
-			fitting_scores[x:x+dx, y:y+dy, z:z+dz] = [[[elem if isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
+			# unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
+			# fitting_scores[x:x+dx, y:y+dy, z:z+dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
 			# Update progress
 			self.__processor_update_progress(prog_inc*dx*dy*dz)
 
 		if self.progress != 100.0:
 			self.__processor_update_progress(10000.0 - self._processor_progress)
-		return Processor.Results(regression_parameters, correction_parameters, fitting_scores)
+		return Processor.Results(prediction_parameters, correction_parameters) #, fitting_scores)
 
 	#TODO: Document properly
-	def __curve__(self, fitter, regressor, regression_parameters):
-		'''Computes a prediction from the regressor and the regression_parameters. If not overridden, this method
-			calls the 'predict' function of the fitter passing as arguments the regressors and regression parameters
+	def __curve__(self, fitter, predictor, prediction_parameters):
+		'''Computes a prediction from the predictor and the prediction_parameters. If not overridden, this method
+			calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
 			as they are. Please, override this method if this is not the desired behavior.
 			This method is not intended to be called outside the Processor class.
 
 
 		'''
-		return fitter.predict(regressor, regression_parameters)
+		return fitter.predict(predictor, prediction_parameters)
 
 	#TODO: Document properly
-	def curve(self, regression_parameters, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None, t1 = None, t2 = None, tpoints = 20):
-		'''Computes tpoints predicted values in the axis of the regressor from t1 to t2 by using the results of
-			a previous execution for each voxel in the region [x1:x2, y1:y2, z1:z2]. (Only valid for one regressor).
+	def curve(self, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, t1 = None, t2 = None, tpoints = 20):
+		'''Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
+			a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
+			one predictor).
 
 
 		'''
-		if x1 is None:
-			x1 = 0
 		if x2 is None:
-			x2 = regression_parameters.shape[1]
-		if y1 is None:
-			y1 = 0
+			x2 = prediction_parameters.shape[-3]
 		if y2 is None:
-			y2 = regression_parameters.shape[2]
-		if z1 is None:
-			z1 = 0
+			y2 = prediction_parameters.shape[-2]
 		if z2 is None:
-			z2 = regression_parameters.shape[3]
+			z2 = prediction_parameters.shape[-1]
 		
 		if t1 is None:
-			t1 = self._processor_regressors.min()
+			t1 = self._processor_predictors.min()
 		if t2 is None:
-			t2 = self._processor_regressors.max()
+			t2 = self._processor_predictors.max()
 
-		rparams = regression_parameters[:, x1:x2, y1:y2, z1:z2]
+		pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
-		regs = zeros((tpoints, 1), dtype = float64)
+		preds = np.zeros((tpoints, 1), dtype = np.float64)
 		step = float(t2 - t1)/(tpoints-1)
 		t = t1
 		for i in xrange(tpoints):
-			regs[i][0] = t
+			preds[i][0] = t
 			t += step
 
-		return regs.T[0], self.__curve__(self._processor_fitter, regs, rparams)
-
+		return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
 
 	#TODO: Document properly
-	def __corrected_values__(self, fitter, observations, correction_parameters):
+	def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
 		return fitter.correct(observations = observations, correction_parameters = correction_parameters)
 
 	#TODO: Document properly
-	def corrected_values(self, correction_parameters, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None):
-		if x1 is None:
-			x1 = 0
-		if x2 is None:
-			x2 = correction_parameters.shape[1]
-		if y1 is None:
-			y1 = 0
-		if y2 is None:
-			y2 = correction_parameters.shape[2]
-		if z1 is None:
-			z1 = 0
-		if z2 is None:
-			z2 = correction_parameters.shape[3]
+	def corrected_values(self, correction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, mem_usage = None, *args, **kwargs):
+		'''x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
+			in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
+			which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond.
+		'''
 
-		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
-		dims = gmdata_readers[0].dims
+		if not mem_usage is None:
+			self._processor_mem_usage = float(mem_usage)
+
+		if x2 is None:
+			x2 = correction_parameters.shape[-3]
+		if y2 is None:
+			y2 = correction_parameters.shape[-2]
+		if z2 is None:
+			z2 = correction_parameters.shape[-1]
 
 		correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
-		corrected_data = zeros(tuple([len(gmdata_readers)]) + dims, dtype = float64)
 
-		for chunk in self.__processor_chunks(gmdata_readers):
+		x1 += origx
+		x2 += origx
+		y1 += origy
+		y2 += origy
+		z1 += origz
+		z2 += origz
+
+		chunks = Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+		dims = chunks.dims
+
+		corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype = np.float64)
+
+		for chunk in chunks:
 			# Get relative (to the solution matrix) coordinates of the chunk
 			x, y, z = chunk.coords
 			x -= x1
@@ -351,65 +341,132 @@ class Processor:
 
 			# Get chunk data and its dimensions
 			cdata = chunk.data
-			dx, dy, dz = cdata.shape[1:]
+			dx, dy, dz = cdata.shape[-3:]
 
-			corrected_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = self.__corrected_values__(self._processor_fitter, cdata, correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)])
+			corrected_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = self.__corrected_values__(self._processor_fitter, cdata, correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)], *args, **kwargs)
 
 		return corrected_data
 
 	#TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
 	# since such values affect the values inside the region (if not considered, the clusters could potentially
 	# seem smaller and thus be filtered accordingly)
-	def fit_score(self, fitting_scores, x1 = None, x2 = None, y1 = None, y2 = None, z1 = None, z2 = None, gm_threshold = 0.1, fit_threshold = 0.999, cluster_threshold = 100, produce_labels = False):
-		if x1 is None:
-			x1 = 0
+	@staticmethod
+	def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
+
+		if mem_usage is None:
+			mem_usage = correction_processor._processor_mem_usage
+			if mem_usage is None:
+				mem_usage = prediction_processor._processor_mem_usage
+
+		if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
+			raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
+
 		if x2 is None:
-			x2 = fitting_scores.shape[0]
-		if y1 is None:
-			y1 = 0
+			x2 = x1 + correction_parameters.shape[-3]
 		if y2 is None:
-			y2 = fitting_scores.shape[1]
-		if z1 is None:
-			z1 = 0
+			y2 = y1 + correction_parameters.shape[-2]
 		if z2 is None:
-			z2 = fitting_scores.shape[2]
+			z2 = z1 + correction_parameters.shape[-1]
 
-		fitting_scores = fitting_scores[x1:x2, y1:y2, z1:z2]
+		correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+		prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
-		gmdata_readers = map(lambda subject: NiftiReader(subject.gmfile, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2), self._processor_subjects)
-		gm_threshold *= len(gmdata_readers) # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
+		x1 += origx
+		x2 += origx
+		y1 += origy
+		y2 += origy
+		z1 += origz
+		z2 += origz
 
-		valid_voxels = zeros(fitting_scores.shape, dtype = float64)
-		for chunk in self.__processor_chunks(gmdata_readers):
-			# Get relative (to the solution matrix) coordinates of the chunk
+		chunks = Subject.chunks(correction_processor._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
+		dims = chunks.dims
+
+		# Initialize solution matrix
+		fitting_scores = np.zeros(dims, dtype = np.float64)
+
+		if not gm_threshold is None:
+			gm_threshold *= chunks.num_subjects # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
+			invalid_voxels = np.zeros(fitting_scores.shape, dtype = np.bool)
+
+		# Initialize progress
+		correction_processor._processor_progress = 0.0
+		prediction_processor._processor_progress = 0.0
+		total_num_voxels = dims[-3]*dims[-2]*dims[-1]
+		prog_inc = 10000./total_num_voxels
+
+		# Evaluate the fit for each chunk
+		for chunk in chunks:
+			# Get relative (to the solution matrices) coordinates of the chunk
 			x, y, z = chunk.coords
 			x -= x1
 			y -= y1
 			z -= z1
 
-			dx, dy, dz = chunk.data.shape[1:]
+			# Get chunk data and its dimensions
+			cdata = chunk.data
+			dx, dy, dz = cdata.shape[-3:]
 
-			valid_voxels[x:(x+dx), y:(y+dy), z:(z+dz)] = sum(chunk.data) >= gm_threshold
+			if not gm_threshold is None:
+				invalid_voxels[x:(x+dx), y:(y+dy), z:(z+dz)] = np.sum(cdata, axis = 0) < gm_threshold
 
+			# Evaluate the fit for the voxels in this chunk and store them
+			fitting_scores[x:x+dx, y:y+dy, z:z+dz] = evaluation_function (
+				correction_fitter = correction_processor._processor_fitter,
+				prediction_fitter = prediction_processor._processor_fitter,
+				observations = cdata,
+				correctors = correction_processor._processor_fitter.correctors,
+				correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)],
+				predictors = prediction_processor._processor_fitter.predictors,
+				prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)],
+				*args, **kwargs
+			)
 
-		z_scores = zeros(fitting_scores.shape, dtype = float64)
-		lim_value = norm.ppf(fit_threshold)
+			# Update progress
+			correction_processor.__processor_update_progress(prog_inc*dx*dy*dz)
+			if not correction_processor is prediction_processor:
+				prediction_processor.__processor_update_progress(prog_inc*dx*dy*dz)
 
-		labels = zeros(z_scores.shape, dtype = float64)
-		label = 0
+		if correction_processor.progress != 100.0:
+			correction_processor.__processor_update_progress(10000.0 - correction_processor._processor_progress)
+			if not correction_processor is prediction_processor:
+				prediction_processor.__processor_update_progress(10000.0 - prediction_processor._processor_progress)
 
-		ng = NiftiGraph(1.0 - fitting_scores*valid_voxels, 1.0 - fit_threshold)
+		# Filter non-finite elements
+		if filter_nans:
+			fitting_scores[~np.isfinite(fitting_scores)] = default_value
+
+		# Filter by gray-matter threshold
+		if not gm_threshold is None:
+			fitting_scores[invalid_voxels] = default_value
+
+		return fitting_scores
+
+	@staticmethod
+	def clusterize(fitting_scores, default_value = 0.0, fit_lower_threshold = None, fit_upper_threshold = None, cluster_threshold = None, produce_labels = False):
+
+		fitscores = np.ones(fitting_scores.shape, dtype = np.float64) * default_value
+		if produce_labels:
+			labels = np.zeros(fitting_scores.shape, dtype = np.float64)
+			label = 0
+
+		ng = NiftiGraph(fitting_scores, fit_lower_threshold, fit_upper_threshold)
 		for scc in ng.sccs():
 			if len(scc) >= cluster_threshold:
-				label += 1
+				# lscc = np.array(list(scc)).T
+				# fitscores[lscc] = fitting_scores[lscc]
 				for x, y, z in scc:
-					z_scores[x, y, z] = norm.ppf(fitting_scores[x, y, z]) - lim_value + 0.2
-					labels[x, y, z] = label
+					fitscores[x, y, z] = fitting_scores[x, y, z]
+
+				if produce_labels:
+					label += 1
+					for x, y, z in scc:
+						labels[x, y, z] = label
 
 		if produce_labels:
-			return z_scores, labels
+			return fitscores, labels
 		else:
-			return z_scores
+			return fitscores
+
 
 
 	#TODO: define more of these?
@@ -591,6 +648,22 @@ class Processor:
 			show_text,
 			lambda e: 'Could not match input with any of the options: ' + str(e)
 		)
+
+
+class Pipeline:
+	#TODO: Define this
+	#         -------------- Fitting --------------
+	# INPUT -|-> Correction fit -> Prediction fit -|-> Correction -> Prediction -> 
+	#         -------------------------------------
+	#
+	# -> Multiple Evaluation -> Best Fit Selection -> Clusterization and Filtering ->
+	# 
+	# -> Visualization treatment -> OUTPUT
+
+	pass
+
+
+
 
 
 

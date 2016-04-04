@@ -6,24 +6,12 @@ from os import listdir
 
 import nibabel as nib
 from numpy import array as array
-
+from user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
 
 if __name__ == "__main__":
 
     print 'Obtaining data from Excel file...'
-
-
-    DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15_corrected")
-    EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
-    RESULTS_DIR = join("results", "PSVR")
-    """
-    DATA_DIR = join("/", "imatge", "spuch", "data-neuroimatge", "Nonlinear_NBA_15_corrected")
-    EXCEL_FILE = join("/", "imatge", "spuch", "data-neuroimatge", "work_DB_CSF.R1.final.xls")
-    RESULTS_DIR = join("/", "imatge", "spuch", "work", "neuro", "PolySVR")
-    """
-
     filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
-    ar = [basename(fn).split('_')[1][:-4] for fn in filenames]
     filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
 
     exc = Excel(EXCEL_FILE)

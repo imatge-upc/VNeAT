@@ -14,12 +14,11 @@ from os import listdir
 import nibabel as nib
 from numpy import array as nparray, zeros
 from matplotlib.pyplot import subplot, plot, legend, show, title
-
+from user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
 
 print 'Obtaining data from Excel file'
-DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
-EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
-RESULTS_DIR = "results"
+
+from user_paths import DATA_DIR, EXCEL_FILE
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}

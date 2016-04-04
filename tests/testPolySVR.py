@@ -9,6 +9,7 @@ from nonlinear2.ExcelIO import ExcelSheet as Excel
 from nonlinear2.Subject import Subject
 import nibabel as nib
 import time
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
 
 if __name__ == "__main__":
 
@@ -30,10 +31,6 @@ if __name__ == "__main__":
 
     # Get data from Excel and nii files
     print("Loading Aetionomy data...")
-    DATA_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "Nonlinear_NBA_15")
-    EXCEL_FILE = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data", "nonlinear_data", "work_DB_CSF.R1.final.xls")
-    RESULTS_DIR = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Results", "PSVR")
-
     filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
     filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 
@@ -156,7 +153,7 @@ if __name__ == "__main__":
             plt.show()
 
             # Print execution info
-            print("Using the following parameters for the SVR fitter the fitting time was " + \
+            print("Using the following parameters for the SVR fitter the fitting time was " +
                   str(end_time - start_time) + " s")
             print("\tC: " + str(C))
             print("\tepsilon: " + str(epsilon))

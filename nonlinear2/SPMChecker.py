@@ -1,14 +1,8 @@
 """ IMPORTS """
 from os.path import join
 import nibabel as nib
-from numpy import array
 from scipy.stats import f, norm
-
-""" CONSTANTS """
-RESULTS_DIR = join(
-    "C:\\", "Users", "santi", "Documents", "Santi",
-    "Universitat", "TFG", "Results", "SPMvsGLM"
-)
+from user_paths import RESULTS_DIR
 
 p_inv_thresholds = [0.99, 0.995, 0.999]
 
@@ -89,3 +83,4 @@ for p_inv_threshold in p_inv_thresholds:
     nib.save(niiabs, ABS_DIFF_GAM)
     niise = nib.Nifti1Image(se_gam, spm.affine)
     nib.save(niise, SQUARED_ERROR_GAM)
+
