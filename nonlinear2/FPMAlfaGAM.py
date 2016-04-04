@@ -1,12 +1,12 @@
-from ExcelIO import ExcelSheet as Excel
-from GAMProcessing import GAMProcessor as GAMP
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
+from Subject import Subject
 
+from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
 print 'Obtaining data from Excel file...'
 from user_paths import DATA_DIR, EXCEL_FILE

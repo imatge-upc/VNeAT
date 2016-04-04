@@ -3,13 +3,15 @@
         * Polynomial SVR
         * Gaussian SVR
 """
-from CurveFitting import AdditiveCurveFitter
-from sklearn.svm import SVR, LinearSVR
-import sklearn.preprocessing as preprocessing
 import numpy as np
-from numpy import array, ravel, zeros, ones
-from Transforms import polynomial
+import sklearn.preprocessing as preprocessing
 from joblib import Parallel, delayed
+from numpy import array, ravel, zeros
+from sklearn.svm import LinearSVR
+
+from nonlinear2.Fitters.CurveFitting import AdditiveCurveFitter
+from nonlinear2.Utils.Transforms import polynomial
+
 
 class LinSVR(AdditiveCurveFitter):
     """
@@ -17,18 +19,18 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, regressors = None, correctors = None, homogeneous = True):
+    def __init__(self, predictors = None, correctors = None, homogeneous = True):
         self._svr_homogeneous = homogeneous
         # Don't allow a homogeneous feature to be created, use instead the intercept term from the fitter
-        super(LinSVR, self).__init__(regressors, correctors, homogeneous)
+        super(LinSVR, self).__init__(predictors, correctors, homogeneous)
 
-    def __fit__(self, correctors, regressors, observations, *args, **kwargs):
+    def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         """
 
         Parameters
         ----------
         correctors
-        regressors
+        predictors
         observations
         args
         kwargs
@@ -54,9 +56,9 @@ class LinSVR(AdditiveCurveFitter):
 
         # Create features matrix
         if correctors.size != 0:
-            X = np.concatenate((correctors, regressors), axis=1)
+            X = np.concatenate((correctors, predictors), axis=1)
         else:
-            X = regressors
+            X = predictors
 
         # Get rid of the homogeneous feature (column of 1s) if homogeneous is True, use instead the intercept term
         # computed by the SVR fitter
@@ -80,12 +82,12 @@ class LinSVR(AdditiveCurveFitter):
         return c_params, r_params
 
     @staticmethod
-    def __predict__(regressors, regression_parameters, *args, **kwargs):
+    def __predict__(predictors, regression_parameters, *args, **kwargs):
         """
 
         Parameters
         ----------
-        regressors
+        predictors
         regression_parameters
         args
         kwargs
@@ -94,18 +96,18 @@ class LinSVR(AdditiveCurveFitter):
         -------
 
         """
-        return regressors.dot(regression_parameters)
+        return predictors.dot(regression_parameters)
 
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, regressors = None, degrees = None, homogeneous = True):
+    def __init__(self, features, predictors = None, degrees = None, homogeneous = True):
         """
 
         Parameters
         ----------
         features NxF (2-dimensional) matrix
-        regressors int / iterable object (default None)
+        predictors int / iterable object (default None)
         degrees iterable of F elements (default None)
         homogeneous bool (default True)
 
@@ -120,24 +122,24 @@ class PolySVR(LinSVR):
             raise ValueError('Argument \'features\' must be a 2-dimensional matrix')
         self._svr_features = self._svr_features.T
 
-        # Check regressors indexes
-        if regressors is None:
-            self._svr_is_regressor = [True]*len(self._svr_features)
-            regressors = []
+        # Check predictors indexes
+        if predictors is None:
+            self._svr_is_predictor = [True]*len(self._svr_features)
+            predictors = []
         else:
-            self._svr_is_regressor = [False]*len(self._svr_features)
-            if isinstance(regressors, int):
-                regressors = [regressors]
+            self._svr_is_predictor = [False]*len(self._svr_features)
+            if isinstance(predictors, int):
+                predictors = [predictors]
         try:
-            for r in regressors:
+            for r in predictors:
                 try:
-                    self._svr_is_regressor[r] = True
+                    self._svr_is_predictor[r] = True
                 except TypeError:
-                    raise ValueError('All elements in argument \'regressors\' must be valid indices')
+                    raise ValueError('All elements in argument \'predictors\' must be valid indices')
                 except IndexError:
-                    raise IndexError('Index out of range in argument \'regressors\'')
+                    raise IndexError('Index out of range in argument \'predictors\'')
         except TypeError:
-            raise TypeError('Argument \'regressors\' must be iterable or int')
+            raise TypeError('Argument \'predictors\' must be iterable or int')
 
         # Check degrees indexes
         if degrees is None:
@@ -162,17 +164,17 @@ class PolySVR(LinSVR):
     def __svr_polynomial_expansion(self):
         """
         Expands the input space to a feature space with the corresponding polynomial terms,
-        and then uses this expanded space to initialize the correctors and regressors for a linear SVR
+        and then uses this expanded space to initialize the correctors and predictors for a linear SVR
         Returns
         -------
 
         """
         correctors = []
-        regressors = []
-        for index in xrange(len(self._svr_is_regressor)):
+        predictors = []
+        for index in xrange(len(self._svr_is_predictor)):
             for p in polynomial(self._svr_degrees[index], [self._svr_features[index]]):
-                if self._svr_is_regressor[index]:
-                    regressors.append(p)
+                if self._svr_is_predictor[index]:
+                    predictors.append(p)
                 else:
                     correctors.append(p)
 
@@ -181,13 +183,13 @@ class PolySVR(LinSVR):
         else:
             correctors = array(correctors).T
 
-        if len(regressors) == 0:
-            regressors = None
+        if len(predictors) == 0:
+            predictors = None
         else:
-            regressors = array(regressors).T
+            predictors = array(predictors).T
 
         # Instance a LinSVR (parent) with the expanded polynomial features
-        super(PolySVR, self).__init__(regressors, correctors, self._svr_homogeneous)
+        super(PolySVR, self).__init__(predictors, correctors, self._svr_homogeneous)
 
 
 class GaussianSVR(object):

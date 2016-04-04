@@ -1,5 +1,7 @@
 import csv
-from ExcelIO import ExcelSheet as Excel
+
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+
 
 class InputManager:
 	'''Class that manages the input database of the system.

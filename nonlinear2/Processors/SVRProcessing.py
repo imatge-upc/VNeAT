@@ -1,9 +1,11 @@
 """
 Processor for Support Vector Regression fitters
 """
-from Processing import Processor
-from SVR import PolySVR
 from numpy import zeros
+
+from nonlinear2.Fitters.SVR import PolySVR
+from nonlinear2.Processors.Processing import Processor
+
 
 class PolySVRProcessor(Processor):
     """
@@ -13,22 +15,22 @@ class PolySVRProcessor(Processor):
 		'Orthonormalize all',
 		'Orthogonalize all',
 		'Normalize all',
-		'Orthonormalize regressors',
-		'Orthogonalize regressors',
-		'Normalize regressors',
+		'Orthonormalize predictor',
+		'Orthogonalize predictor',
+		'Normalize predictor',
 		'Orthonormalize correctors',
 		'Orthogonalize correctors',
 		'Normalize correctors',
-		'Use correctors and regressors as they are'
+		'Use correctors and predictor as they are'
 	]
 
     _psvrprocessor_perp_norm_options_list = [
         PolySVR.orthonormalize_all,
         PolySVR.orthogonalize_all,
         PolySVR.normalize_all,
-        PolySVR.orthonormalize_regressors,
-        PolySVR.orthogonalize_regressors,
-        PolySVR.normalize_regressors,
+        PolySVR.orthonormalize_predictor,
+        PolySVR.orthogonalize_predictor,
+        PolySVR.normalize_predictor,
         PolySVR.orthonormalize_correctors,
         PolySVR.orthogonalize_correctors,
         PolySVR.normalize_correctors,
@@ -55,15 +57,15 @@ class PolySVRProcessor(Processor):
         # Orthonormalize/Orthogonalize/Do nothing options
         treat_data = PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option]
 
-        # Construct data matrix from correctors and regressors
-        num_regs = self.regressors.shape[1]
+        # Construct data matrix from correctors and predictor
+        num_regs = self.predictor.shape[1]
         num_correc = self.correctors.shape[1]
-        features = zeros((self.regressors.shape[0], num_regs + num_correc))
-        features[:, :num_regs] = self.regressors
+        features = zeros((self.predictor.shape[0], num_regs + num_correc))
+        features[:, :num_regs] = self.predictor
         features[:, num_regs:] = self.correctors
 
         # Instantiate a PolySVR
-        psvr = PolySVR(features=features, regressors=range(num_regs), degrees=self._psvrprocessor_degrees, homogeneous=self._psvrprocessor_homogeneous)
+        psvr = PolySVR(features=features, predictor=range(num_regs), degrees=self._psvrprocessor_degrees, homogeneous=self._psvrprocessor_homogeneous)
         treat_data(psvr)
         return psvr
 

@@ -1,12 +1,13 @@
-from ExcelIO import ExcelSheet as Excel
-from SVRProcessing import PolySVRProcessor as PSVR
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
+from nonlinear2.Subject import Subject
 from numpy import array as array
-from user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
+
+from nonlinear2.Processors.SVRProcessing import PolySVRProcessor as PSVR
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
 
 if __name__ == "__main__":
 
@@ -47,7 +48,7 @@ if __name__ == "__main__":
         for epsilon in epsilon_list:
             print 'Initializing PolySVR Processor with C = ', str(C), 'epsilon = ', str(epsilon) + ' ...'
             user_defined_parameters = (0, 0, C, epsilon, 3)
-            psvr = PSVR(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters)
+            psvr = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters)
 
             print 'Processing data...'
             results = psvr.process(n_jobs=8, mem_usage=50)

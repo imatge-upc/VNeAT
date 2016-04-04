@@ -1,10 +1,12 @@
 from abc import ABCMeta, abstractmethod
-from Documentation import docstring_inheritor
-from graphlib import NiftiGraph
-import numpy as np
-from scipy.stats import norm
-import Subject
 from sys import stdout
+
+import nonlinear2.Subject
+import numpy as np
+
+from nonlinear2.Utils.Documentation import docstring_inheritor
+from nonlinear2.graphlib import NiftiGraph
+
 
 class Processor(object):
 	__metaclass__ = docstring_inheritor(ABCMeta)
@@ -189,7 +191,7 @@ class Processor(object):
 		if not mem_usage is None:
 			self._processor_mem_usage = float(mem_usage)
 
-		chunks = Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+		chunks = nonlinear2.Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
 		dims = chunks.dims
 
 		# Initialize progress
@@ -327,7 +329,7 @@ class Processor(object):
 		z1 += origz
 		z2 += origz
 
-		chunks = Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+		chunks = nonlinear2.Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
 		dims = chunks.dims
 
 		corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype = np.float64)
@@ -378,7 +380,7 @@ class Processor(object):
 		z1 += origz
 		z2 += origz
 
-		chunks = Subject.chunks(correction_processor._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
+		chunks = nonlinear2.Utils.Subject.chunks(correction_processor._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
 		dims = chunks.dims
 
 		# Initialize solution matrix

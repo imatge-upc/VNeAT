@@ -1,7 +1,9 @@
-from CurveFitting import AdditiveCurveFitter
 import numpy as np
 from sklearn.linear_model import LinearRegression as LR
-from Transforms import polynomial
+
+from nonlinear2.Fitters.CurveFitting import AdditiveCurveFitter
+from nonlinear2.Utils.Transforms import polynomial
+
 
 class GLM(AdditiveCurveFitter):
 

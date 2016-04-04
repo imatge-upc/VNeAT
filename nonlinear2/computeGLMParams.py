@@ -1,12 +1,12 @@
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import GLMProcessor as GLMP
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
+from Subject import Subject
 
+from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
 filename_prefix = join('results', 'GLM', 'glm_')
 

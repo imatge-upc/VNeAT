@@ -1,15 +1,17 @@
-from nonlinear2.SVR import PolySVR as PSVR
-from nonlinear2.GLM import PolyGLM as PGLM
-from numpy import array, zeros, float64, asarray, linspace, atleast_2d
-import numpy as np
-import matplotlib.pyplot as plt
-from os.path import join, isfile, basename
-from os import listdir
-from nonlinear2.ExcelIO import ExcelSheet as Excel
-from nonlinear2.Subject import Subject
-import nibabel as nib
 import time
-from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
+from os import listdir
+from os.path import join, isfile, basename
+
+import matplotlib.pyplot as plt
+import nibabel as nib
+import numpy as np
+from nonlinear2.SVR import PolySVR as PSVR
+from nonlinear2.Subject import Subject
+from numpy import array, zeros, float64, asarray, linspace, atleast_2d
+
+from nonlinear2.Fitters.GLM import PolyGLM as PGLM
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE
 
 if __name__ == "__main__":
 

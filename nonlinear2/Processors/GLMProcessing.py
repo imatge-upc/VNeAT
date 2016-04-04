@@ -1,6 +1,8 @@
-from Processing import Processor
-from GLM import GLM, PolyGLM as PGLM
 import numpy as np
+
+from nonlinear2.Fitters.GLM import GLM, PolyGLM as PGLM
+from nonlinear2.Processors.Processing import Processor
+
 
 class GLMProcessor(Processor):
 	_glmprocessor_perp_norm_options_names = [

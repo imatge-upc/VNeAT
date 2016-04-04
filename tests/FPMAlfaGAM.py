@@ -1,14 +1,11 @@
 import sys
 sys.path.insert(1,'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
 sys.stdout.flush()
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import PolyGLMProcessor as PGLMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 from GAMProcessing import GAMProcessor
-from Subject import Subject
+from nonlinear2.Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
-from matplotlib import pyplot as plt
-from GAM import SplinesSmoother
 import nibabel as nib
 from numpy import array as nparray
 

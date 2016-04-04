@@ -1,5 +1,6 @@
 from sys import argv, exit
-from GLM import PolyGLM as GLM
+
+from nonlinear2.Fitters.GLM import PolyGLM as GLM
 
 argc = len(argv)
 

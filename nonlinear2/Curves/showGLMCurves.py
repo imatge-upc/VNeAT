@@ -1,24 +1,22 @@
-from ExcelIO import ExcelSheet as Excel
-from SVRProcessing import PolySVRProcessor as PSVR
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
-import numpy as np
 from matplotlib.pyplot import plot, legend, show
+from nonlinear2.Subject import Subject
 
+from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
-
-filename_prefix = join('results', 'PSVR', 'psvr_')
+filename_prefix = join('results', 'GLM', 'glm_linear_')
 # show_all = True
 
 
 print 'Obtaining data from Excel file'
 
-from user_paths import EXCEL_FILE, CORRECTED_DIR
-filenames = filter(isfile, map(lambda elem: join(CORRECTED_DIR, elem), listdir(CORRECTED_DIR)))
-filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE
+filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
+filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 
 exc = Excel(EXCEL_FILE)
 
@@ -46,20 +44,21 @@ for r in exc.get_rows( fieldstype = {
 	)
 
 print 'Loading precomputed parameters for GLM'
-psvr_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
+glm_correction_parameters = nib.load(filename_prefix + 'cparams.nii').get_data()
+glm_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
 
 with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing GLM Processor'
-psvrp = PSVR(subjects, regressors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
 
-diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], psvrp.subjects)
+diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], glmp.subjects)
 diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
 	diag[diagnostics[i]].append(i)
 
-adcsf = psvrp.regressors.T[0]
+adcsf = glmp.predictors.T[0]
 
 print
 print 'Program initialized correctly.'
@@ -98,8 +97,7 @@ while True:
 
 	try:
 		# PolyGLM Curve
-        # TODO No hardcoded
-		corrected_data = psvrp.corrected_values(np.zeros((len(subjects), 121, 145, 121)), x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+		corrected_data = glmp.corrected_values(glm_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
 #		if show_all:
 #			axis = np.linspace(adcsf.min(), adcsf.max(), 50)
@@ -111,16 +109,16 @@ while True:
 #
 #			lin_pparam = pparams[0, x, y, z]
 #			lin_curve = lin_pparam*axis
-#
+#			
 #			nonlin_pparams = pparams[1:, x, y, z]
 #			nonlin_curve = np.array([axis**(i+1) for i in xrange(1, pparams.shape[0])]).T.dot(nonlin_pparams)
 
-		axis, curve = psvrp.curve(psvr_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = glmp.curve(glm_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
 #		if show_all:
 #			plot(axis, lin_curve, 'y', label = 'Fitted linear curve')
 #			plot(axis, nonlin_curve, 'g', label = 'Fitted nonlinear curve')
-
+		
 		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
 
 		color = ['co', 'bo', 'mo', 'ko']

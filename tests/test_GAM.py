@@ -1,13 +1,12 @@
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import PolyGLMProcessor as PGLMP
-from GAMProcessing import GAMProcessor
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
+from GAMProcessing import GAMProcessor
+from Subject import Subject
 from numpy import array as nparray
 
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
 print 'Obtaining data from Excel file...'
 DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
