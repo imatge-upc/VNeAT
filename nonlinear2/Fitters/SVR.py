@@ -50,36 +50,39 @@ class LinSVR(AdditiveCurveFitter):
 
         # Initialize linear SVR from scikit-learn
 
-        #svr_fitter = SVR(kernel='linear', C=C, epsilon=epsilon, shrinking=shrinking, max_iter=max_iter, tol=tol)
         svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_homogeneous,
                                intercept_scaling=C, max_iter=max_iter)
 
-        # Create features matrix
-        if correctors.size != 0:
-            X = np.concatenate((correctors, predictors), axis=1)
-        else:
-            X = predictors
-
-        # Get rid of the homogeneous feature (column of 1s) if homogeneous is True, use instead the intercept term
-        # computed by the SVR fitter
-        if self._svr_homogeneous:
-            X = X[:, 1:]
-
-        # Standardize data to improve SVR performance
-        X_std = preprocessing.scale(X)
-
-        # Fit data per voxel
         num_variables = observations.shape[1]
+
+        # Fit predictors
+        predictors_std = preprocessing.scale(predictors)
         params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                        (svr_fitter, X_std, observations[:, i], sample_weight, self._svr_homogeneous)
+                                        (svr_fitter, predictors_std, observations[:, i], sample_weight, False)
                                          for i in range(num_variables))
-        params = array(params).T
+        pparams = array(params).T
+
+        # Fit correctors
+        if self._svr_homogeneous:
+            correctors = correctors[:, 1:]
+        c_size = correctors.size
+
+        if c_size != 0:
+            correctors_std = preprocessing.scale(correctors)
+        elif c_size == 0 and self._svr_homogeneous:
+            correctors_std = np.array([[]])
+        else:
+            cparams = np.array([[]])
+            return cparams, pparams
+
+        params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
+                                    (svr_fitter, correctors_std, observations[:, i], sample_weight, self._svr_homogeneous)
+                                     for i in range(num_variables))
+
+        cparams = array(params).T
 
         # Get correction and regression coefficients
-        end_correctors = int(correctors.shape[1])
-        c_params = params[:end_correctors, :]
-        r_params = params[end_correctors:, :]
-        return c_params, r_params
+        return cparams, pparams
 
     @staticmethod
     def __predict__(predictors, regression_parameters, *args, **kwargs):
@@ -208,19 +211,31 @@ def __fit_features__(fitter, X, y, sample_weight=None, homogeneous=True):
         X:   NxF matrix, where N is the number of observations and F the number of features
         y:   Nx1 the variable that we want to explain with the features
         [sample_weight]:    array with weights assigned to each feature
+        [homogeneous]: Boolean whether the intercept term must be calculated
 
         Returns
         -------
         {numpy array} (F+1)x1 array with the fitting coefficients and the intercept term if homogeneous=True,
         otherwise Fx1 array with only the fitting coefficients
         """
-        fitter.fit(X, y)
         num_features = X.shape[1]
+        if num_features <= 0:
+            if homogeneous:
+                # If the features array is empty and we need to compute the homogeneous term,
+                # create dummy features to fit and then get only the intercept term
+                X = np.ones((y.shape[0], 1))
+            else:
+                raise Exception("Features array X is not a NxF array")
+        fitter.fit(X, y)
+
         if homogeneous:
-            params = zeros((num_features + 1, 1))
+            if num_features > 0:
+                params = zeros((num_features + 1, 1))
+                coefficients = np.atleast_2d(fitter.coef_)
+                params[1:, :] = coefficients.T
+            else:
+                params = zeros((1, 1)) # Only the intercept term
             params[0, :] = float(fitter.intercept_)
-            coefficients = np.atleast_2d(fitter.coef_)
-            params[1:, :] = coefficients.T
         else:
             params = fitter.coef_.T
         return ravel(params)

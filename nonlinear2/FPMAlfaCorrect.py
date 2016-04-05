@@ -2,7 +2,7 @@ from os import listdir
 from os.path import join, isfile, basename
 
 import nibabel as nib
-from Subject import Subject
+from Utils.Subject import Subject
 from numpy import array as nparray
 
 from nonlinear2.Processors.GLMProcessing import PolyGLMProcessor as PGLMP

@@ -3,10 +3,10 @@ from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
-from Subject import Subject
+from Utils.Subject import Subject
 from scipy.stats import norm
 
-from FitEvaluation import ftest
+from nonlinear2.FitScores.FitEvaluation import ftest
 from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
 from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 

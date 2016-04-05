@@ -1,11 +1,11 @@
 from abc import ABCMeta, abstractmethod
 from sys import stdout
 
-import nonlinear2.Subject
+import nonlinear2.Utils.Subject
 import numpy as np
 
 from nonlinear2.Utils.Documentation import docstring_inheritor
-from nonlinear2.graphlib import NiftiGraph
+from nonlinear2.Utils.graphlib import NiftiGraph
 
 
 class Processor(object):

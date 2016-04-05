@@ -6,7 +6,7 @@ import numpy as np
 from Subject import Subject
 from scipy.stats import norm
 
-from FitEvaluation import ftest
+from nonlinear2.FitScores.FitEvaluation import ftest
 from nonlinear2.Processors.GLMProcessing import PolyGLMProcessor as PGLMP
 from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 

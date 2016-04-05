@@ -28,9 +28,9 @@ class PolySVRProcessor(Processor):
         PolySVR.orthonormalize_all,
         PolySVR.orthogonalize_all,
         PolySVR.normalize_all,
-        PolySVR.orthonormalize_predictor,
-        PolySVR.orthogonalize_predictor,
-        PolySVR.normalize_predictor,
+        PolySVR.orthonormalize_predictors,
+        PolySVR.orthogonalize_predictors,
+        PolySVR.normalize_predictors,
         PolySVR.orthonormalize_correctors,
         PolySVR.orthogonalize_correctors,
         PolySVR.normalize_correctors,
@@ -58,14 +58,14 @@ class PolySVRProcessor(Processor):
         treat_data = PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option]
 
         # Construct data matrix from correctors and predictor
-        num_regs = self.predictor.shape[1]
+        num_regs = self.predictors.shape[1]
         num_correc = self.correctors.shape[1]
-        features = zeros((self.predictor.shape[0], num_regs + num_correc))
-        features[:, :num_regs] = self.predictor
+        features = zeros((self.predictors.shape[0], num_regs + num_correc))
+        features[:, :num_regs] = self.predictors
         features[:, num_regs:] = self.correctors
 
         # Instantiate a PolySVR
-        psvr = PolySVR(features=features, predictor=range(num_regs), degrees=self._psvrprocessor_degrees, homogeneous=self._psvrprocessor_homogeneous)
+        psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees, homogeneous=self._psvrprocessor_homogeneous)
         treat_data(psvr)
         return psvr
 

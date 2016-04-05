@@ -2,7 +2,7 @@
 from os.path import join
 import nibabel as nib
 from scipy.stats import f, norm
-from user_paths import RESULTS_DIR
+from nonlinear2.user_paths import RESULTS_DIR
 
 p_inv_thresholds = [0.99, 0.995, 0.999]
 
