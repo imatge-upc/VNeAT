@@ -1,44 +1,17 @@
-from os import listdir
-from os.path import join, isfile, basename
+from os.path import join
 
 import nibabel as nib
 import numpy as np
 
+from nonlinear2.Utils.DataLoader import getSubjects
 from nonlinear2.Utils.Subject import Subject
 from nonlinear2.Processors.SVRProcessing import PolySVRProcessor as PSVR
-from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
-from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
+from nonlinear2.user_paths import RESULTS_DIR
 
 if __name__ == "__main__":
 
     print 'Obtaining data from Excel file...'
-    filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
-    filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
-
-    exc = Excel(EXCEL_FILE)
-
-    subjects = []
-    for r in exc.get_rows( fieldstype = {
-                    'id':(lambda s: str(s).strip().split('_')[0]),
-                    'diag':(lambda s: int(s) - 1),
-                    'age':int,
-                    'sex':(lambda s: 2*int(s) - 1),
-                    'apoe4_bin':(lambda s: 2*int(s) - 1),
-                    'escolaridad':int,
-                    'ad_csf_index_ttau':float
-                 } ):
-        subjects.append(
-            Subject(
-                r['id'],
-                filenames_by_id[r['id']],
-                r.get('diag', None),
-                r.get('age', None),
-                r.get('sex', None),
-                r.get('apoe4_bin', None),
-                r.get('escolaridad', None),
-                r.get('ad_csf_index_ttau', None)
-            )
-        )
+    subjects = getSubjects(corrected_data=True)
 
     # Exhaustive use of parameters
     C_list = [100, 250, 500]
