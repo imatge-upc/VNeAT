@@ -38,7 +38,7 @@ for r in exc.get_rows( fieldstype = {
     )
 
 print 'Initializing PolyGLM Processor...'
-pglmp = PGLMP(subjects, regressors=[Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
+pglmp = PGLMP(subjects, predictors=[Subject.ADCSFIndex], correctors = [Subject.Age, Subject.Sex])
 
 print 'Processing data...'
 results = pglmp.process()

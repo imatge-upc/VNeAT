@@ -1,14 +1,14 @@
 from ExcelIO import ExcelSheet as Excel
-from FitEvaluation import ftest
 from GAMProcessing import GAMProcessor as GAMP
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
+
 import nibabel as nib
 import numpy as np
 
-print 'Obtaining data from Excel file...'
 from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
+
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -18,8 +18,11 @@ affine = np.array(
      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
 )
 
+
+print 'Obtaining data from Excel file...'
+
 filenames = filter(isfile, map(lambda elem: join(CORRECTED_DIR, elem), listdir(CORRECTED_DIR)))
-filenames_by_id = {basename(fn)[10:13]: fn for fn in filenames}
+filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
 
 exc = Excel(EXCEL_FILE)
 
@@ -45,42 +48,29 @@ for r in exc.get_rows(fieldstype={
             r.get('ad_csf_index_ttau', None)
         )
     )
-print 'Initializing GAM Splines Processor...'
-user_defined_parameters = [(9, [2, 2, 10, 1]),
-                           (9, [2, 2, 10, 2]),
-                           (9, [2, 2, 10, 3]),
-                           (9, [2, 2, 10, 4]),
-                           (9, [2, 2, 10, 5])
-                           ]
-filenames = ['gam_splines_d1_s10',
-             'gam_splines_d2_s10',
-             'gam_splines_d3_s10',
-             'gam_splines_d4_s10',
-             'gam_splines_d5_s10',
-             ]
 
-for udf, filename in zip(user_defined_parameters, filenames):
-    gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udf)
-    print 'Processing data...'
-    results = gamp.process()
-
-
-
-
-
-
-
-print 'Initializing GAM Polynomial Processor...'
 user_defined_parameters = [
     (9, [1, 1, 3]),
-
 ]
 
-filenames = [
-    'gam_poly_d3',
+filename_prefix = [
+    join('results', 'GAM', 'gam_poly_d3_')
 ]
 
 for udp, filename in zip(user_defined_parameters, filenames):
+
+    print 'Initializing GAM Polynomial Processor...'
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
+
+    print 'Processing data...'
     results = gamp.process()
 
+    print 'Saving results to files...'
+
+    nib.save(niiFile(results.correction_parameters, affine), filename_prefix + 'cparams.nii')
+    nib.save(niiFile(results.prediction_parameters, affine), filename_prefix + 'pparams.nii')
+
+    with open(filename_prefix + 'userdefparams.txt', 'wb') as f:
+        f.write(str(gamp.user_defined_parameters) + '\n')
+
+    print 'Done.'
