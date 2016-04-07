@@ -9,4 +9,4 @@ data/*
 *backup*
 nonlinear2/FPMAlfa_GAM.py
 *tmp.py
-user_paths.py
+nonlinear2/user_paths.py
