@@ -67,10 +67,10 @@ for udp, filename in zip(user_defined_parameters, filenames):
 
     print 'Saving results to files...'
 
-    nib.save(niiFile(results.correction_parameters, affine), filename_prefix + 'cparams.nii')
-    nib.save(niiFile(results.prediction_parameters, affine), filename_prefix + 'pparams.nii')
+    nib.save(niiFile(results.correction_parameters, affine), filename + 'cparams.nii')
+    nib.save(niiFile(results.prediction_parameters, affine), filename + 'pparams.nii')
 
-    with open(filename_prefix + 'userdefparams.txt', 'wb') as f:
+    with open(filename + 'userdefparams.txt', 'wb') as f:
         f.write(str(gamp.user_defined_parameters) + '\n')
 
     print 'Done.'
