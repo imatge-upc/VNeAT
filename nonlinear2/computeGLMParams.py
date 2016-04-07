@@ -8,7 +8,7 @@ import nibabel as nib
 import numpy as np
 
 
-filename_prefix = join('results', 'GLM', 'glm_')
+filename_prefix = join('results', 'GLM', 'glm_test_')
 
 
 
