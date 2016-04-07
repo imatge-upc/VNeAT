@@ -908,7 +908,6 @@ class CurveFitter(object):
             cors = np.array(correctors, dtype=np.float64)
             if len(cors.shape) != 2:
                 raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
-
             if 0 in cors.shape:
                 raise ValueError('There are no elements in argument \'correctors\'')
 
@@ -952,3 +951,58 @@ class AdditiveCurveFitter(CurveFitter):
             (See the '__predict__' and '__correct__' abstract methods in CurveFitter)
         '''
         return observations - self.__predict__(correctors, correction_parameters, *args, **kwargs)
+
+
+#TODO: use metaclass instead of method
+
+def MixedFitter(correction_fitter_type, prediction_fitter_type):
+
+	class MixedFitter(CurveFitter):
+
+		def __init__(self, predictors = None, correctors = None, homogeneous = True):
+			self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors, homogeneous = homogeneous)
+			self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None, homogeneous = False)
+			self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors
+			self._crvfitter_predictors = self._mixedfitter_prediction_fitter._crvfitter_predictors
+			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
+			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
+		
+		def fit(self, observations, **kwargs):
+			kwargs_correction = {}
+			kwargs_prediction = {}
+			correction_varnames = set(self._mixedfitter_correction_fitter.__fit__.func_code.co_varnames)
+			prediction_varnames = set(self._mixedfitter_prediction_fitter.__fit__.func_code.co_varnames)
+			for (arg, value) in kwargs.iteritems():
+				if arg in correction_varnames:
+					correction_varnames.remove(arg)
+					kwargs_correction[arg] = value
+				if arg in prediction_varnames:
+					prediction_varnames.remove(arg)
+					kwargs_prediction[arg] = value
+
+			self._mixedfitter_correction_fitter.fit(observations = observations, **kwargs_correction)
+			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
+			obs = self.correct(observations)
+			
+			self._mixedfitter_prediction_fitter.fit(observations = obs, **kwargs_prediction)
+			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
+
+		def correct(self, observations, correctors = None, correction_parameters = None, *args, **kwargs):
+			return self._mixedfitter_correction_fitter.correct(observations = observations, correctors = correctors, correction_parameters = correction_parameters, *args, **kwargs)
+
+		def predict(self, predictors = None, prediction_parameters = None, *args, **kwargs):
+			return self._mixedfitter_prediction_fitter.predict(predictors = predictors, prediction_parameters = prediction_parameters, *args, **kwargs)
+
+		def getattr(self, attr_name):
+			try:
+				return getattr(self._mixedfitter_prediction_fitter, attr_name)
+			except AttributeError:
+				return getattr(self._mixedfitter_correction_fitter, attr_name)
+
+		def set_pred_attr(self, attr_name, attr_value):
+			setattr(self._mixedfitter_prediction_fitter, attr_name, attr_value)
+
+		def set_corr_attr(self, attr_name, attr_value):
+			setattr(self._mixedfitter_correction_fitter, attr_name, attr_value)
+
+	return MixedFitter

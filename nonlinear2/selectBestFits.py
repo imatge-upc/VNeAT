@@ -10,16 +10,20 @@ fitting_scores = []
 
 # Files generated with GLM
 GLM_DIR = join('results', 'GLM')
-# fitting_scores.append(join(GLM_DIR, 'glm_all_fitscores.nii'))
-fitting_scores.append(join(GLM_DIR, 'glm_linear_fitscores.nii'))
-fitting_scores.append(join(GLM_DIR, 'glm_nonlinear_fitscores.nii'))
+fitting_scores.append(join(GLM_DIR, 'glm_all_fitscores.nii'))
+# fitting_scores.append(join(GLM_DIR, 'glm_linear_fitscores.nii'))
+# fitting_scores.append(join(GLM_DIR, 'glm_nonlinear_fitscores.nii'))
 # fitting_scores.append(join(GLM_DIR, 'glm_quadratic_fitscores.nii'))
 # fitting_scores.append(join(GLM_DIR, 'glm_cubic_fitscores.nii'))
+
+# Files generated with GAM
+GAM_DIR = join('results', 'GAM')
+fitting_scores.append(join(GAM_DIR, 'gam_fitscores.nii'))
 
 # Any other files?
 
 # Path and prefix for the output files
-filename_prefix = join('results', 'Bestfit', 'linear_vs_nonlinear_')
+filename_prefix = join('results', 'Bestfit', 'glm_vs_p3gam_')
 
 
 

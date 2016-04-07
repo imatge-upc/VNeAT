@@ -1,7 +1,7 @@
 data/*
-.idea/*
+.idea
 *.pyc
-**/.DS_STORE
+.DS_STORE
 *.nii
 *.txt
 !requirements.txt
