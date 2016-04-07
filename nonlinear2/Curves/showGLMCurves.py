@@ -1,14 +1,12 @@
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import GLMProcessor as GLMP
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
-import numpy as np
 from matplotlib.pyplot import plot, legend, show
+from nonlinear2.Subject import Subject
 
-
+from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
 filename_prefix = join('results', 'GLM', 'glm_linear_')
 # show_all = True
@@ -16,7 +14,7 @@ filename_prefix = join('results', 'GLM', 'glm_linear_')
 
 print 'Obtaining data from Excel file'
 
-from user_paths import DATA_DIR, EXCEL_FILE
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
 

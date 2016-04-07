@@ -1,15 +1,14 @@
-from abc import abstractmethod
-from CurveFitting import AdditiveCurveFitter
-from numpy import zeros, float64, array as nparray
+from abc import  abstractmethod
 import numpy as np
-from statsmodels.genmod import families
-from statsmodels.sandbox.nonparametric import kernels
-from sklearn.linear_model import LinearRegression as LR
+from numpy import float64
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import splev
 # import matplotlib.pyplot as plt
 from warnings import warn
-import copy
+from sklearn.linear_model import LinearRegression as LR
+from statsmodels.sandbox.nonparametric import kernels
+
+from nonlinear2.Fitters.CurveFitting import AdditiveCurveFitter
 
 
 class GAM(AdditiveCurveFitter):

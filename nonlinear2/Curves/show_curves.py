@@ -1,24 +1,23 @@
 
 show_all = False
 
-
-
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import PolyGLMProcessor as PGLMP
-from GAMProcessing import GAMProcessor as GAMP
-from SVRProcessing import PolySVRProcessor as PSVR
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
-from numpy import array as nparray, zeros
+from GAMProcessing import GAMProcessor as GAMP
+from GLMProcessing import PolyGLMProcessor as PGLMP
 from matplotlib.pyplot import subplot, plot, legend, show, title
-from user_paths import DATA_DIR, EXCEL_FILE, RESULTS_DIR
+from nonlinear2.Subject import Subject
+from numpy import zeros
+
+from nonlinear2.Processors.SVRProcessing import PolySVRProcessor as PSVR
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.user_paths import RESULTS_DIR
 
 print 'Obtaining data from Excel file'
 
-from user_paths import DATA_DIR, EXCEL_FILE
+from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
