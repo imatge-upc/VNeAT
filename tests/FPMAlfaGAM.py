@@ -17,8 +17,8 @@ from numpy import array as nparray
 print 'Obtaining data from Excel file...'
 DATA_DIR = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'Nonlinear_NBA_15')
 EXCEL_FILE = join('C:\\','Users','upcnet','FPM','data_backup','Non-linear', 'work_DB_CSF.R1.final.xls')
-DATA_DIR = join('/','Users','acasamitjana','FPM','Data_backup','Non-linear','Nonlinear_NBA_15')
-EXCEL_FILE = join('/','Users','acasamitjana','FPM','Data_backup','Non-linear','work_DB_CSF.R1.final.xls')
+# DATA_DIR = join('/','Users','acasamitjana','FPM','Data_backup','Non-linear','Nonlinear_NBA_15')
+# EXCEL_FILE = join('/','Users','acasamitjana','FPM','Data_backup','Non-linear','work_DB_CSF.R1.final.xls')
 
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
@@ -49,7 +49,7 @@ for r in exc.get_rows( fieldstype = {
 	)
 print 'Initializing GAM Processor...'
 
-udp= (9,[2,2,0.5,5])
+udp= (9,[2,2,5,3])
 gamp = GAMProcessor(subjects, regressors = [Subject.ADCSFIndex],user_defined_parameters=udp)
 
 
@@ -77,15 +77,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 corrected_data = gamp.corrected_values(results.correction_parameters, x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)
 x=np.array(np.sort([sbj._attributes[sbj.ADCSFIndex.index] for sbj in subjects]))
-
-# Poly=False
-# if Poly:
-# 	x_cub = np.array([np.squeeze(x)**i for i in range(4)]).T
-# 	predicted = x_cub.dot(np.squeeze(results.regression_parameters[3:]))
-# else:
-# 	SM_splines = SplinesSmoother(np.squeeze(x))
-# 	SM_splines.set_parameters(results.regression_parameters[2:])
-# 	predicted = SM_splines.predict()
 plt.plot(x,np.squeeze(corrected_data),'k.')
 plt.plot(x,gamp.__curve__(-1,x[:,np.newaxis],np.squeeze(results.regression_parameters)))
 plt.show()

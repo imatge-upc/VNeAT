@@ -220,8 +220,8 @@ class SplinesSmoother(Smoother):
     def fit(self,ydata):
         if ydata.ndim == 1:
             ydata = ydata[:,None]
-
-        spline=UnivariateSpline(self.xdata , ydata, k=self.order,s=self.smoothing_factor)
+#1/np.std(ydata)*np.ones(len(ydata))
+        spline=UnivariateSpline(self.xdata , ydata, k=self.order,s=self.smoothing_factor,w=1/max(ydata)*np.ones(len(ydata)))
         self.spline_parameters=spline._eval_args # spline.get_knots(),spline.get_coeffs(),self.order
 
     def predict(self,xdata=None,spline_parameters=None):
