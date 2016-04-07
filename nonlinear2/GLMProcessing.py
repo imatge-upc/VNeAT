@@ -107,6 +107,7 @@ class GLMProcessor(Processor):
 
 
 		'''
+
 		preds = self.predictors.T
 		cors = self.correctors.T
 		num_features = preds.shape[0] + cors.shape[0] # R + C
@@ -259,7 +260,7 @@ class GLMProcessor(Processor):
 
 	@staticmethod
 	def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
-		
+
 		if prediction_processor.predictors.shape[1] != prediction_parameters.shape[0]:
 			# Both, original and orthonormalized versions are present in the matrix
 			# Use only the orthonormalized elements
@@ -458,7 +459,7 @@ class PolyGLMProcessor(Processor):
 			homogeneous = 1
 		else:
 			homogeneous = 0
-		
+
 		perp_norm_option = PolyGLMProcessor._pglmprocessor_perp_norm_options[super(PolyGLMProcessor, self).__getoneof__(
 			PolyGLMProcessor._pglmprocessor_perp_norm_options_names,
 			default_value = 'Orthonormalize all',
@@ -485,7 +486,7 @@ class PolyGLMProcessor(Processor):
 	def __curve__(self, fitter, predictor, prediction_parameters):
 		pglm = PGLM(predictor, degrees = self._pglmprocessor_degrees[:1], homogeneous = False)
 		# PolyGLMProcessor._pglmprocessor_perp_norm_options_list[self._pglmprocessor_perp_norm_option](pglm)
-		
+
 		# Get the prediction parameters for the original features matrix
 		if self._pglmprocessor_perp_norm_option < 6:
 			Kx2 = prediction_parameters.shape[0]
@@ -498,7 +499,7 @@ class PolyGLMProcessor(Processor):
 
 	@staticmethod
 	def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
-		
+
 		if prediction_processor.predictors.shape[1] != prediction_parameters.shape[0]:
 			# Both, original and orthonormalized versions are present in the matrix
 			# Use only the orthonormalized elements

@@ -56,10 +56,10 @@ class GAM(AdditiveCurveFitter):
 
         return (np.array(crv_corr).T, np.array(crv_reg).T)
 
-    def __predict__(self, predictors, regression_parameters):
+    def __predict__(self, predictors, prediction_parameters):
 
         y_predict = []
-        for reg_param in regression_parameters.T:
+        for reg_param in prediction_parameters.T:
             y_pred = np.zeros((predictors.shape[0],))
             indx_smthr = 0
             for reg in predictors.T:
@@ -311,7 +311,7 @@ class PolynomialSmoother(Smoother):
 
         curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=num_threads)
 
-        xdata = np.array([np.squeeze(self.xdata) ** i for i in range(self.order + 1)]).T
+        xdata = np.array([np.squeeze(self.xdata) ** i for i in np.arange(1,self.order + 1)]).T
         curve.fit(xdata, ydata, sample_weight)
         self.coefficients = curve.coef_.T
 
@@ -329,14 +329,13 @@ class PolynomialSmoother(Smoother):
             else:
                 coefficients = self.coefficients
 
-        xdata = np.array([np.squeeze(xdata) ** i for i in range(self.order + 1)]).T
+        xdata = np.array([np.squeeze(xdata) ** i for i in np.arange(1,self.order + 1)]).T
         y_pred = xdata.dot(coefficients)
 
         return y_pred
 
-
-def get_parameters(self):
-    return np.append((len(self.coefficients) + 1, self.order), self.coefficients)
+    def get_parameters(self):
+        return np.append((len(self.coefficients) + 1, self.order), self.coefficients)
 
     def set_parameters(self, parameters):
         self.order = int(parameters[0])

@@ -6,16 +6,9 @@ from scipy.stats import norm
 import Subject
 from sys import stdout
 
-<< << << < HEAD
 
 
 class Processor(object):
-    == == == =
-    import pdb
-
-    class Processor:
-
-        >> >> >> > Simulation_FPM
 
     __metaclass__ = docstring_inheritor(ABCMeta)
 

@@ -15,7 +15,7 @@ print 'Obtaining data from Excel file...'
 from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
 
 filenames = filter(isfile, map(lambda elem: join(CORRECTED_DIR, elem), listdir(CORRECTED_DIR)))
-filenames_by_id = {basename(fn).split('_')[0][8:]: fn for fn in filenames}
+filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
 
 exc = Excel(EXCEL_FILE)
 
@@ -43,16 +43,16 @@ for r in exc.get_rows(fieldstype={
     )
 print 'Initializing GAM Processor...'
 
-udp = (9, [2, 2, 5, 3])
-gamp = GAMP(subjects, regressors=[Subject.ADCSFIndex], user_defined_parameters=udp)
+udp = (9, [2, 2, 0.5, 3])
+gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
 print 'Processing data...'
 x1 = 85  # 103#
-x2 = x1 + 2
+x2 = x1 + 1
 y1 = 101  # 45#
-y2 = y1 + 2
+y2 = y1 + 1
 z1 = 45  # 81#
-z2 = z1 + 2
+z2 = z1 + 1
 results = gamp.process(x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2)
 
 print 'Saving results to files...'
@@ -67,8 +67,12 @@ affine = np.array(
 from matplotlib import pyplot as plt
 import numpy as np
 
-corrected_data = gamp.corrected_values(results.correction_parameters, x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2)
+correction_parameters = np.zeros((results.correction_parameters.shape[0],200,200,200))
+correction_parameters[:, x1:x2, y1:y2, z1:z2] = results.correction_parameters
+corrected_data = gamp.corrected_values(correction_parameters,x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2)
 x = np.array(np.sort([sbj._attributes[sbj.ADCSFIndex.index] for sbj in subjects]))
 plt.plot(x, np.squeeze(corrected_data), 'k.')
-plt.plot(x, gamp.__curve__(-1, x[:, np.newaxis], np.squeeze(results.regression_parameters)))
+plt.plot(x, gamp.__curve__(-1, x[:, np.newaxis], np.squeeze(results.prediction_parameters)))
 plt.show()
+
+a=1
