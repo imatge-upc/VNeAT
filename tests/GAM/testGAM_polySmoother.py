@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
-from GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
+from tests.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
 import matplotlib.pyplot as plt

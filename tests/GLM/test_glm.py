@@ -1,6 +1,7 @@
-from GLM import GLM, PolyGLM as PGLM
 import numpy as np
 from matplotlib.pyplot import plot, show
+
+from nonlinear2.Fitters.GLM import GLM, PolyGLM as PGLM
 
 x = np.linspace(-4, 4, 100)
 xdata = np.array([x**i for i in xrange(4)])

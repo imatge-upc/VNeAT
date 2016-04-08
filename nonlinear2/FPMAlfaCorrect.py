@@ -1,11 +1,12 @@
-from ExcelIO import ExcelSheet as Excel
-from GLMProcessing import PolyGLMProcessor as PGLMP
-from Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
 
 import nibabel as nib
+from Utils.Subject import Subject
 from numpy import array as nparray
+
+from nonlinear2.Processors.GLMProcessing import PolyGLMProcessor as PGLMP
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
 
 print 'Obtaining data from Excel file...'

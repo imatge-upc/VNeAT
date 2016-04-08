@@ -1,14 +1,9 @@
-from ExcelIO import ExcelSheet as Excel
-from FitEvaluation import ftest
-from GAMProcessing import GAMProcessor as GAMP
-from Subject import Subject
-from os.path import join, isfile, basename
-from os import listdir
 import nibabel as nib
 import numpy as np
 
-print 'Obtaining data from Excel file...'
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
+from nonlinear2.Utils.Subject import Subject
+from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
+from nonlinear2.Utils.DataLoader import getSubjects
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -18,33 +13,10 @@ affine = np.array(
      [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
 )
 
-filenames = filter(isfile, map(lambda elem: join(CORRECTED_DIR, elem), listdir(CORRECTED_DIR)))
-filenames_by_id = {basename(fn)[10:13]: fn for fn in filenames}
+print 'Obtaining data from Excel file...'
+subjects = getSubjects(corrected_data=True)
 
-exc = Excel(EXCEL_FILE)
 
-subjects = []
-for r in exc.get_rows(fieldstype={
-    'id': (lambda s: str(s).strip().split('_')[0]),
-    'diag': (lambda s: int(s) - 1),
-    'age': int,
-    'sex': (lambda s: 2 * int(s) - 1),
-    'apoe4_bin': (lambda s: 2 * int(s) - 1),
-    'escolaridad': int,
-    'ad_csf_index_ttau': float
-}):
-    subjects.append(
-        Subject(
-            r['id'],
-            filenames_by_id[r['id']],
-            r.get('diag', None),
-            r.get('age', None),
-            r.get('sex', None),
-            r.get('apoe4_bin', None),
-            r.get('escolaridad', None),
-            r.get('ad_csf_index_ttau', None)
-        )
-    )
 print 'Initializing GAM Splines Processor...'
 user_defined_parameters = [(9, [2, 2, 10, 1]),
                            (9, [2, 2, 10, 2]),

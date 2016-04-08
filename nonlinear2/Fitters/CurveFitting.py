@@ -1,7 +1,9 @@
-from abc import ABCMeta, abstractmethod
-from Documentation import docstring_inheritor
+from abc import ABCMeta
+
 import numpy as np
-from scipy.stats import f as f_stat
+
+from nonlinear2.Utils.Documentation import docstring_inheritor
+
 
 
 class abstractstatic(staticmethod):
