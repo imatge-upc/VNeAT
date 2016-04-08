@@ -7,7 +7,7 @@ from os import listdir
 import nibabel as nib
 import numpy as np
 
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
+from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR, RESULTS_DIR
 
 
 niiFile = nib.Nifti1Image
@@ -54,10 +54,10 @@ user_defined_parameters = [
 ]
 
 filename_prefix = [
-    join('results', 'GAM', 'gam_poly_d3_')
+    'gam_poly_d3_'
 ]
 
-for udp, filename in zip(user_defined_parameters, filenames):
+for udp, fn in zip(user_defined_parameters, filename_prefix):
 
     print 'Initializing GAM Polynomial Processor...'
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
@@ -67,10 +67,10 @@ for udp, filename in zip(user_defined_parameters, filenames):
 
     print 'Saving results to files...'
 
-    nib.save(niiFile(results.correction_parameters, affine), filename + 'cparams.nii')
-    nib.save(niiFile(results.prediction_parameters, affine), filename + 'pparams.nii')
+    nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR,fn + 'cparams.nii'))
+    nib.save(niiFile(results.prediction_parameters, affine), fn+ 'pparams.nii')
 
-    with open(filename + 'userdefparams.txt', 'wb') as f:
+    with open(fn + 'userdefparams.txt', 'wb') as f:
         f.write(str(gamp.user_defined_parameters) + '\n')
 
     print 'Done.'

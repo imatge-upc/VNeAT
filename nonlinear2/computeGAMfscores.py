@@ -11,7 +11,7 @@ from scipy.stats import norm
 
 print 'Obtaining data from Excel file...'
 
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
+from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR, RESULTS_DIR
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -50,17 +50,17 @@ for r in exc.get_rows(fieldstype={
     )
 
 print 'Loading precomputed parameters for GLM'
-filename_prefix = join('results', 'GAM', 'gam_poly_d3_')
+filename_prefix = 'gam_poly_d3_'
 
-gam_correction_parameters = nib.load(filename_prefix + 'cparams.nii').get_data()
-gam_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
+gam_correction_parameters = nib.load(join(RESULTS_DIR, filename_prefix + 'cparams.nii')).get_data()
+gam_prediction_parameters = nib.load(join(RESULTS_DIR, filename_prefix + 'pparams.nii')).get_data()
 
-with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
+with open(join(RESULTS_DIR,filename_prefix + 'userdefparams.txt'), 'rb') as f:
     user_defined_parameters = eval(f.read())
 
 print 'Initializing GAM Processor...'
 gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters,
-            correctors=[Subject.Age, Subject.Sex])
+            )
 
 print 'Computing F-scores'
 fitting_scores = GAMP.evaluate_fit(

@@ -33,7 +33,7 @@ corrector_smoother=SmootherSet()
 regressor_smoother.append(SplinesSmoother(t2,order=5,smoothing_factor=1))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
-gam=GAM(corrector_smoothers = corrector_smoother,regressor_smoothers=regressor_smoother)
+gam=GAM(corrector_smoothers = corrector_smoother,predictor_smoothers=regressor_smoother)
 # gam.orthogonalize_all()
 gam.fit(y)
 y_pred_r=gam.predict()
