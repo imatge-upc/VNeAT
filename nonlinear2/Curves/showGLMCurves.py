@@ -1,57 +1,26 @@
-from os import listdir
-from os.path import join, isfile, basename
-
 import nibabel as nib
+import numpy as np
+from os.path import join
 from matplotlib.pyplot import plot, legend, show
-from nonlinear2.Subject import Subject
 
-from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
-from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.Utils.Subject import Subject
+from nonlinear2.Utils.DataLoader import getSubjects
+from nonlinear2.Processors.GLMProcessing import PolyGLMProcessor as PGLMP
 
-filename_prefix = join('results', 'GLM', 'glm_linear_')
-# show_all = True
-
+# PolyGLM prefix
+filename_prefix = join('..', 'results', 'PGLM', 'pglm_')
 
 print 'Obtaining data from Excel file'
-
-from nonlinear2.user_paths import DATA_DIR, EXCEL_FILE
-filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
-filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
-
-exc = Excel(EXCEL_FILE)
-
-subjects = []
-for r in exc.get_rows( fieldstype = {
-				'id':(lambda s: str(s).strip().split('_')[0]),
-				'diag':(lambda s: int(s) - 1),
-				'age':int,
-				'sex':(lambda s: 2*int(s) - 1),
-				'apoe4_bin':(lambda s: 2*int(s) - 1),
-				'escolaridad':int,
-				'ad_csf_index_ttau':float
-			 } ):
-	subjects.append(
-		Subject(
-			r['id'],
-			filenames_by_id[r['id']],
-			r.get('diag', None),
-			r.get('age', None),
-			r.get('sex', None),
-			r.get('apoe4_bin', None),
-			r.get('escolaridad', None),
-			r.get('ad_csf_index_ttau', None)
-		)
-	)
+subjects = getSubjects(corrected_data=True)
 
 print 'Loading precomputed parameters for GLM'
-glm_correction_parameters = nib.load(filename_prefix + 'cparams.nii').get_data()
 glm_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
 
 with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing GLM Processor'
-glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
+glmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)#, correctors = [Subject.Age, Subject.Sex])
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], glmp.subjects)
 diag = [[], [], [], []]
@@ -97,7 +66,7 @@ while True:
 
 	try:
 		# PolyGLM Curve
-		corrected_data = glmp.corrected_values(glm_correction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+		corrected_data = glmp.gm_values(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
 
 #		if show_all:
 #			axis = np.linspace(adcsf.min(), adcsf.max(), 50)
@@ -113,7 +82,8 @@ while True:
 #			nonlin_pparams = pparams[1:, x, y, z]
 #			nonlin_curve = np.array([axis**(i+1) for i in xrange(1, pparams.shape[0])]).T.dot(nonlin_pparams)
 
-		axis, curve = glmp.curve(glm_prediction_parameters, x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, curve = glmp.curve(glm_prediction_parameters,
+                                 x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
 #		if show_all:
 #			plot(axis, lin_curve, 'y', label = 'Fitted linear curve')

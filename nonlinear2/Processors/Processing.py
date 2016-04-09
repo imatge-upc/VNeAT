@@ -353,6 +353,49 @@ class Processor(object):
 
         return corrected_data
 
+    def gm_values(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None):
+        """
+
+        Parameters
+        ----------
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+        mem_usage
+
+        Returns
+        -------
+
+        """
+        if not mem_usage is None:
+            self._processor_mem_usage = float(mem_usage)
+
+        chunks = nonlinear2.Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+        dims = chunks.dims
+
+        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype = np.float64)
+
+        for chunk in chunks:
+            # Get relative (to the solution matrix) coordinates of the chunk
+            x, y, z = chunk.coords
+            x -= x1
+            y -= y1
+            z -= z1
+
+            # Get chunk data and its dimensions
+            cdata = chunk.data
+            dx, dy, dz = cdata.shape[-3:]
+
+            gm_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = cdata
+
+        return gm_data
+
+
+
+
     #TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
     # since such values affect the values inside the region (if not considered, the clusters could potentially
     # seem smaller and thus be filtered accordingly)

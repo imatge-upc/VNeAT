@@ -5,15 +5,10 @@ from matplotlib.pyplot import plot, legend, show
 
 from nonlinear2.Utils.DataLoader import getSubjects
 from nonlinear2.Utils.Subject import Subject
-from nonlinear2.Processors.SVRProcessing import PolySVRProcessor as PSVR
+from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
 
-# SVR prefix
-filename_prefix = join('..', 'results', 'PSVR', 'psvr_')
-
-# Voxel dimensions of the mophological data
-dim_X = 121
-dim_Y = 145
-dim_Z = 121
+# GAM prefix
+filename_prefix = join('..', 'results', 'PGAM', 'gam_poly_')
 
 print 'Obtaining data from Excel file'
 subjects = getSubjects(corrected_data=True)
@@ -25,14 +20,14 @@ with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
 print 'Initializing GLM Processor'
-psvrp = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+gamp = GAMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
 
-diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], psvrp.subjects)
+diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], gamp.subjects)
 diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
 	diag[diagnostics[i]].append(i)
 
-adcsf = psvrp.predictors.T[0]
+adcsf = gamp.predictors.T[0]
 
 print
 print 'Program initialized correctly.'
@@ -70,9 +65,9 @@ while True:
 	print 'Processing request... please wait'
 
 	try:
-		# PolySVR Curve
-		corrected_data = psvrp.gm_values(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
-		axis, curve = psvrp.curve(psvr_prediction_parameters,
+		# GAM Curve
+		corrected_data = gamp.gm_values(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+		axis, curve = gamp.curve(psvr_prediction_parameters,
                                   x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
 		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')

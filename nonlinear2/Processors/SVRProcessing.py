@@ -144,7 +144,7 @@ class PolySVRProcessor(Processor):
 
         return (homogeneous, perp_norm_option, C, epsilon) + tuple(degrees)
 
-    def __curve__(self, fitter, regressor, regression_parameters):
+    def __curve__(self, fitter, predictor, prediction_parameters):
         """
         Returns the curve values when predicting the y values associated to the x values (regressor)
         using the regression_parameters
@@ -158,9 +158,9 @@ class PolySVRProcessor(Processor):
         -------
 
         """
-        psvr = PolySVR(regressor, degrees = self._psvrprocessor_degrees[:1], homogeneous = False)
+        psvr = PolySVR(predictor, degrees = self._psvrprocessor_degrees[:1], homogeneous = False)
         PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option](psvr)
-        return psvr.predict(regression_parameters = regression_parameters)
+        return psvr.predict(prediction_parameters = prediction_parameters)
 
     def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
                 mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
