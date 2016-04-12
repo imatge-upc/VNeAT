@@ -65,7 +65,8 @@ def getGMData(corrected_data=False):
     [numpy.array] 4-dimensional array with gray matter values for all voxels and subjects
     """
     subjects = getSubjects(corrected_data)
-    return np.asarray(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
+    tmp = np.array(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
+    return tmp
 
 def getFeatures(features_array):
     """
