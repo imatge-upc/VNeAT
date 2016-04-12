@@ -4,6 +4,8 @@ from os.path import join
 
 filename = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data",
                 "nonlinear_data", "MNI152_T1_15mm_template.nii")
+filename_mod = join("C:\\", "Users", "santi", "Documents", "Santi", "Universitat", "TFG", "Data",
+                "nonlinear_data", "MNI152_T1_15mm_template_mod.nii")
 
 mni_affine = nib.load(filename).affine
 print "MNI affine: "
@@ -34,3 +36,9 @@ print
 print "Test Custom affine with precuneus coordinates (2, -54, 26 mm)..."
 print "Voxel coordinates: ", c_custom[:-1]
 print "Rounded voxel coordinates: ", np.round(c_custom[:-1])
+
+print
+print "Change affine matrix in template and store the modded template"
+mni_template_data = nib.load(filename).get_data()
+mni_template_mod = nib.Nifti1Image(mni_template_data, custom_affine)
+nib.save(mni_template_mod, filename_mod)

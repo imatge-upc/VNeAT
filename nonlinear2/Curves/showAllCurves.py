@@ -10,7 +10,7 @@ from os.path import join
 import matplotlib.pyplot as plot
 
 # Utils
-from nonlinear2.Utils.DataLoader import getSubjects
+from nonlinear2.Utils.DataLoader import getSubjects, getMNIAffine
 from nonlinear2.Utils.Subject import Subject
 
 # Processors
@@ -26,13 +26,11 @@ fitters = [
     ['Poly SVR', PSVRP,     join('..', 'results', 'PSVR', 'psvr_'),     '#B22918', '+'   ]
 ]
 
-# Voxel dimensions of the mophological data
-dim_X = 121
-dim_Y = 145
-dim_Z = 121
-
 print 'Obtaining data from Excel file...'
 subjects = getSubjects(corrected_data=True)
+
+print 'Obtaining affine matrix to map mm<-->voxels...'
+affine = getMNIAffine()
 
 print 'Loading precomputed parameters for all fitters...'
 prediction_parameters = []
@@ -69,7 +67,8 @@ print
 
 while True:
     try:
-        entry = raw_input('Write a tuple of voxel coordinates to display its curve (or press Ctrl+D to exit): ')
+        entry = raw_input('Write a tuple of mm coordinates (in MNI space) to display its curve '
+                          '(or press Ctrl+D to exit): ')
     except EOFError:
         print
         print 'Thank you for using our service.'
@@ -81,7 +80,7 @@ while True:
         print
         continue
     try:
-        x, y, z = map(int, eval(entry))
+        x, y, z = map(float, eval(entry))
     except (NameError, TypeError, ValueError, EOFError):
         print '[ERROR] Input was not recognized'
         print 'To display the voxel with coordinates (x, y, z), please enter \'x, y, z\''
@@ -97,6 +96,16 @@ while True:
     print 'Processing request... please wait'
 
     try:
+        # Transform mm coordinates -> voxel coordinates using affine
+        mm_coordinates = np.array([x, y, z, 1])
+        voxel_coordinates = map(int, np.round(np.linalg.inv(affine).dot(mm_coordinates)))
+        # Get rounded mm coordinates in MNI space (due to 1.5 mm spacing)
+        mm_coordinates_prima = affine.dot(voxel_coordinates)
+        # Final voxel coordinates
+        x = voxel_coordinates[0]
+        y = voxel_coordinates[1]
+        z = voxel_coordinates[2]
+
         # Get (corrected) grey matter data
         corrected_data = processors[0].gm_values(
             x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
@@ -118,6 +127,11 @@ while True:
         plot.legend(fontsize='xx-large')
         plot.xlabel('ADCSF', fontsize='xx-large')
         plot.ylabel('Grey matter', fontsize='xx-large')
+        plt_title = 'Coordinates: ' + \
+                    str(mm_coordinates_prima[0]) + ', ' + \
+                    str(mm_coordinates_prima[1]) + ', ' + \
+                    str(mm_coordinates_prima[2]) + ' mm'
+        plot.title(plt_title, size="xx-large")
         plot.show()
         print
     except Exception as e:

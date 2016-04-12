@@ -4,7 +4,7 @@ from os import listdir
 from os.path import join, isfile, basename
 from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 from nonlinear2.Utils.Subject import Subject
-from nonlinear2.user_paths import DATA_DIR, CORRECTED_DATA_DIR, EXCEL_FILE
+from nonlinear2.user_paths import DATA_DIR, CORRECTED_DATA_DIR, EXCEL_FILE, MNI_TEMPLATE
 
 def getSubjects(corrected_data=False):
     """
@@ -81,3 +81,6 @@ def getFeatures(features_array):
     """
     subjects = getSubjects(False)
     return np.array(map(lambda subject: subject.get(features_array), subjects), dtype = np.float64)
+
+def getMNIAffine():
+    return nib.load(MNI_TEMPLATE).affine
