@@ -57,8 +57,8 @@ if __name__ == "__main__":
 
 
     # Exploratory Grid Search
-    C_vals = [10, 50, 75, 100, 250, 500, 1000]
-    epsilon_vals = [0.5, 0.1, 0.05, 0.01, 0.001]
+    C_vals = [50, 75, 100, 125, 250]
+    epsilon_vals = [0.05, 0.1, 0.15, 0.2]
     n_jobs = 1
 
     for C in C_vals:
