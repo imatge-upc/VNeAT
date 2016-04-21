@@ -25,7 +25,7 @@ class GAM(AdditiveCurveFitter):
         else:
             correctors = corrector_smoothers.get_covariates()
 
-        if predictor_smoothers is None and not predictor_smoothers:
+        if predictor_smoothers is None or not predictor_smoothers:
             predictors = None
         else:
             predictors = predictor_smoothers.get_covariates()
@@ -310,7 +310,7 @@ class PolynomialSmoother(Smoother):
 
         curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=num_threads)
 
-        xdata = np.array([np.squeeze(self.xdata) ** i for i in np.arange(1,self.order + 1)]).T
+        xdata = np.array([np.squeeze(self.xdata) ** i for i in range(self.order + 1)]).T
         curve.fit(xdata, ydata, sample_weight)
         self.coefficients = curve.coef_.T
 
@@ -328,13 +328,14 @@ class PolynomialSmoother(Smoother):
             else:
                 coefficients = self.coefficients
 
-        xdata = np.array([np.squeeze(xdata) ** i for i in np.arange(1,self.order + 1)]).T
+        xdata = np.array([np.squeeze(xdata) ** i for i in range(self.order + 1)]).T
         y_pred = xdata.dot(coefficients)
 
         return y_pred
 
     def get_parameters(self):
-        return np.append((len(self.coefficients) + 1, self.order), self.coefficients)
+        params = np.append((len(self.coefficients) + 1, self.order), self.coefficients)
+        return params
 
     def set_parameters(self, parameters):
         self.order = int(parameters[0])
