@@ -1,6 +1,7 @@
 from os.path import join
 import numpy as np
 import itertools as it
+import csv
 
 from nonlinear2.user_paths import RESULTS_DIR
 import nonlinear2.Utils.DataLoader as dataloader
@@ -42,7 +43,8 @@ class GridSearch(object):
 
 
 
-    def fit(self, grid_parameters, N, m, score=score_functions.mse):
+    def fit(self, grid_parameters, N, m, score=score_functions.mse,
+            saveAllScores=False, filename="xvalidation_scores"):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
         value of all N iterations
@@ -53,12 +55,18 @@ class GridSearch(object):
             and values being a list of possible values the parameter can take
             (e.g {'C': [10, 100], 'epsilon': [0.5, 0.1, 0.01]} for Linear SVR)
         N : int
-            number of iterations
+            Number of iterations
         m : int
-            number of randomly selected voxels (without repetition) for each iteration
+            Number of randomly selected voxels (without repetition) for each iteration
         score : Optional[function]
             Score function used to decide the best selection of parameters.
             Default is MSE.
+        saveAllScores : Optional[boolean]
+            Whether to save all scores for all possible combinations of parameters of each iteration.
+            Default is False
+        filename : Optional[String]
+            Name of the file where all the scores will be saved.
+            Default is "xvalidation_scores".
         Returns
         -------
         dictionary{param_name: optimal_param_value}
@@ -73,13 +81,17 @@ class GridSearch(object):
             self._param_values.append(value)
             self._total_computations *= len(value)
 
+        # Save all scores variable (if required)
+        if saveAllScores:
+            errors = [['Iteration'] + self._param_names + ['Error']]
+
         # Iterate N times
-        for i in range(N):
+        for iteration in range(N):
 
             print
             print
             print "-------------------------"
-            print "Iteration ", i+1, "of ", N
+            print "Iteration ", iteration+1, "of ", N
             print "-------------------------"
 
             # Select m voxels randomly
@@ -137,6 +149,21 @@ class GridSearch(object):
 
                 # Update progress
                 progress_counter += 1
+
+                # Save score if required
+                if saveAllScores:
+                    l_params = map(lambda x: round(x, 2), list(params))
+                    errors.append([iteration+1] + l_params + [round(tmp_error, 2)])
+
+        # Save scores to file if required
+        if saveAllScores:
+            with open(join(RESULTS_DIR, filename + '.csv'), 'wb') as f:
+                writer = csv.writer(f, delimiter=";")
+                for row in errors:
+                    writer.writerow(row)
+
+        # Return found optimal parameters
+        return self._optimal_params
 
     def store_results(self, filename, results_directory=RESULTS_DIR, verbose=False):
         """

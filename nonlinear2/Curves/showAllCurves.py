@@ -140,6 +140,15 @@ while True:
         print
         continue
 
+"""
+INTERESTING COORDINATES:
 
+    - Right Precuneus: 2, -54, 26
+
+    - Left Hippocampus: -16, -8, -14
+
+    - Right ParaHippocampal: 24, -28, -12
+
+"""
 
 
