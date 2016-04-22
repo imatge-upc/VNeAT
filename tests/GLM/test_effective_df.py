@@ -1,7 +1,5 @@
 import numpy as np
 from nonlinear2.Utils.Subject import Subject
-from nonlinear2.Fitters.GLM import PolyGLM as PGLM
-import nonlinear2.Utils.DataLoader as dataloader
 
 if __name__ == "__main__":
 
@@ -9,8 +7,8 @@ if __name__ == "__main__":
     voxel = (82, 74, 39)
 
     # Load Aetionomy data
-    X = dataloader.getFeatures([Subject.Sex, Subject.Age, Subject.ADCSFIndex])
-    y = dataloader.getGMData(corrected_data=False)[:, voxel[0], voxel[1], voxel[2]]
+    X = DataLoader.getFeatures([Subject.Sex, Subject.Age, Subject.ADCSFIndex])
+    y = DataLoader.getGMData(corrected_data=False)[:, voxel[0], voxel[1], voxel[2]]
 
     y = np.atleast_2d(y).T
 

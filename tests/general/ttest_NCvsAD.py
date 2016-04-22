@@ -7,7 +7,7 @@ from nonlinear2.Subject import Subject
 from numpy import asarray, ones, array
 from scipy.stats import ttest_ind, norm
 
-from nonlinear2.Utils.graphlib import NiftiGraph
+from Utils import NiftiGraph
 
 # Constants
 gm_threshold = 0.1

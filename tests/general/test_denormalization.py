@@ -79,7 +79,7 @@ C = np.random.random((129, 2))
 R = np.linspace(0, 1, 129).reshape(-1, 1)
 R = np.concatenate([R**(i+1) for i in xrange(3)], axis = 1)
 
-from nonlinear2.Fitters.GLM import GLM
+from Fitters import GLM
 glm = GLM(predictors = R, correctors = C, homogeneous = True)
 
 C = glm.correctors
