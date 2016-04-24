@@ -1,6 +1,6 @@
 import numpy as np
 
-from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
+from Processors import GLMProcessor as GLMP
 
 
 class Test(GLMP):

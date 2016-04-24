@@ -9,11 +9,9 @@ from GAMProcessing import GAMProcessor as GAMP
 from Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
-import nibabel as nib
-import numpy as np
 
 print 'Obtaining data from Excel file...'
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DIR
+from user_paths import EXCEL_FILE, CORRECTED_DIR
 
 filenames = filter(isfile, map(lambda elem: join(CORRECTED_DIR, elem), listdir(CORRECTED_DIR)))
 filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}

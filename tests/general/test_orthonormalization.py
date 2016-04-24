@@ -1,6 +1,6 @@
 import numpy as np
 
-from nonlinear2.Fitters.GLM import GLM
+from Fitters import GLM
 
 correctors = np.random.random((129, 10))
 predictors = np.random.random((129, 6))
