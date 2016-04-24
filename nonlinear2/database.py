@@ -9,10 +9,10 @@ from user_paths import DATA_DIR, EXCEL_FILE
 
 niiFile = nib.Nifti1Image
 
-class Focus(object):
+class focus(object):
 	pass
 
-cur_focus = Focus()
+focus = focus()
 
 def get_data():
 	filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
@@ -43,27 +43,27 @@ def get_data():
 			)
 		)
 
-	cur_focus.affine = nib.load(subjects[0].gmfile).affine
+	focus.affine = nib.load(subjects[0].gmfile).affine
 
 	return subjects
 
 def open_output_file(filename, *args, **kwargs):
-	cur_focus.output = nib.load(filename, *args, **kwargs)
-	return cur_focus.output
+	focus.output = nib.load(filename, *args, **kwargs)
+	return focus.output
 
 def save_output_data(data, filename = None, *args, **kwargs):
 	try:
-		d = cur_focus.output.get_data()
+		d = focus.output.get_data()
 		try:
 			d[:] = data
 		except ValueError:
 			if filename == None:
-				filename = cur_focus.output.filename
-			cur_focus.output = niiFile(data, cur_focus.affine)
+				filename = focus.output.filename
+			focus.output = niiFile(data, focus.affine)
 	except AttributeError:
-		cur_focus.output = niiFile(data, cur_focus.affine)
+		focus.output = niiFile(data, focus.affine)
 	
-	nib.save(cur_focus.output, filename, *args, **kwargs)
+	nib.save(focus.output, filename, *args, **kwargs)
 
 
 

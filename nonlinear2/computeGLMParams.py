@@ -8,7 +8,7 @@ from Utils.Subject import Subject
 from nonlinear2.Processors.GLMProcessing import GLMProcessor as GLMP
 from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
 
-filename_prefix = join('results', 'GLM', 'glm_test_')
+filename_prefix = join('nonlinear2', 'results', 'GLM', 'glm_test_')
 
 
 
