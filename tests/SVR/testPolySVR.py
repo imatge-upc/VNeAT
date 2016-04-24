@@ -2,11 +2,11 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from nonlinear2.Utils.DataLoader import getGMData, getFeatures
-from nonlinear2.Utils.Subject import Subject
+from Utils.DataLoader import getGMData, getFeatures
+from Utils.Subject import Subject
 
-from Fitters import PolyGLM as PGLM
-from Fitters import PolySVR as PSVR
+from Fitters.GLM import PolyGLM as PGLM
+from Fitters.SVR import PolySVR as PSVR
 
 if __name__ == "__main__":
 
