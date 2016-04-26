@@ -265,7 +265,7 @@ class GLMProcessor(Processor):
 				j += 1
 
 		# Initialize the glm with such predictors
-		glm = GLM(predictors = np.array(predictors).T, intercept = GLM.NoIntercept)
+		glm = GLM(predictors = np.array(predictors).T, intercept = GLMProcessor._glmprocessor_intercept_options_list[self._glmprocessor_intercept])
 
 		# Get the prediction parameters for the original features matrix
 		if self._glmprocessor_perp_norm_option < 6:
@@ -517,7 +517,7 @@ class PolyGLMProcessor(Processor):
 		return (intercept, perp_norm_option) + tuple(degrees)
 
 	def __curve__(self, fitter, predictor, prediction_parameters):
-		pglm = PGLM(predictor, degrees = self._pglmprocessor_degrees[:1], intercept = PGLM.NoIntercept)
+		pglm = PGLM(predictor, degrees = self._pglmprocessor_degrees[:1], intercept = PolyGLMProcessor._pglmprocessor_intercept_options_list[self._pglmprocessor_intercept])
 		# PolyGLMProcessor._pglmprocessor_perp_norm_options_list[self._pglmprocessor_perp_norm_option](pglm)
 
 		# Get the prediction parameters for the original features matrix

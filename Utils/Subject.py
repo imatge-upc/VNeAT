@@ -119,7 +119,7 @@ class chunks:
 
 	@property
 	def num_subjects(self):
-		return self._num_subjects
+		return int(self._num_subjects)
 
 	def __iter__(self):
 		return self
