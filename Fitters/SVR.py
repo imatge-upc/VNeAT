@@ -19,7 +19,7 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors = None, correctors = None, intercept = True):
+    def __init__(self, predictors = None, correctors = None, intercept = AdditiveCurveFitter.NoIntercept):
         self._svr_intercept = intercept
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
         super(LinSVR, self).__init__(predictors, correctors, intercept)
@@ -42,50 +42,69 @@ class LinSVR(AdditiveCurveFitter):
         # Parameters for linear SVR
         C = kwargs['C'] if 'C' in kwargs else 100.0
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.01
-        shrinking = kwargs['shrinking'] if 'shrinking' in kwargs else True
-        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 1000
-        tol = kwargs['tol'] if 'tol' in kwargs else 1e-3
+        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
+        tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         sample_weight = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-
         svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_intercept,
                                intercept_scaling=C, max_iter=max_iter)
 
         num_variables = observations.shape[1]
 
-        # Fit predictors
-        predictors_std = preprocessing.scale(predictors)
-        params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                        (svr_fitter, predictors_std, observations[:, i], sample_weight, False)
-                                         for i in range(num_variables))
-        pparams = array(params).T
+        # Intercept handling
+        predictor_intercept = self._svr_intercept == AdditiveCurveFitter.PredictionIntercept
+        corrector_intercept = self._svr_intercept == AdditiveCurveFitter.CorrectionIntercept
 
-        # Fit correctors
-        if self._svr_intercept:
+        # Predictors preprocessing
+        fit_predictors = True
+        if predictor_intercept:
+            predictors = predictors[:, 1:]
+        p_size = predictors.size
+
+        if p_size != 0:
+            predictors_std = preprocessing.scale(predictors)
+        elif p_size == 0 and predictor_intercept:
+            predictors_std = np.array([[]])
+        else:
+            fit_predictors = False
+            pparams = np.array([[]])
+
+        # Correctors preprocessing
+        fit_correctors = True
+        if corrector_intercept:
             correctors = correctors[:, 1:]
         c_size = correctors.size
 
         if c_size != 0:
             correctors_std = preprocessing.scale(correctors)
-        elif c_size == 0 and self._svr_intercept:
+        elif c_size == 0 and corrector_intercept:
             correctors_std = np.array([[]])
         else:
+            fit_correctors = False
             cparams = np.array([[]])
-            return cparams, pparams
 
-        params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                    (svr_fitter, correctors_std, observations[:, i], sample_weight, self._svr_intercept)
-                                     for i in range(num_variables))
+        # Fit predictors
+        if fit_predictors:
+            params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
+                                            (svr_fitter, predictors_std, observations[:, i], sample_weight, predictor_intercept)
+                                             for i in range(num_variables))
+            pparams = array(params).T
 
-        cparams = array(params).T
+        # Fit correctors
+        if fit_correctors:
+            params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
+                                        (svr_fitter, correctors_std, observations[:, i], sample_weight, corrector_intercept)
+                                         for i in range(num_variables))
+
+            cparams = array(params).T
 
         # Get correction and regression coefficients
         return cparams, pparams
 
     @staticmethod
-    def __predict__(predictors, regression_parameters, *args, **kwargs):
+    def __predict__(predictors, prediction_parameters, *args, **kwargs):
         """
 
         Parameters
@@ -99,12 +118,12 @@ class LinSVR(AdditiveCurveFitter):
         -------
 
         """
-        return predictors.dot(regression_parameters)
+        return predictors.dot(prediction_parameters)
 
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, predictors = None, degrees = None, intercept = True):
+    def __init__(self, features, predictors = None, degrees = None, intercept = AdditiveCurveFitter.NoIntercept):
         """
 
         Parameters
