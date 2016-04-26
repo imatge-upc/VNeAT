@@ -150,7 +150,7 @@ def ftest(correction_fitter, prediction_fitter, observations, correctors, correc
 
 	# Residual Sum of Squares for restricted model
 	rss1 = ((correction_error - correction_error.mean(axis = 0))**2).sum(axis = 0)
-	p1 = 4#correctors.shape[1]
+	p1 = correctors.shape[1]
 
 	# Residual Sum of Squares for full model
 	rss2 = (prediction_error**2).sum(axis = 0) # TODO: Check if this is correct or the following line should replace it

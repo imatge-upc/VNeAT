@@ -142,7 +142,7 @@ class GLM(AdditiveCurveFitter):
 
 
 class PolyGLM(GLM):
-	def __init__(self, features, predictors = None, degrees = None, homogeneous = True):
+	def __init__(self, features, predictors = None, degrees = None, intercept = AdditiveCurveFitter.NoIntercept):
 		'''[Constructor]
 
 			Parameters:
@@ -161,9 +161,13 @@ class PolyGLM(GLM):
 			        the linear term of each feature will be taken into account (same as setting all the
 			        degrees to 1).
 
-			    - homogeneous: bool (default True), indicating whether the homogeneous term (a.k.a.
-			        intercept) must be incorporated to the model as a corrector or not. If so, a column
-			        of ones will be added as the first column (feature) of the internal correctors matrix.
+			    - intercept: one of PolyGLM.NoIntercept, PolyGLM.PredictionIntercept or
+					PolyGLM.CorrectionIntercept (default PolyGLM.NoIntercept), indicating whether
+					the intercept (a.k.a. homogeneous term) must be incorporated to the model or not, and
+					if so, wheter it must be as a predictor or a corrector. In the last two cases, a column
+					of ones will be added as the first column (feature) of the internal predictors/correctors
+					matrix. Please notice that, if the matrix to which the columns of ones must precede
+					does not have any elements, then this parameter will have no effect.
 		'''
 		self._pglm_features = np.array(features)
 		if len(self._pglm_features.shape) != 2:
@@ -202,7 +206,7 @@ class PolyGLM(GLM):
 					raise ValueError('All degrees must be >= 1')
 			self._pglm_degrees = degrees
 
-		self._pglm_homogeneous = homogeneous
+		self._pglm_intercept = intercept
 
 		self.__pglm_update_GLM()
 
@@ -228,7 +232,7 @@ class PolyGLM(GLM):
 		else:
 			predictors = np.array(predictors).T
 
-		super(PolyGLM, self).__init__(predictors, correctors, self._pglm_homogeneous)
+		super(PolyGLM, self).__init__(predictors, correctors, self._pglm_intercept)
 
 	@property
 	def lin_correctors(self):

@@ -10,7 +10,7 @@ from scipy.stats import norm
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 
-filename_prefix = join('nonlinear2', 'results', 'GLM', 'glm_test_')
+filename_prefix = join('results', 'GLM', 'glm_test_')
 
 
 

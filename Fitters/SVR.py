@@ -19,10 +19,10 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors = None, correctors = None, homogeneous = True):
-        self._svr_homogeneous = homogeneous
-        # Don't allow a homogeneous feature to be created, use instead the intercept term from the fitter
-        super(LinSVR, self).__init__(predictors, correctors, homogeneous)
+    def __init__(self, predictors = None, correctors = None, intercept = True):
+        self._svr_intercept = intercept
+        # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
+        super(LinSVR, self).__init__(predictors, correctors, intercept)
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         """
@@ -50,7 +50,7 @@ class LinSVR(AdditiveCurveFitter):
 
         # Initialize linear SVR from scikit-learn
 
-        svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_homogeneous,
+        svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_intercept,
                                intercept_scaling=C, max_iter=max_iter)
 
         num_variables = observations.shape[1]
@@ -63,20 +63,20 @@ class LinSVR(AdditiveCurveFitter):
         pparams = array(params).T
 
         # Fit correctors
-        if self._svr_homogeneous:
+        if self._svr_intercept:
             correctors = correctors[:, 1:]
         c_size = correctors.size
 
         if c_size != 0:
             correctors_std = preprocessing.scale(correctors)
-        elif c_size == 0 and self._svr_homogeneous:
+        elif c_size == 0 and self._svr_intercept:
             correctors_std = np.array([[]])
         else:
             cparams = np.array([[]])
             return cparams, pparams
 
         params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                    (svr_fitter, correctors_std, observations[:, i], sample_weight, self._svr_homogeneous)
+                                    (svr_fitter, correctors_std, observations[:, i], sample_weight, self._svr_intercept)
                                      for i in range(num_variables))
 
         cparams = array(params).T
@@ -104,7 +104,7 @@ class LinSVR(AdditiveCurveFitter):
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, predictors = None, degrees = None, homogeneous = True):
+    def __init__(self, features, predictors = None, degrees = None, intercept = True):
         """
 
         Parameters
@@ -112,7 +112,7 @@ class PolySVR(LinSVR):
         features NxF (2-dimensional) matrix
         predictors int / iterable object (default None)
         degrees iterable of F elements (default None)
-        homogeneous bool (default True)
+        intercept bool (default True)
 
         Returns
         -------
@@ -158,8 +158,8 @@ class PolySVR(LinSVR):
                     raise ValueError('All degrees must be >= 1')
             self._svr_degrees = degrees
 
-        # Check homogeneous term
-        self._svr_homogeneous = homogeneous
+        # Check intercept term
+        self._svr_intercept = intercept
 
         # Call function to expand the feature space with polynomial terms
         self.__svr_polynomial_expansion()
@@ -192,7 +192,7 @@ class PolySVR(LinSVR):
             predictors = array(predictors).T
 
         # Instance a LinSVR (parent) with the expanded polynomial features
-        super(PolySVR, self).__init__(predictors, correctors, self._svr_homogeneous)
+        super(PolySVR, self).__init__(predictors, correctors, self._svr_intercept)
 
 
 class GaussianSVR(object):
@@ -202,7 +202,7 @@ class GaussianSVR(object):
 
 """ HELPER FUNCTIONS """
 
-def __fit_features__(fitter, X, y, sample_weight=None, homogeneous=True):
+def __fit_features__(fitter, X, y, sample_weight=None, intercept=True):
         """
         Fits the features from X to the observation y given the linear fitter and the optional sample_weights
         Parameters
@@ -211,24 +211,24 @@ def __fit_features__(fitter, X, y, sample_weight=None, homogeneous=True):
         X:   NxF matrix, where N is the number of observations and F the number of features
         y:   Nx1 the variable that we want to explain with the features
         [sample_weight]:    array with weights assigned to each feature
-        [homogeneous]: Boolean whether the intercept term must be calculated
+        [intercept]: Boolean whether the intercept term must be calculated
 
         Returns
         -------
-        {numpy array} (F+1)x1 array with the fitting coefficients and the intercept term if homogeneous=True,
+        {numpy array} (F+1)x1 array with the fitting coefficients and the intercept term if intercept=True,
         otherwise Fx1 array with only the fitting coefficients
         """
         num_features = X.shape[1]
         if num_features <= 0:
-            if homogeneous:
-                # If the features array is empty and we need to compute the homogeneous term,
+            if intercept:
+                # If the features array is empty and we need to compute the intercept term,
                 # create dummy features to fit and then get only the intercept term
                 X = np.ones((y.shape[0], 1))
             else:
                 raise Exception("Features array X is not a NxF array")
         fitter.fit(X, y)
 
-        if homogeneous:
+        if intercept:
             if num_features > 0:
                 params = zeros((num_features + 1, 1))
                 coefficients = np.atleast_2d(fitter.coef_)
