@@ -3,15 +3,15 @@ import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
 sys.path.insert(1, '/Users/acasamitjana/Repositories/neuroimatge/nonlinear2')
 sys.stdout.flush()
-from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
-from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
-from nonlinear2.Utils.Subject import Subject
+from Utils.ExcelIO import ExcelSheet as Excel
+from Processors import GAMProcessor as GAMP
+from Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 import numpy as np
 
 print 'Obtaining data from Excel file...'
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DATA_DIR
+from user_paths import EXCEL_FILE, CORRECTED_DATA_DIR
 
 filenames = filter(isfile, map(lambda elem: join(CORRECTED_DATA_DIR, elem), listdir(CORRECTED_DATA_DIR)))
 filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
