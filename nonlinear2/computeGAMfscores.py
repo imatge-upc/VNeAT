@@ -1,7 +1,7 @@
-from ExcelIO import ExcelSheet as Excel
-from FitEvaluation import ftest
-from GAMProcessing import GAMProcessor as GAMP
-from Subject import Subject
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.FitScores.FitEvaluation import ftest
+from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
+from nonlinear2.Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 import nibabel as nib
@@ -73,7 +73,7 @@ fitting_scores = GAMP.evaluate_fit(
     gm_threshold=0.1,
     filter_nans=True,
     default_value=0.0,
-    mem_usage = 128,
+    #mem_usage = 128,
     # *args, **kwargs
 )
 

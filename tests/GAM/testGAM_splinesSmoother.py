@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
 sys.path.insert(1,'/Users/acasamitjana/Repositories/neuroimatge/nonlinear2')
-from tests.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
+from nonlinear2.Fitters.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
 # import matplotlib
