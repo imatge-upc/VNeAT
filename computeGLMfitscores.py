@@ -3,14 +3,14 @@ from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
-from FitScores.FitEvaluation import fstat
+from FitScores.FitEvaluation import ftest
 from Processors.GLMProcessing import GLMProcessor as GLMP
 from scipy.stats import norm
 
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 
-filename_prefix = join('results', 'GLM', 'glm_nonlinear_')
+filename_prefix = join('results', 'GLM', 'glm_test_')
 
 
 
@@ -69,7 +69,7 @@ glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters
 
 print 'Computing F-scores'
 fitting_scores = GLMP.evaluate_fit (
-	evaluation_function = fstat,
+	evaluation_function = ftest,
 	correction_processor = glmp,
 	correction_parameters = glm_correction_parameters,
 	prediction_processor = glmp,
@@ -83,8 +83,29 @@ fitting_scores = GLMP.evaluate_fit (
 	# *args, **kwargs
 )
 
-print 'Saving F-scores to file'
-nib.save(niiFile(fitting_scores, affine), filename_prefix + 'fscores.nii')
+print 'Saving inverted p-values to file'
+nib.save(niiFile(fitting_scores, affine), filename_prefix + 'fitscores.nii')
+
+print 'Obtaining, filtering and saving z-scores and labels to display them...'
+for fit_threshold in [0.99, 0.995, 0.999]:
+	print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
+	clusterized_fitting_scores, labels = GLMP.clusterize (
+		fitting_scores = fitting_scores,
+		default_value = 0.0,
+		fit_lower_threshold = fit_threshold,
+		# fit_upper_threshold = None,
+		cluster_threshold = 100,
+		produce_labels = True
+	)
+	# Compute Z-scores
+	lim_value = norm.ppf(fit_threshold)
+	valid_voxels = clusterized_fitting_scores != 0.0
+	clusterized_fitting_scores[valid_voxels] = norm.ppf(clusterized_fitting_scores[valid_voxels]) - lim_value + 0.2
+
+	print '    Saving z-scores and labels to file...'
+	nib.save(niiFile(clusterized_fitting_scores, affine), filename_prefix + 'zscores_' + str(fit_threshold) + '.nii')
+	nib.save(niiFile(labels, affine), filename_prefix + 'labels_' + str(fit_threshold) + '.nii')
+
 
 print 'Done.'
 

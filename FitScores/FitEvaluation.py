@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import f as f_stat
 
-def evaluation_fuction(func):
+def evaluation_function(func):
 	def evaluation_wrapper(correction_fitter, prediction_fitter, observations, correctors = None, correction_parameters = None, predictors = None, prediction_parameters = None, *args, **kwargs):
 		'''Evaluates the degree to which the correctors and predictors get to explain the observational
 			data passed in the 'observations' argument.
@@ -126,13 +126,60 @@ def evaluation_fuction(func):
 
 	return evaluation_wrapper
 
-@evaluation_fuction
-def ftest(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
-	'''Evaluates the significance of the predictors as regards the behaviour of the observations by performing
-		an F-test. In particular, the null hypothesis states that the predictors do not explain the variation
-		of the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
-	'''
 
+@evaluation_function
+def mse(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
+	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+		the Mean Squared Error of the prediction with respect to the corrected data. The smaller the result,
+		the better the fit.
+	'''
+	if 0 in correctors.shape:
+		# There is no correction -> Corrected data is same as observations
+		corrected_data = observations
+	else:
+		# Compute corrected data
+		corrected_data = correction_fitter.correct(observations, correctors, correction_parameters)
+
+	# prediction_error = corrected_data - prediction
+	prediction_error = corrected_data - prediction_fitter.predict(predictors, prediction_parameters)
+
+	return (prediction_error**2).sum(axis = 0)/np.float64(len(prediction_error))
+
+@evaluation_function
+def relvar(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
+	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+		the relative variance of the prediction error with respect to the corrected data. In particular, this
+		method computes the ratio between the variance of the error and the variance of the corrected data.
+		Thus, the smaller the result, the better the fit.
+	'''
+	if 0 in correctors.shape:
+		# There is no correction -> Corrected data is same as observations
+		corrected_data = observations
+	else:
+		# Compute corrected data
+		corrected_data = correction_fitter.correct(observations, correctors, correction_parameters)
+
+	correction_variance = ((corrected_data - corrected_data.mean(axis = 0))**2).sum(axis = 0)
+	# We don't divide it by N-1 because the final ratio will eliminate this factor
+
+	# prediction_error = corrected_data - prediction
+	prediction_error = corrected_data - prediction_fitter.predict(predictors, prediction_parameters)
+
+	error_variance = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
+	# We don't divide it by N-1 because the final ratio will eliminate this factor
+
+	return error_variance / correction_variance
+
+@evaluation_function
+def fstat(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
+	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+		the value of the F-statistic for a test in which the null hypothesis states that the predictors do not
+		explain the variation of the observations at all. The calculated F-statistic value compares the variance
+		of the prediction error with the variance of the corrected data, WITHOUT then mapping the result to its
+		corresponding p-value (which takes into account the degrees of freedom of both, the corrected data and
+		the prediction error). Please, refer to the "ftest" method if what you wish is a p-value related measure
+		rather than the F-statistic itself.
+	'''
 	if 0 in correctors.shape:
 		# There is no correction -> Correction error is same as observations
 		correction_error = observations
@@ -173,10 +220,24 @@ def ftest(correction_fitter, prediction_fitter, observations, correctors, correc
 	# print 'F-statistic:', f_score
 	# print 'R-squared:', 1 - rss2/rss1
 
+	return f_score
+
+
+@evaluation_function
+def ftest(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
+	'''Evaluates the significance of the predictors as regards the behaviour of the observations by performing
+		an F-test. In particular, the null hypothesis states that the predictors do not explain the variation
+		of the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
+		Refer to the "fstats" method if what you are looking for is the value of the f-statistic rather than
+		the p-value.
+	'''
+
+	f_score = fstats(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters)
+
 	return f_stat.cdf(f_score, df1, df2)
 
 
-@evaluation_fuction
+@evaluation_function
 def aic(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
 	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
 		the Akaike Information Criterion (AIC).
@@ -198,7 +259,7 @@ def aic(correction_fitter, prediction_fitter, observations, correctors, correcti
 	return 2*k + n*np.log(rss)
 
 
-@evaluation_fuction
+@evaluation_function
 def aicc(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
 	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
 		the corrected Akaike Information Criterion (AICc).
@@ -211,3 +272,9 @@ def aicc(correction_fitter, prediction_fitter, observations, correctors, correct
 
 
 
+
+# Curve based measures
+
+#TODO: create some methods to evaluate the fit based on the curve, the predictions and the corrected data
+# One method: Penalized Residual Sum of Squares (PSRR) = MSE / sum(d2(curve)/d(x2))
+# Another method: Modified Penalized Residual Sum of Squares (MPSRR) = MSE / max(d2(curve)/d(x2))
