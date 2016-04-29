@@ -33,7 +33,6 @@ def effective_df(X, y, fitter):
     C = fitter.C
     epsilon = fitter.epsilon
 
-    df = 0
     min_value = epsilon * np.ones(pseudoresiduals.shape)
     max_value = min_value + C * kernel_diag
     comp_min = min_value <= np.abs(pseudoresiduals)
@@ -57,8 +56,8 @@ if __name__ == "__main__":
     # y = np.atleast_2d(y)
 
     # Exploratory Grid Search
-    C_vals = [1, 10, 100, 1000]
-    epsilon_vals = [0.01, 0.1, 0.25, 0.5]
+    C_vals = [316]
+    epsilon_vals = [0.168]
     n_jobs = 1
 
     for C in C_vals:

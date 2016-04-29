@@ -37,6 +37,18 @@ class PolySVRProcessor(Processor):
         lambda *args, **kwargs: zeros((0, 0))
     ]
 
+    _psvrprocessor_intercept_options_names = [
+		'Do not include the intercept term',
+		'As a corrector',
+		'As a predictor'
+	]
+
+    _psvrprocessor_intercept_options_list = [
+        PolySVR.NoIntercept,
+        PolySVR.CorrectionIntercept,
+        PolySVR.PredictionIntercept
+    ]
+
     def __fitter__(self, user_defined_parameters):
         """
 
@@ -48,7 +60,7 @@ class PolySVRProcessor(Processor):
         -------
 
         """
-        self._psvrprocessor_homogeneous = user_defined_parameters[0]
+        self._psvrprocessor_intercept = user_defined_parameters[0]
         self._psvrprocessor_perp_norm_option = user_defined_parameters[1]
         self._psvrprocessor_C = user_defined_parameters[2]
         self._psvrprocessor_epsilon = user_defined_parameters[3]
@@ -56,6 +68,8 @@ class PolySVRProcessor(Processor):
 
         # Orthonormalize/Orthogonalize/Do nothing options
         treat_data = PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option]
+        # Intercept option
+        intercept = PolySVRProcessor._psvrprocessor_intercept_options_list[self._psvrprocessor_intercept]
 
         # Construct data matrix from correctors and predictor
         num_regs = self.predictors.shape[1]
@@ -65,7 +79,7 @@ class PolySVRProcessor(Processor):
         features[:, num_regs:] = self.correctors
 
         # Instantiate a PolySVR
-        psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees, homogeneous=self._psvrprocessor_homogeneous)
+        psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees, intercept=intercept)
         treat_data(psvr)
         return psvr
 
@@ -80,7 +94,7 @@ class PolySVRProcessor(Processor):
         -------
 
         """
-        user_params = (self._psvrprocessor_homogeneous, self._psvrprocessor_perp_norm_option)
+        user_params = (self._psvrprocessor_intercept, self._psvrprocessor_perp_norm_option)
         user_params += (self._psvrprocessor_C, self._psvrprocessor_epsilon)
         user_params += tuple(self._psvrprocessor_degrees)
         return user_params
@@ -97,17 +111,18 @@ class PolySVRProcessor(Processor):
         -------
 
         """
-        # Homogeneous term
-        if super(PolySVRProcessor, self).__getyesorno__(default_value = True, show_text = 'PolySVR Processor: Do you want to include the homogeneous term? (Y/N, default Y): '):
-            homogeneous = 1
-        else:
-            homogeneous = 0
+        # Intercept term
+        intercept = PolySVRProcessor._psvrprocessor_intercept_options[super(PolySVRProcessor, self).__getoneof__(
+			PolySVRProcessor._psvrprocessor_intercept_options_names,
+			default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[2],
+			show_text = 'PolySVR Processor: How do you want to include the intercept term? (default: ' + PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
+		)]
 
         # Treat data option
         perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
 			PolySVRProcessor._psvrprocessor_perp_norm_options_names,
 			default_value = 'Orthonormalize all',
-			show_text = 'GLM Processor: How do you want to treat the features? (default: Orthonormalize all)'
+			show_text = 'PolySVR Processor: How do you want to treat the features? (default: Orthonormalize all)'
 		)]
 
         # C regularization parameter
@@ -142,7 +157,7 @@ class PolySVRProcessor(Processor):
                 show_text = 'PolySVR Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
             ))
 
-        return (homogeneous, perp_norm_option, C, epsilon) + tuple(degrees)
+        return (intercept, perp_norm_option, C, epsilon) + tuple(degrees)
 
     def __curve__(self, fitter, predictor, prediction_parameters):
         """
@@ -158,7 +173,7 @@ class PolySVRProcessor(Processor):
         -------
 
         """
-        psvr = PolySVR(predictor, degrees = self._psvrprocessor_degrees[:1], homogeneous = False)
+        psvr = PolySVR(predictor, degrees = self._psvrprocessor_degrees[:1], intercept = self._psvrprocessor_intercept)
         PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option](psvr)
         return psvr.predict(prediction_parameters = prediction_parameters)
 
@@ -188,6 +203,6 @@ class PolySVRProcessor(Processor):
         return super(PolySVRProcessor, self).process(x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon, *args, **kwargs)
 
 PolySVRProcessor._psvrprocessor_perp_norm_options = {PolySVRProcessor._psvrprocessor_perp_norm_options_names[i] : i for i in xrange(len(PolySVRProcessor._psvrprocessor_perp_norm_options_names))}
-
+PolySVRProcessor._psvrprocessor_intercept_options = {PolySVRProcessor._psvrprocessor_intercept_options_names[i] : i for i in xrange(len(PolySVRProcessor._psvrprocessor_intercept_options_names))}
 
 

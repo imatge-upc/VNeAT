@@ -8,12 +8,7 @@ from Utils.Subject import Subject
 from Utils.DataLoader import getSubjects
 
 # SVR prefix
-filename_prefix = join('..', 'results', 'PSVR', 'psvr_')
-
-# Voxel dimensions of the mophological data
-dim_X = 121
-dim_Y = 145
-dim_Z = 121
+filename_prefix = join('..', 'results', 'PSVR', 'psvr_C50_eps0.15_')
 
 print 'Obtaining data from Excel file'
 subjects = getSubjects(corrected_data=True)

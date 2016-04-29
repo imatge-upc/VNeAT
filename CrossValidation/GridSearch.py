@@ -3,6 +3,10 @@ import itertools as it
 from os.path import join
 
 import numpy as np
+import matplotlib.pyplot as plot
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+
 from user_paths import RESULTS_DIR
 import Utils.DataLoader as DataLoader
 import score_functions
@@ -30,6 +34,10 @@ class GridSearch(object):
         self._optimal_params = {}                           # optimal parameters
         self._N = 1                                         # number of iterations
         self._m = 1                                         # number of randomly selected voxels
+        self._num_params = 0                                # number of parameters to use for
+                                                            # plotting the error
+        self._errors_vector = []                            # vector into which the errors
+                                                            # are stored
 
         # Init gm threshold
         self._gm_threshold = 0.01                           # grey matter threshold
@@ -43,7 +51,7 @@ class GridSearch(object):
 
 
 
-    def fit(self, grid_parameters, N, m, score=score_functions.mse,
+    def fit(self, grid_parameters, N, m, degrees_of_freedom, score=score_functions.mse,
             saveAllScores=False, filename="xvalidation_scores"):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
@@ -58,6 +66,9 @@ class GridSearch(object):
             Number of iterations
         m : int
             Number of randomly selected voxels (without repetition) for each iteration
+        degrees_of_freedom : function
+            function to calculate the degrees of freedom. Must follow the protype specified
+            at degrees_of_freedom.py
         score : Optional[function]
             Score function used to decide the best selection of parameters.
             Default is MSE.
@@ -75,15 +86,27 @@ class GridSearch(object):
         # Assign variables
         self._N = N
         self._m = m
+
         # Map parameters into two lists
         for key,value in grid_parameters.iteritems():
             self._param_names.append(key)
             self._param_values.append(value)
             self._total_computations *= len(value)
 
+        # Check number of parameters for error plotting
+        if len(self._param_names) <= 0:
+            raise Exception("There are no parameters to optimize")
+        elif len(self._param_names) == 1:
+            self._num_params = 1
+        else:
+            self._num_params = 2
+
         # Save all scores variable (if required)
         if saveAllScores:
             errors = [['Iteration'] + self._param_names + ['Error']]
+
+        # Pre-assign errors for N iterations
+        self._errors_vector = [[] for _ in range(N)]
 
         # Iterate N times
         for iteration in range(N):
@@ -123,7 +146,7 @@ class GridSearch(object):
 
             # Initialize progress for this iteration
             progress_counter = 0
-            # Cartesian products between all the possible parameters (C and epsilon)
+            # Cartesian products between all the possible parameters
             for params in it.product(*self._param_values):
                 # Create temporary dictionary to pass it to fitter as optional params
                 tmp_params = {self._param_names[i]: params[i] \
@@ -135,8 +158,10 @@ class GridSearch(object):
                 self._fitter.fit(current_observations, **tmp_params)
                 # Predict data
                 predicted = self._fitter.predict()
+                # Degrees of freedom
+                df = degrees_of_freedom(current_observations, self._fitter)
                 # Score function
-                score_value = score(current_observations, predicted, self._num_subjects)
+                score_value = score(current_observations, predicted, df)
                 # Convert variances list to numpy array
                 vars = np.array(selected_voxels_var)
                 # Calculate total error (Score value weighted by the gm data variance)
@@ -147,13 +172,16 @@ class GridSearch(object):
                     self._total_error = tmp_error
                     self._optimal_params = tmp_params
 
-                # Update progress
-                progress_counter += 1
+                # Store errors if it is the last iteration for posterior error plotting
+                self._errors_vector[iteration].append(tmp_error)
 
                 # Save score if required
                 if saveAllScores:
                     l_params = map(lambda x: round(x, 2), list(params))
                     errors.append([iteration+1] + l_params + [round(tmp_error, 2)])
+
+                # Update progress
+                progress_counter += 1
 
         # Save scores to file if required
         if saveAllScores:
@@ -197,3 +225,44 @@ class GridSearch(object):
             print
             print string
             print
+
+    def plot_error(self):
+        """
+        Plots the error with respect to the first parameter (2D plot) if there is only one,
+        or the first two parameters (3D surface plot) if there are two or more parameters
+        """
+        # Check if there is any error vector
+        if len(self._errors_vector) == 0:
+            raise Exception("There is no errors vector for this instace of GridSearch. "
+                            "Please use the 'fit' method before using the 'plot_error' one")
+
+        # Get the mean of the N iterations
+        self._errors_vector = np.mean(self._errors_vector, axis=0)
+
+        # 2D plot case
+        if self._num_params == 1:
+            x = self._param_values[0]
+            y = self._errors_vector
+            if len(x) != len(y):
+                raise Exception("Something strange happened here! :(")
+            plot.plot(x, y)
+            plot.xlabel(self._param_names[0])
+            plot.ylabel("error")
+            plot.show()
+        elif self._num_params == 2:
+            # Get the meshgrid
+            X = self._param_values[0]
+            Y = self._param_values[1]
+            X, Y = np.meshgrid(X, Y)
+            # Arrange the error matrix to match the X, Y dimensions
+            Z = np.array(self._errors_vector).reshape(
+                (len(self._param_values[1]), len(self._param_values[0]))
+            )
+            # Plot surface
+            fig = plot.figure()
+            ax = fig.gca(projection='3d')
+            surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,
+                       linewidth=0, antialiased=False)
+            fig.colorbar(surf, shrink=0.5, aspect=5)
+
+            plot.show()

@@ -1,7 +1,7 @@
-from Utils.ExcelIO import ExcelSheet as Excel
-from FitScores.FitEvaluation import ftest
-from Processors.GAMProcessing import GAMProcessor as GAMP
-from Utils.Subject import Subject
+from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
+from nonlinear2.FitScores.FitEvaluation import ftest
+from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
+from nonlinear2.Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 import nibabel as nib

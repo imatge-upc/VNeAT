@@ -22,8 +22,9 @@ class CurveFitter(object):
 	__threshold = (1e-14 ** 2)
 
 	NoIntercept = 0
-	PredictionIntercept = 1
-	CorrectionIntercept = 2
+	CorrectionIntercept = 1
+	PredictionIntercept = 2
+
 
 	def __init__(self, predictors=None, correctors=None, intercept=NoIntercept):
 		'''[Constructor]

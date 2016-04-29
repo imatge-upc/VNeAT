@@ -4,13 +4,11 @@ import numpy as np
 from numpy import float64
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import splev
-
 # import matplotlib.pyplot as plt
 from warnings import warn
 from sklearn.linear_model import LinearRegression as LR
 from statsmodels.sandbox.nonparametric import kernels
-
-from Fitters.CurveFitting import AdditiveCurveFitter
+from nonlinear2.Fitters.CurveFitting import AdditiveCurveFitter
 
 
 class GAM(AdditiveCurveFitter):
@@ -200,12 +198,18 @@ class SplinesSmoother(Smoother):
         self._name = name
 
     def df_model(self, parameters=None):
-        pass
+        #     """
+        #     Degrees of freedom used in the fit.
+        #     """
+        eye = np.identity(self.xdata.shape[0])
+        smoother_matrix = np.zeros((self.xdata.shape[0]))
+        for vector,index in enumerate(eye):
+            vector_response = self.predict(vector)
+            smoother_matrix[:,index] = vector_response
 
-    #     """
-    #     Degrees of freedom used in the fit.
-    #     """
-    #     return (parameters[2]+1)*(parameters[0]+1)-parameters[2]*parameters[0]
+        return np.trace(smoother_matrix)
+
+
 
     def df_resid(self, parameters=None):
         pass
