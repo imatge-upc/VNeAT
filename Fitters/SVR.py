@@ -10,8 +10,8 @@ from Utils.Transforms import polynomial
 from numpy import array, ravel, zeros
 from sklearn.svm import LinearSVR
 
+from Fitters.CurveFitting import CurveFitter
 from Fitters.CurveFitting import AdditiveCurveFitter
-
 
 class LinSVR(AdditiveCurveFitter):
     """
@@ -19,7 +19,7 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors = None, correctors = None, intercept = AdditiveCurveFitter.NoIntercept):
+    def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
         self._svr_intercept = intercept
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
         super(LinSVR, self).__init__(predictors, correctors, intercept)
@@ -44,7 +44,6 @@ class LinSVR(AdditiveCurveFitter):
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.01
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
-        sample_weight = kwargs['sample_weight'] if 'sample_weight' in kwargs else None
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
@@ -88,14 +87,14 @@ class LinSVR(AdditiveCurveFitter):
         # Fit predictors
         if fit_predictors:
             params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                            (svr_fitter, predictors_std, observations[:, i], sample_weight, predictor_intercept)
+                                            (svr_fitter, predictors_std, observations[:, i], predictor_intercept)
                                              for i in range(num_variables))
             pparams = array(params).T
 
         # Fit correctors
         if fit_correctors:
             params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                        (svr_fitter, correctors_std, observations[:, i], sample_weight, corrector_intercept)
+                                        (svr_fitter, correctors_std, observations[:, i], corrector_intercept)
                                          for i in range(num_variables))
 
             cparams = array(params).T
@@ -123,7 +122,7 @@ class LinSVR(AdditiveCurveFitter):
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, predictors = None, degrees = None, intercept = AdditiveCurveFitter.NoIntercept):
+    def __init__(self, features, predictors = None, degrees = None, intercept = CurveFitter.NoIntercept):
         """
 
         Parameters
@@ -214,14 +213,29 @@ class PolySVR(LinSVR):
         super(PolySVR, self).__init__(predictors, correctors, self._svr_intercept)
 
 
-class GaussianSVR(object):
-    """ GAUSSIAN SVR """
-    pass
+class GaussianSVR(CurveFitter):
+    """ Support Vector Regression fitter with Gaussian Kernel """
+
+    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
+        pass
+
+
+    def __fit__(self, correctors, predictors, observations, *args, **kwargs):
+        pass
+
+    def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
+        pass
+
+    def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
+        pass
+
+
+
 
 
 """ HELPER FUNCTIONS """
 
-def __fit_features__(fitter, X, y, sample_weight=None, intercept=True):
+def __fit_features__(fitter, X, y, intercept):
         """
         Fits the features from X to the observation y given the linear fitter and the optional sample_weights
         Parameters

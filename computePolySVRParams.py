@@ -12,7 +12,8 @@ if __name__ == "__main__":
     subjects = DataLoader.getSubjects(corrected_data=True)
 
     print 'Initializing PolySVR Processor...'
-    psvr = PSVR(subjects, predictors = [Subject.ADCSFIndex])
+    user_defined_parameters = (2, 9, 50, 0.15, 3)
+    psvr = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters)
 
     print 'Processing data...'
     results = psvr.process(n_jobs=4, mem_usage=64)

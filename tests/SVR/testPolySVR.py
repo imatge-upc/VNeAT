@@ -5,6 +5,7 @@ import numpy as np
 from Utils.DataLoader import getGMData, getFeatures
 from Utils.Subject import Subject
 
+from Fitters.CurveFitting import CurveFitter
 from Fitters.GLM import PolyGLM as PGLM
 from Fitters.SVR import PolySVR as PSVR
 
@@ -32,11 +33,11 @@ if __name__ == "__main__":
 
         # Init Polynomial SVR fitters
         print("Creating SVR fitter for artificial data...")
-        artificial_svr = PSVR(X, 0, [3], True)
+        artificial_svr = PSVR(X, 0, [3], CurveFitter.PredictionIntercept)
 
     # Get data from Excel and nii files
     print("Loading Aetionomy data...")
-    observations = getGMData(True)
+    observations = getGMData(corrected_data=True)
     aet_regressors = getFeatures([Subject.ADCSFIndex])
     aet_correctors = getFeatures([Subject.Age, Subject.Sex])
     real_obs = observations[:, x1:x2, y1:y2, z1:z2]
@@ -50,15 +51,13 @@ if __name__ == "__main__":
     features = np.zeros((aet_regressors.shape[0], num_regs + num_correc))
     features[:, :num_regs] = aet_regressors
     features[:, num_regs:] = aet_correctors
-    # PGLM to correct data
-    poly_glm = PGLM(features=features, predictors=range(num_regs), degrees=[3, 2, 1], homogeneous=True)
     # PSVR to predict data
-    poly_svr = PSVR(features=aet_regressors, predictors=range(num_regs), degrees=[3], homogeneous=True)
+    poly_svr = PSVR(features=aet_regressors, predictors=range(num_regs), degrees=[3], intercept=CurveFitter.PredictionIntercept)
 
 
     # Exploratory Grid Search
-    C_vals = [50, 75, 100, 125, 250]
-    epsilon_vals = [0.05, 0.1, 0.15, 0.2]
+    C_vals = [879]
+    epsilon_vals = [0.16]
     n_jobs = 1
 
     for C in C_vals:
@@ -94,9 +93,6 @@ if __name__ == "__main__":
             num_voxels = dims[1]*dims[2]*dims[3]
             reshaped_obs = real_obs.reshape((dims[0], num_voxels))
             start_time = time.clock()
-            # Fit PolyGLM to original data to correct it
-            poly_glm.fit(reshaped_obs)
-            corrected = poly_glm.correct(reshaped_obs)[:, 0]
             # Fit PolySVR to original data to correct it
             poly_svr.fit(reshaped_obs, C=C, epsilon=epsilon, n_jobs=n_jobs)
             r_params = poly_svr.prediction_parameters
@@ -105,12 +101,11 @@ if __name__ == "__main__":
             # Generate x data for first fitted voxel [:, 0]
             reg = aet_regressors[:, 0]
             x = np.atleast_2d(np.linspace(min(reg), max(reg), 100)).T
-            poly_svr_predicter = PSVR(x, 0, [3], False)
+            poly_svr_predicter = PSVR(x, 0, [3], CurveFitter.PredictionIntercept)
 
             # Plot fitting curves
             print("Plotting curves...")
-            # plt.scatter(reg, reshaped_obs[:, 0], c='k', label='Original Data')
-            plt.scatter(reg, corrected, c='r', label='Corrected data with GLM')
+            plt.scatter(reg, reshaped_obs[:, 0], c='k', label='Original Data')
             predicted = poly_svr_predicter.predict(prediction_parameters=r_params)
             plt.plot(x, predicted, c='y', label='Poly SVR prediction')
             plt.xlabel('data')
