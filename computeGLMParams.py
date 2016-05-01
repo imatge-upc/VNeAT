@@ -8,7 +8,7 @@ from Processors.GLMProcessing import GLMProcessor as GLMP
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 
-filename_prefix = join('results', 'GLM', 'glm_test_')
+filename_prefix = join('results', 'GLM', 'glm_cubic_alone_intercept_')
 
 niiFile = nib.Nifti1Image
 

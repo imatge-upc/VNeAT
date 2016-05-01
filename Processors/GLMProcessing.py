@@ -43,6 +43,12 @@ class GLMProcessor(Processor):
 		GLM.PredictionIntercept
 	]
 
+	_glmprocessor_submodels_options_names = [
+		'Do not include this term in the system',
+		'As a corrector',
+		'As a predictor'
+	]
+
 	def _glmprocessor_compute_original_parameters(self, Gamma, Beta2):
 		'''Given an upper triangular matrix Gamma, and an arbitrary matrix Beta2, computes Beta such
 			that Beta2 = Gamma * Beta.
@@ -146,9 +152,9 @@ class GLMProcessor(Processor):
 			reg = 1
 			for _ in xrange(self._glmprocessor_degrees[i]):
 				reg *= preds[i]
-				if bool(self._glmprocessor_submodels[j]):
+				if self._glmprocessor_submodels[j] == 2:
 					predictors.append(reg.copy())
-				else:
+				elif self._glmprocessor_submodels[j] == 1:
 					correctors.append(reg.copy())
 				j += 1
 
@@ -241,10 +247,15 @@ class GLMProcessor(Processor):
 			reg = predictor_names[i]
 			if super(GLMProcessor, self).__getyesorno__(default_value = False, show_text = 'GLM Processor: Would you like to analyze a submodel of ' + str(reg) + ' instead of the full model? (Y/N, default N): '):
 				# TODO: create a __getmultipleyesorno__ method that allows to check that at least 1 has been selected
+				# TODO: create a __getmultipleoneof__ method that allows to check for arbitrary restrictions
 				for j in xrange(degrees[i]):
-					submodels.append(int(super(GLMProcessor, self).__getyesorno__(default_value = False, show_text = '    Should the power ' + str(j+1) + ' term be considered a predictor? (Y/N, default N): ')))
+					submodels.append(GLMProcessor._glmprocessor_submodels_options[super(GLMProcessor, self).__getoneof__(
+						GLMProcessor._glmprocessor_submodels_options_names,
+						default_value = GLMProcessor._glmprocessor_submodels_options_names[2],
+						show_text = 'How should the power ' + str(j+1) + ' term be included in the system? (default: ' + GLMProcessor._glmprocessor_submodels_options_names[2] + ')'
+					)])
 			else:
-				submodels += [int(True)]*degrees[i]
+				submodels += [2]*degrees[i]
 
 		return (intercept, perp_norm_option) + tuple(degrees) + tuple(submodels)
 
@@ -260,7 +271,7 @@ class GLMProcessor(Processor):
 			reg = 1
 			for _ in xrange(self._glmprocessor_degrees[i]):
 				reg *= preds[i]
-				if bool(self._glmprocessor_submodels[j]):
+				if self._glmprocessor_submodels[j] == 2:
 					predictors.append(reg.copy())
 				j += 1
 
@@ -304,6 +315,7 @@ class GLMProcessor(Processor):
 
 GLMProcessor._glmprocessor_perp_norm_options = {GLMProcessor._glmprocessor_perp_norm_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_perp_norm_options_names))}
 GLMProcessor._glmprocessor_intercept_options = {GLMProcessor._glmprocessor_intercept_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_intercept_options_names))}
+GLMProcessor._glmprocessor_submodels_options = {GLMProcessor._glmprocessor_submodels_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_submodels_options_names))}
 
 
 class PolyGLMProcessor(Processor):

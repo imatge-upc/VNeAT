@@ -5,12 +5,11 @@ import nibabel as nib
 import numpy as np
 from FitScores.FitEvaluation import fstat
 from Processors.GLMProcessing import GLMProcessor as GLMP
-from scipy.stats import norm
 
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 
-filename_prefix = join('results', 'GLM', 'glm_nonlinear_')
+filename_prefix = join('results', 'GLM', 'glm_cubic_intercept_')
 
 
 
