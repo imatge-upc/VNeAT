@@ -499,7 +499,7 @@ class PolyGLMProcessor(Processor):
 		return (self._pglmprocessor_intercept, self._pglmprocessor_perp_norm_option) + tuple(self._pglmprocessor_degrees)
 
 	def __read_user_defined_parameters__(self, predictor_names, corrector_names):
-		intercept = GLMProcessor._pglmprocessor_intercept_options[super(PolyGLMProcessor, self).__getoneof__(
+		intercept = PolyGLMProcessor._pglmprocessor_intercept_options[super(PolyGLMProcessor, self).__getoneof__(
 			PolyGLMProcessor._pglmprocessor_intercept_options_names,
 			default_value = PolyGLMProcessor._pglmprocessor_intercept_options_names[2],
 			show_text = 'PolyGLM Processor: How do you want to include the intercept term? (default: ' + PolyGLMProcessor._pglmprocessor_intercept_options_names[2] + ')'

@@ -6,7 +6,6 @@ from Utils.DataLoader import getGMData, getFeatures
 from Utils.Subject import Subject
 
 from Fitters.CurveFitting import CurveFitter
-from Fitters.GLM import PolyGLM as PGLM
 from Fitters.SVR import PolySVR as PSVR
 
 if __name__ == "__main__":
@@ -27,7 +26,7 @@ if __name__ == "__main__":
         # Get artificial data
         print("Getting artificial data...")
         X = np.sort(6 * np.random.rand(50, 1), axis=0)
-        y = 0.5 + X + 0.2*X ** 2
+        y = 0.5 + X + 0.8*X ** 2 - X ** 3
         y[::5] += 5 * (0.5 - np.random.rand(10, 1))
         y = np.atleast_2d(y)
 
@@ -56,8 +55,8 @@ if __name__ == "__main__":
 
 
     # Exploratory Grid Search
-    C_vals = [879]
-    epsilon_vals = [0.16]
+    C_vals = [10, 50, 100, 250, 316]
+    epsilon_vals = [0.163]
     n_jobs = 1
 
     for C in C_vals:
@@ -72,7 +71,6 @@ if __name__ == "__main__":
                 # Fit data
                 print("Fitting artificial data...")
                 artificial_svr.fit(y, C=C, epsilon=epsilon, n_jobs=n_jobs)
-
                 # Plot prediction
                 print("Plotting curves...")
                 plt.scatter(X, y, c='r', label='Original data')

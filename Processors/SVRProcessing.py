@@ -135,10 +135,10 @@ class PolySVRProcessor(Processor):
 
         # epsilon regularization parameter
         epsilon = super(PolySVRProcessor, self).__getfloat__(
-            default_value = 0.01,
+            default_value = 0.1,
             try_ntimes= 3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the epsilon-tube within which no penalty is associated in the training loss function (default: 0.01)'
+            show_text='PolySVR Processor: Please, enter the epsilon-tube within which no penalty is associated in the training loss function (default: 0.1)'
         )
 
         # Polynomial degrees

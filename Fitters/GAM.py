@@ -8,7 +8,7 @@ from scipy.interpolate import splev
 from warnings import warn
 from sklearn.linear_model import LinearRegression as LR
 from statsmodels.sandbox.nonparametric import kernels
-from nonlinear2.Fitters.CurveFitting import AdditiveCurveFitter
+from Fitters.CurveFitting import AdditiveCurveFitter
 
 
 class GAM(AdditiveCurveFitter):
