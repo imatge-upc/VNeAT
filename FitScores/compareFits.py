@@ -10,13 +10,13 @@ fscores = []
 
 # Files generated with GLM
 GLM_DIR = join('results', 'GLM')
-fscores.append(join(GLM_DIR, 'glm_linear_alone_aicscores.nii'))
-fscores.append(join(GLM_DIR, 'glm_nonlinear_alone_aicscores.nii'))
+fscores.append(join(GLM_DIR, 'glm_linear_fscores.nii'))
+fscores.append(join(GLM_DIR, 'glm_nonlinear_fscores.nii'))
 
 # Any other files? (Maximum allowed is 3)
 
 # Path and prefix for the output files
-filename_prefix = join('results', 'Bestfit', 'rgb', 'aic', 'linear_vs_nonlinear_')
+filename_prefix = join('results', 'Bestfit', 'rgb', 'fscores', 'linear_vs_nonlinear_alone_')
 
 
 
