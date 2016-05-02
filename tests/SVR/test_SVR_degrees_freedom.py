@@ -56,8 +56,8 @@ if __name__ == "__main__":
     # y = np.atleast_2d(y)
 
     # Exploratory Grid Search
-    C_vals = [316]
-    epsilon_vals = [0.168]
+    C_vals = [10, 100]
+    epsilon_vals = [0.1, 0.15, 0.5]
     n_jobs = 1
 
     for C in C_vals:
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             """ PART 1: ARTIFICIAL DATA """
             # Init Polynomial SVR fitters
             print("Creating SVR fitter for artificial data...")
-            fitter = SVR(kernel='rbf', gamma=0.5, C=C, epsilon=epsilon)
+            fitter = SVR(kernel='rbf', gamma=0.1, C=C, epsilon=epsilon)
             # Fit data
             print("Fitting artificial data...")
             fitter.fit(X, y)

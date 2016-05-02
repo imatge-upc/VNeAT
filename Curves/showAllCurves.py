@@ -23,8 +23,8 @@ from Processors.SVRProcessing import PolySVRProcessor as PSVRP
 fitters = [
 #     NAME       PROCESSOR  PATH                                                COLOR      MARKER
     ['Poly GLM', PGLMP,     join('..', 'results', 'PGLM', 'pglm_'),             '#8A5EB8', 'd'   ],
-    #['Poly GAM', GAMP,      join('..', 'results', 'PGAM', 'gam_poly_'),         '#FFFB69', 'x'   ],
-    ['Poly SVR', PSVRP,     join('..', 'results', 'PSVR', 'psvr_C316_eps0.163_'), '#B22918', '+'   ]
+    ['Poly GAM', GAMP,      join('..', 'results', 'PGAM', 'gam_poly_d3_'),         '#FFFB69', 'x'   ],
+    ['Poly SVR', PSVRP,     join('..', 'results', 'PSVR', 'psvr_C50_eps0.15_'), '#B22918', '+'   ]
 ]
 
 print 'Obtaining data from Excel file...'

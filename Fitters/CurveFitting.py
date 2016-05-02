@@ -985,7 +985,7 @@ def MixedFitter(correction_fitter_type, prediction_fitter_type):
 
 	class MixedFitter(CurveFitter):
 
-		def __init__(self, predictors = None, correctors = None, intercept = NoIntercept):
+		def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
 			self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors, intercept = intercept)
 			self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None, intercept = intercept)
 			self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors

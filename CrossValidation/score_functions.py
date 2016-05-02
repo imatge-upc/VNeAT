@@ -27,7 +27,7 @@ def mse(y_true, y_predicted, df):
     sum_SE = np.sum(np.square(y_predicted - y_true), axis=0)
     return sum_SE / N
 
-# def statisticC_p(y_true, y_predicted, N, df):
+# def statisticC_p(y_true, y_predicted, df):
 #     """
 #     Calculates the statistic Cp
 #     """
