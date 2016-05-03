@@ -276,28 +276,64 @@ class GaussianSVR(CurveFitter):
             intercept = 0
             training_examples = self.predictors
 
-        # Training data
-        N = training_examples.shape[0]
-
-        # Prediction function with gaussian kernel
-        num_variables = prediction_parameters.shape[1]
-        num_predictors = predictors.shape[0]
-        prediction = np.zeros((num_predictors, num_variables))
-        for i in range(num_predictors):
-            x = np.atleast_2d(predictors[i])
-            X_p = np.ones( (N, 1) ).dot(x)
-            x_norm = np.sum((X_p - training_examples)**2, axis=1)
-            exponential = np.exp(-self._svr_gamma*x_norm)
-            prediction[i, :] = prediction_parameters.T.dot(exponential)
-
-        return prediction + intercept
+        return self.__predict_from_params__(predictors, prediction_parameters,
+                                            intercept, training_examples)
 
     def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
-        # TODO
-        return np.zeros((correctors.shape[0], 1))
+        # Intercept term
+        if self._svr_intercept == self.CorrectionIntercept:
+            # Get intercept term as the last coefficient in pparams
+            intercept = correction_parameters[-1, :]
+            correction_parameters = correction_parameters[:-1,:]
+            # Get rid of the ones column for the intercept term
+            correctors = correctors[:, 1:]
+            training_examples = self.correctors[:, 1:]
+        else:
+            intercept = 0
+            training_examples = self.correctors
+
+        # Correction
+        correction = self.__predict_from_params__(correctors, correction_parameters,
+                                                  intercept, training_examples)
+
+        return observations - correction
 
 
+    def __predict_from_params__(self, test_data, params, intercept, training_data):
+        """
+        Using the parameters and the intercept (that can be 0) learned from learning,
+        and the training data used in the fitting process, predicts the values of test data
+        Parameters
+        ----------
+        test_data : numpy.array
+            Data to predict
+        params : numpy.array
+            Learned parameters
+        intercept : numpy.array or int
+            Intercept term (can be 0 if no intercept term was fitted)
+        training_data : numpy.array
+            Features used to train
 
+        Returns
+        -------
+        numpy.array
+            Predictions of test_data
+        """
+        # Training data
+        N = training_data.shape[0]
+
+        # Prediction function with gaussian kernel
+        num_variables = params.shape[1]
+        num_predictors = test_data.shape[0]
+        prediction = np.zeros((num_predictors, num_variables))
+        for i in range(num_predictors):
+            x = np.atleast_2d(test_data[i])
+            X_p = np.ones( (N, 1) ).dot(x)
+            x_norm = np.sum((X_p - training_data)**2, axis=1)
+            exponential = np.exp(-self._svr_gamma*x_norm)
+            prediction[i, :] = params.T.dot(exponential)
+
+        return prediction + intercept
 
 
 """ HELPER FUNCTIONS """

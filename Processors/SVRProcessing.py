@@ -12,27 +12,15 @@ class PolySVRProcessor(Processor):
     Processor for Polynomic Support Vector Regression
     """
     _psvrprocessor_perp_norm_options_names = [
-		'Orthonormalize all',
-		'Orthogonalize all',
 		'Normalize all',
-		'Orthonormalize predictor',
-		'Orthogonalize predictor',
 		'Normalize predictor',
-		'Orthonormalize correctors',
-		'Orthogonalize correctors',
 		'Normalize correctors',
 		'Use correctors and predictor as they are'
 	]
 
     _psvrprocessor_perp_norm_options_list = [
-        PolySVR.orthonormalize_all,
-        PolySVR.orthogonalize_all,
         PolySVR.normalize_all,
-        PolySVR.orthonormalize_predictors,
-        PolySVR.orthogonalize_predictors,
         PolySVR.normalize_predictors,
-        PolySVR.orthonormalize_correctors,
-        PolySVR.orthogonalize_correctors,
         PolySVR.normalize_correctors,
         lambda *args, **kwargs: zeros((0, 0))
     ]
@@ -121,16 +109,16 @@ class PolySVRProcessor(Processor):
         # Treat data option
         perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
 			PolySVRProcessor._psvrprocessor_perp_norm_options_names,
-			default_value = 'Orthonormalize all',
-			show_text = 'PolySVR Processor: How do you want to treat the features? (default: Orthonormalize all)'
+			default_value = 'Use correctors and predictor as they are',
+			show_text = 'PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
 		)]
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
-            default_value = 100.0,
+            default_value = 10.0,
             try_ntimes= 3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 100.0)'
+            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 10.0)'
         )
 
         # epsilon regularization parameter

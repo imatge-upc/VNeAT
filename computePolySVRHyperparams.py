@@ -21,8 +21,8 @@ if __name__ == "__main__":
     # C = 10 ** (4 * np.random.rand(20))
 
     # Create grid of hyperparams using linear and logscale
-    epsilon = np.linspace(0.16, 0.185, 5)
-    C = np.logspace(0.5, 2.5, 2)
+    epsilon = np.linspace(0.05, 0.1, 20)
+    C = np.logspace(0.5, 1, 10)
     grid_params = {
         'epsilon': list(epsilon),
         'C': list(C)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     gs = GridSearch(fitter=psvr)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=50, degrees_of_freedom=df_f.df_SVR,
+    gs.fit(grid_parameters=grid_params, N=1, m=200, degrees_of_freedom=df_f.df_SVR,
            score=score_f.mse, saveAllScores=True, filename="psvr_scores_hyperparams")
 
     # Plot error

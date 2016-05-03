@@ -8,7 +8,7 @@ if __name__ == "__main__":
     # Get artificial data
     print("Getting artificial data...")
     X = np.sort(5 * (np.random.rand(100, 1) - 0.5), axis=0)
-    y1 = X + np.exp(X * np.sin(X)) + 2 * X
+    y1 = X + np.exp(X * np.sin(X))
     y2 = X ** 3 - X**2 + 0.5*X
     y1 += 1.5 * np.random.randn(100, 1)
     y2 += 2.5 * np.random.randn(100, 1)
@@ -38,11 +38,14 @@ if __name__ == "__main__":
                 # Fit data
                 print("Fitting artificial data...")
                 fitter.fit(Y, C=C, epsilon=epsilon, gamma=gamma)
+                # Correct
+                corr_Y = fitter.correct(Y)
                 # Predict
                 predicted = fitter.predict()
                 # Plot prediction
                 print("Plotting curves for first variable Y1...")
-                plt.scatter(X, Y[:, 0], c='r', label='Original data in dimension 1')
+                plt.scatter(X, Y[:, 0], c='r', label='Original data')
+                plt.scatter(X, corr_Y[:, 0], c='g', label='Corrected data')
                 plt.plot(X, predicted[:, 0], c='b', label='Poly SVR prediction')
                 plt.xlabel('data')
                 plt.ylabel('target')
@@ -50,7 +53,8 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.show()
                 print("Plotting curves ifor second variable Y2...")
-                plt.scatter(X, Y[:, 1], c='r', label='Original data in dimension 1')
+                plt.scatter(X, Y[:, 1], c='r', label='Original data')
+                plt.scatter(X, corr_Y[:, 1], c='g', label='Corrected data')
                 plt.plot(X, predicted[:, 1], c='b', label='Poly SVR prediction')
                 plt.xlabel('data')
                 plt.ylabel('target')
