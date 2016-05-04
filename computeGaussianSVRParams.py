@@ -16,6 +16,7 @@ if __name__ == "__main__":
     gsvrp = GSVRP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters=udp)
 
     print 'Processing data...'
+    # x1=20, x2=21, y1=20, y2=21, z1=20, z2=21,
     results = gsvrp.process(n_jobs=4, mem_usage=256)
     C = gsvrp.user_defined_parameters[2]
     epsilon = gsvrp.user_defined_parameters[3]

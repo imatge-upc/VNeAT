@@ -96,20 +96,6 @@ class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
     def __init__(self, features, predictors = None, degrees = None, intercept = CurveFitter.NoIntercept):
-        """
-
-        Parameters
-        ----------
-        features NxF (2-dimensional) matrix
-        predictors int / iterable object (default None)
-        degrees iterable of F elements (default None)
-        intercept bool (default True)
-
-        Returns
-        -------
-
-        """
-
         # Check features matrix
         self._svr_features = np.array(features)
         if len(self._svr_features.shape) != 2:
@@ -188,31 +174,32 @@ class PolySVR(LinSVR):
 
 
 class GaussianSVR(CurveFitter):
-    """ Support Vector Regression fitter with Gaussian Kernel """
+    """ GAUSSIAN SVR """
 
-    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
+    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept,
+                 C=100, epsilon=0.1, gamma=0.5):
         self._svr_intercept = intercept
+        self._svr_C = C
+        self._svr_epsilon = epsilon
+        self._svr_gamma = gamma
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
         super(GaussianSVR, self).__init__(predictors, correctors, intercept)
 
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         # Parameters for SVR training
-        C = kwargs['C'] if 'C' in kwargs else 100.0
-        epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
-        gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.5
+        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
+        self._svr_gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.5
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         cache_size = kwargs['cache_size'] if 'cache_size' in kwargs else 1000
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = SVR(kernel='rbf', gamma=gamma, tol=tol, C=C, epsilon=epsilon,
-                         cache_size=cache_size, max_iter=max_iter)
+        svr_fitter = SVR(kernel='rbf', C=self._svr_C, epsilon=self._svr_epsilon, gamma=self._svr_gamma,
+                         tol=tol, cache_size=cache_size, max_iter=max_iter)
         num_variables = observations.shape[1]
-
-        # Save gamma for prediction
-        self._svr_gamma = svr_fitter.__getattribute__('gamma')
 
         # Intercept handling
         predictor_intercept = self._svr_intercept == AdditiveCurveFitter.PredictionIntercept

@@ -196,7 +196,9 @@ class GaussianSVRProcessor(Processor):
         intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options_list[self._gsvrprocessor_intercept]
 
         # Instantiate a Gaussian SVR
-        gsvr = GaussianSVR(self.predictors, self.correctors, intercept)
+        gsvr = GaussianSVR(self.predictors, self.correctors, intercept,
+                           C=self._gsvrprocessor_C, epsilon=self._gsvrprocessor_epsilon,
+                           gamma=self._gsvrprocessor_gamma)
         treat_data(gsvr)
         return gsvr
 
