@@ -256,8 +256,6 @@ class GaussianSVR(CurveFitter):
             # Get intercept term as the last coefficient in pparams
             intercept = prediction_parameters[-1, :]
             prediction_parameters = prediction_parameters[:-1,:]
-            # Get rid of the ones column for the intercept term
-            predictors = predictors[:, 1:]
             training_examples = self.predictors[:, 1:]
         else:
             intercept = 0
@@ -272,8 +270,6 @@ class GaussianSVR(CurveFitter):
             # Get intercept term as the last coefficient in pparams
             intercept = correction_parameters[-1, :]
             correction_parameters = correction_parameters[:-1,:]
-            # Get rid of the ones column for the intercept term
-            correctors = correctors[:, 1:]
             training_examples = self.correctors[:, 1:]
         else:
             intercept = 0

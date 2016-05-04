@@ -96,10 +96,8 @@ class GridSearch(object):
         # Check number of parameters for error plotting
         if len(self._param_names) <= 0:
             raise Exception("There are no parameters to optimize")
-        elif len(self._param_names) == 1:
-            self._num_params = 1
         else:
-            self._num_params = 2
+            self._num_params = len(self._param_names)
 
         # Save all scores variable (if required)
         if saveAllScores:
@@ -266,3 +264,6 @@ class GridSearch(object):
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
             plot.show()
+        else:
+            print
+            print "Cannot draw the error curve or surface as there are more than 2 parameters"
