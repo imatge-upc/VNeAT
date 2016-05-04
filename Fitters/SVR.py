@@ -200,7 +200,7 @@ class GaussianSVR(CurveFitter):
         # Parameters for SVR training
         C = kwargs['C'] if 'C' in kwargs else 100.0
         epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
-        gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.25
+        gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.5
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         cache_size = kwargs['cache_size'] if 'cache_size' in kwargs else 1000

@@ -17,9 +17,9 @@ if __name__ == "__main__":
     Y[:, 1] = np.ravel(y2)
 
     # Exploratory Grid Search
-    C_vals = [10, 100]
+    C_vals = [10, 50]
     epsilon_vals = [0.1, 0.25]
-    gamma_vals = [0.1, 0.2, 0.5]
+    gamma_vals = [0.1, 0.25]
     n_jobs = 1
 
     for C in C_vals:
