@@ -16,27 +16,27 @@ if __name__ == "__main__":
     # Creat PolySVR instance
     gsvr = GaussianSVR(predictors=predictors, correctors=None,
                        intercept=AdditiveCurveFitter.PredictionIntercept,
-                       C=1000)
+                       gamma=0.25)
 
     # Create grid of hyperparams using uniform random sampling
     # epsilon = 1e-3 + (0.5 - 1e-3) * np.random.rand(20)
     # C = 10 ** (4 * np.random.rand(20))
 
     # Create grid of hyperparams using linear and logscale
-    epsilon = np.linspace(0.01, 0.2, 20)
-    gamma = np.linspace(0.1, 1.5, 15)
-    # C = np.logspace(2, 3, 2)
+    epsilon = np.linspace(0.05, 0.5, 10)
+    # gamma = np.linspace(0.1, 1.5, 15)
+    C = np.logspace(0.5, 3, 10)
     grid_params = {
         'epsilon': list(epsilon),
-        'gamma': list(gamma),
-        # 'C': list(C)
+        # 'gamma': list(gamma),
+        'C': list(C)
     }
 
     # Create GridSearch instance
     gs = GridSearch(fitter=gsvr)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=2, m=200, degrees_of_freedom=df_f.df_SVR,
+    gs.fit(grid_parameters=grid_params, N=1, m=1000, degrees_of_freedom=df_f.df_SVR,
            score=score_f.mse, saveAllScores=True, filename="gsvr_gamma_vs_epsilon")
 
     # Save results

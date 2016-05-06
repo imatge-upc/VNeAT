@@ -56,46 +56,49 @@ if __name__ == "__main__":
     # y = np.atleast_2d(y)
 
     # Exploratory Grid Search
-    C_vals = [10, 100]
-    epsilon_vals = [0.1, 0.15, 0.5]
+    C_vals = [10000]
+    epsilon_vals = [0.07]
+    gamma_vals = [1]
     n_jobs = 1
 
     for C in C_vals:
         for epsilon in epsilon_vals:
+            for gamma in gamma_vals:
 
-            print("PARAMS: ")
-            print("C --> " + str(C))
-            print("epsilon --> " + str(epsilon))
+                print("PARAMS: ")
+                print("C --> " + str(C))
+                print("epsilon --> " + str(epsilon))
+                print("gamma --> " + str(gamma))
 
-            """ PART 1: ARTIFICIAL DATA """
-            # Init Polynomial SVR fitters
-            print("Creating SVR fitter for artificial data...")
-            fitter = SVR(kernel='rbf', gamma=0.1, C=C, epsilon=epsilon)
-            # Fit data
-            print("Fitting artificial data...")
-            fitter.fit(X, y)
-            # Predict
-            predicted = fitter.predict(X)
-            # Compute degrees of freedom
-            df = effective_df(X, y, fitter)
-            print "Degrees of freedom: " + str(df)
-            # Plot prediction
-            print("Plotting curves in dimension 1...")
-            plt.scatter(X[:, 0], y, c='r', label='Original data in dimension 1')
-            plt.plot(X[:, 0], predicted, c='b', label='Poly SVR prediction')
-            plt.xlabel('data')
-            plt.ylabel('target')
-            plt.title('Polynomial Support Vector Regression')
-            plt.legend()
-            plt.show()
-            print("Plotting curves in dimension 2...")
-            plt.scatter(X[:, 1], y, c='r', label='Original data in dimension 1')
-            plt.plot(X[:, 1], predicted, c='b', label='Poly SVR prediction')
-            plt.xlabel('data')
-            plt.ylabel('target')
-            plt.title('Polynomial Support Vector Regression')
-            plt.legend()
-            plt.show()
+                """ PART 1: ARTIFICIAL DATA """
+                # Init Polynomial SVR fitters
+                print("Creating SVR fitter for artificial data...")
+                fitter = SVR(kernel='rbf', gamma=gamma, C=C, epsilon=epsilon)
+                # Fit data
+                print("Fitting artificial data...")
+                fitter.fit(X, y)
+                # Predict
+                predicted = fitter.predict(X)
+                # Compute degrees of freedom
+                df = effective_df(X, y, fitter)
+                print "Degrees of freedom: " + str(df)
+                # Plot prediction
+                print("Plotting curves in dimension 1...")
+                plt.scatter(X[:, 0], y, c='r', label='Original data in dimension 1')
+                plt.plot(X[:, 0], predicted, c='b', label='Poly SVR prediction')
+                plt.xlabel('data')
+                plt.ylabel('target')
+                plt.title('Polynomial Support Vector Regression')
+                plt.legend()
+                plt.show()
+                print("Plotting curves in dimension 2...")
+                plt.scatter(X[:, 1], y, c='r', label='Original data in dimension 1')
+                plt.plot(X[:, 1], predicted, c='b', label='Poly SVR prediction')
+                plt.xlabel('data')
+                plt.ylabel('target')
+                plt.title('Polynomial Support Vector Regression')
+                plt.legend()
+                plt.show()
 
 
 

@@ -25,7 +25,8 @@ fitters = [
     ['Poly GLM',    PGLMP,     join('..', 'results', 'PGLM', 'pglm_'),                      '#8A5EB8', 'd'   ],
     ['Poly GAM',    GAMP,      join('..', 'results', 'PGAM', 'gam_poly_d3_'),               '#FFFB69', 'x'   ],
     ['Poly SVR',    PSVRP,     join('..', 'results', 'PSVR', 'psvr_C3_eps0.08_'),           '#B22918', '+'   ],
-    #['Gaussian SVR',GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C10.0_eps0.1_gamma0.2_'),'#FF29B8', 'd'   ]
+    ['Gaussian SVR',GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C10.0_eps0.1_gamma0.2_'),'#FF29B8', '+'   ],
+    # ['GSVR2',       GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C1000_eps0.07_gamma1_'), '#8AA769', 'x'   ]
 ]
 
 print 'Obtaining data from Excel file...'

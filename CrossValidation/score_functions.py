@@ -27,16 +27,19 @@ def mse(y_true, y_predicted, df):
     sum_SE = np.sum(np.square(y_predicted - y_true), axis=0)
     return sum_SE / N
 
-# def statisticC_p(y_true, y_predicted, df):
-#     """
-#     Calculates the statistic Cp
-#     """
-#     # Caculate the training error (err) assuming a L2 loss
-#     err = mse(y_true, y_predicted, N)
-#
-#     # Get the effective degrees of freedom
-#     df = fitter.degrees_of_freedom()
-#
-#     # Compute Cp statistic
-#     return err + (2.0 / N)*df
+def statisticC_p(y_true, y_predicted, df):
+    """
+    Calculates the statistic Cp
+    """
+    N = y_true.shape[0]
+
+    # Caculate the training error (err) assuming a L2 loss
+    err = mse(y_true, y_predicted, df)
+
+    # Estimate the error variance
+    eps = y_true - y_predicted
+    eps_var = (1 / (N-1)) * (eps - np.mean(eps)).dot(eps - np.mean(eps))
+
+    # Compute Cp statistic
+    return err + (2.0 / N)*df*eps_var
 
