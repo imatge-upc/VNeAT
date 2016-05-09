@@ -136,6 +136,13 @@ class GAM(AdditiveCurveFitter):
                                 self.__code_parameters(self.corrector_smoothers))),
                 self.__code_parameters(self.predictor_smoothers))
 
+    def df_model(self):
+        df = []
+        for smoother in self.predictor_smoothers:
+            df.append(smoother.df_model())
+
+        return df
+
 
 class SmootherSet(list):
     def __init__(self, smoothers=None):
@@ -201,10 +208,13 @@ class SplinesSmoother(Smoother):
         #     """
         #     Degrees of freedom used in the fit.
         #     """
-        eye = np.identity(self.xdata.shape[0])
-        smoother_matrix = np.zeros((self.xdata.shape[0]))
-        for vector,index in enumerate(eye):
-            vector_response = self.predict(vector)
+        p=self.xdata.shape[0]
+        eye = np.identity(p)
+        smoother_matrix = np.zeros((p,p))
+        for index, vector in enumerate(eye):
+            spline = UnivariateSpline(self.xdata, vector, k=self.order, s=self.smoothing_factor,
+                                      w=1  * np.ones(len(vector)))
+            vector_response = spline(self.xdata)
             smoother_matrix[:,index] = vector_response
 
         return np.trace(smoother_matrix)
@@ -224,7 +234,7 @@ class SplinesSmoother(Smoother):
         if ydata.ndim == 1:
             ydata = ydata[:, None]
         spline = UnivariateSpline(self.xdata, ydata, k=self.order, s=self.smoothing_factor,
-                                  w=1 / max(ydata) * np.ones(len(ydata)))
+                                  w=1 / (max(ydata) * np.sqrt(len(ydata))) * np.ones(len(ydata)))
         self.spline_parameters = spline._eval_args  # spline.get_knots(),spline.get_coeffs(),self.order
 
     def predict(self, xdata=None, spline_parameters=None):

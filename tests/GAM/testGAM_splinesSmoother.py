@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
 sys.path.insert(1,'/Users/acasamitjana/Repositories/neuroimatge/nonlinear2')
-from nonlinear2.Fitters.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
+from Fitters.GAM import GAM, SmootherSet, SplinesSmoother, PolynomialSmoother
 import numpy as np
 import numpy.random as R
 # import matplotlib
@@ -30,7 +30,7 @@ y += z
 regressor_smoother=SmootherSet()
 corrector_smoother=SmootherSet()
 # regressor_smoother.append(PolynomialSmoother(t1,order=2))
-regressor_smoother.append(SplinesSmoother(t2,order=5,smoothing_factor=1))
+regressor_smoother.append(SplinesSmoother(t2,order=5,smoothing_factor=0.1))
 # regressor_smoother.append(PolynomialSmoother(x3,order=2))
 
 gam=GAM(corrector_smoothers = corrector_smoother,predictor_smoothers=regressor_smoother)
@@ -46,18 +46,19 @@ plt.plot(y_pred_r, 'r-', label='AdditiveModel')
 plt.legend()
 plt.title('gam.AdditiveModel')
 plt.show()
-reg_params=gam.regression_parameters
+reg_params=gam.prediction_parameters
 indx_smthr = 0
 
 plt.figure()
 plt.subplot(2,1,1)
 plt.plot(np.sort(t1),standarize(y-gam.alpha),'k.')
-plt.plot(np.sort(t1), standarize(gam.predict(gam.regressors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
+plt.plot(np.sort(t1), standarize(gam.predict(gam.predictors[:,0][...,None],reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),
          'r-', label='AdditiveModel')
 plt.plot(np.sort(t1), standarize(f1(t1)),'b-',label='true', linewidth=2)
 plt.legend()
+plt.title(gam.df_model())
 
-plt.subplot(2,1,2)
+# plt.subplot(2,1,2)
 # plt.plot(t2, standarize(y-gam.alpha-f1(t1)),'k.')
 # plt.plot(t2, standarize(y-gam.predict(gam.regressors[:,0][...,None],
 #                                                 reg_params[indx_smthr:indx_smthr+2+reg_params[indx_smthr+1]])),'g.')
