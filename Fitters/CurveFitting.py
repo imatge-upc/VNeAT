@@ -5,1030 +5,1253 @@ import numpy as np
 from Utils.Documentation import docstring_inheritor
 
 
-
 class abstractstatic(staticmethod):
-	__slots__ = ()
-	__isabstractmethod__ = True
+    __slots__ = ()
+    __isabstractmethod__ = True
 
-	def __init__(self, function):
-		super(abstractstatic, self).__init__(function)
-		function.__isabstractmethod__ = True
+    def __init__(self, function):
+        super(abstractstatic, self).__init__(function)
+        function.__isabstractmethod__ = True
 
 
 class CurveFitter(object):
-	'''Abstract class that implements the framework to develop curve fitting algorithms.
-	'''
-	__metaclass__ = docstring_inheritor(ABCMeta)
-	__threshold = (1e-14 ** 2)
-
-	NoIntercept = 0
-	CorrectionIntercept = 1
-	PredictionIntercept = 2
-
-
-	def __init__(self, predictors=None, correctors=None, intercept=NoIntercept):
-		'''[Constructor]
-
-			Parameters:
-
-				- predictors: NxR (2-dimensional) matrix (default None), representing the predictors,
-					i.e., features to be used to try to explain/predict some observations (experimental
-					data), where R is the number of predictors and N the number of elements for each
-					predictor.
-
-				- correctors: NxC (2-dimensional) matrix (default None), representing the covariates,
-					i.e., features that (may) explain a part of the observational data in which we are
-					not interested, where C is the number of correctors and N the number of elements
-					for each corrector (the latter must be the same as that in the 'predictors' argu-
-					ment).
-
-				- intercept: one of CurveFitter.NoIntercept, CurveFitter.PredictionIntercept or
-					CurveFitter.CorrectionIntercept (default CurveFitter.NoIntercept), indicating whether
-					the intercept (a.k.a. homogeneous term) must be incorporated to the model or not, and
-					if so, wheter it must be as a predictor or a corrector. In the last two cases, a column
-					of ones will be added as the first column (feature) of the internal predictors/correctors
-					matrix. Please notice that, if the matrix to which the columns of ones must precede
-					does not have any elements, then this parameter will have no effect.
-		'''
-
-		if not predictors is None:
-			predictors = np.array(predictors, dtype=np.float64)
-
-			if len(predictors.shape) != 2:
-				raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
-
-		if not correctors is None:
-			correctors = np.array(correctors, dtype=np.float64)
-
-			if len(correctors.shape) != 2:
-				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix (or None)')
-
-		if predictors is None:
-			if correctors is None:
-				self._crvfitter_correctors = np.zeros((0, 0))
-				self._crvfitter_predictors = np.zeros((0, 0))
-			else:
-				if intercept == CurveFitter.PredictionIntercept:
-					self._crvfitter_correctors = correctors
-					self._crvfitter_predictors = np.ones((self._crvfitter_correctors.shape[0], 1))
-				else:
-					self._crvfitter_predictors = np.zeros((correctors.shape[0], 0))
-					if intercept == CurveFitter.CorrectionIntercept:
-						self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
-					else:
-						self._crvfitter_correctors = correctors
-
-		else:
-			if correctors is None:
-				if intercept == CurveFitter.CorrectionIntercept:
-					self._crvfitter_predictors = predictors
-					self._crvfitter_correctors = np.ones((self._crvfitter_predictors.shape[0], 1))
-				else:
-					self._crvfitter_correctors = np.zeros((predictors.shape[0], 0))
-					if intercept == CurveFitter.PredictionIntercept:
-						self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
-					else:
-						self._crvfitter_predictors = predictors
-			else:
-				if correctors.shape[0] != predictors.shape[0]:
-					raise ValueError('Correctors and predictors must have the same number of samples (same length in the first dimension)')
-
-				if intercept == CurveFitter.CorrectionIntercept:
-					self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
-					self._crvfitter_predictors = predictors
-				elif intercept == CurveFitter.PredictionIntercept:
-					self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
-					self._crvfitter_correctors = correctors
-				else:
-					self._crvfitter_correctors = correctors
-					self._crvfitter_predictors = predictors
-
-		C = self._crvfitter_correctors.shape[1]
-		R = self._crvfitter_predictors.shape[1]
-		self._crvfitter_correction_parameters = np.zeros((C, 0))
-		self._crvfitter_prediction_parameters = np.zeros((R, 0))
-
-	@property
-	def correctors(self):
-		'''Matrix of shape (N, C), representing the correctors of the model.
-		'''
-		return self._crvfitter_correctors.copy()
-
-	@property
-	def predictors(self):
-		'''Matrix of shape (N, R), representing the predictors of the model.
-		'''
-		return self._crvfitter_predictors.copy()
+    """Abstract class that implements the framework to develop curve fitting algorithms."""
+    __metaclass__ = docstring_inheritor(ABCMeta)
+    __threshold = (1e-14 ** 2)
+
+    NoIntercept = 0
+    CorrectionIntercept = 1
+    PredictionIntercept = 2
+
+    def __init__(self, predictors=None, correctors=None, intercept=NoIntercept):
+        """[Constructor]
+
+            Parameters:
+
+                - predictors: NxR (2-dimensional) matrix (default None), representing the predictors,
+                    i.e., features to be used to try to explain/predict some observations (experimental
+                    data), where R is the number of predictors and N the number of elements for each
+                    predictor.
+
+                - correctors: NxC (2-dimensional) matrix (default None), representing the covariates,
+                    i.e., features that (may) explain a part of the observational data in which we are
+                    not interested, where C is the number of correctors and N the number of elements
+                    for each corrector (the latter must be the same as that in the 'predictors' argu-
+                    ment).
+
+                - intercept: one of CurveFitter.NoIntercept, CurveFitter.PredictionIntercept or
+                    CurveFitter.CorrectionIntercept (default CurveFitter.NoIntercept), indicating whether
+                    the intercept (a.k.a. homogeneous term) must be incorporated to the model or not, and
+                    if so, wheter it must be as a predictor or a corrector. In the last two cases, a column
+                    of ones will be added as the first column (feature) of the internal predictors/correctors
+                    matrix. Please notice that, if the matrix to which the columns of ones must precede
+                    does not have any elements, then this parameter will have no effect.
+        """
+
+        if not predictors is None:
+            predictors = np.array(predictors, dtype=np.float64)
+
+            if len(predictors.shape) != 2:
+                raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
+
+        if not correctors is None:
+            correctors = np.array(correctors, dtype=np.float64)
+
+            if len(correctors.shape) != 2:
+                raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix (or None)')
+
+        if predictors is None:
+            if correctors is None:
+                self._crvfitter_correctors = np.zeros((0, 0))
+                self._crvfitter_predictors = np.zeros((0, 0))
+            else:
+                if intercept == CurveFitter.PredictionIntercept:
+                    self._crvfitter_correctors = correctors
+                    self._crvfitter_predictors = np.ones((self._crvfitter_correctors.shape[0], 1))
+                else:
+                    self._crvfitter_predictors = np.zeros((correctors.shape[0], 0))
+                    if intercept == CurveFitter.CorrectionIntercept:
+                        self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
+                    else:
+                        self._crvfitter_correctors = correctors
+
+        else:
+            if correctors is None:
+                if intercept == CurveFitter.CorrectionIntercept:
+                    self._crvfitter_predictors = predictors
+                    self._crvfitter_correctors = np.ones((self._crvfitter_predictors.shape[0], 1))
+                else:
+                    self._crvfitter_correctors = np.zeros((predictors.shape[0], 0))
+                    if intercept == CurveFitter.PredictionIntercept:
+                        self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
+                    else:
+                        self._crvfitter_predictors = predictors
+            else:
+                if correctors.shape[0] != predictors.shape[0]:
+                    raise ValueError('Correctors and predictors must have the same number of samples (same length in the first dimension)')
+
+                if intercept == CurveFitter.CorrectionIntercept:
+                    self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
+                    self._crvfitter_predictors = predictors
+                elif intercept == CurveFitter.PredictionIntercept:
+                    self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
+                    self._crvfitter_correctors = correctors
+                else:
+                    self._crvfitter_correctors = correctors
+                    self._crvfitter_predictors = predictors
+
+        C = self._crvfitter_correctors.shape[1]
+        R = self._crvfitter_predictors.shape[1]
+        self._crvfitter_correction_parameters = np.zeros((C, 0))
+        self._crvfitter_prediction_parameters = np.zeros((R, 0))
+
+    @property
+    def correctors(self):
+        """Matrix of shape (N, C), representing the correctors of the model.
+        """
+        return self._crvfitter_correctors.copy()
+
+    @property
+    def predictors(self):
+        """Matrix of shape (N, R), representing the predictors of the model.
+        """
+        return self._crvfitter_predictors.copy()
 
-	@property
-	def features(self):
-		'''Matrix of shape (N, C+R), representing the features (correctors and predictors) of the model.
-			Note: do not modify the result (use its copy method if you need to treat this data).
-		'''
-		return np.array(list(self._crvfitter_correctors.T) + list(self._crvfitter_predictors.T)).T.copy()
-
-	@property
-	def correction_parameters(self):
-		'''Array-like structure of shape (Kc, X1, ..., Xn), representing the correction parameters for which
-			the correctors best explain the observational data passed as argument in the last call to 'fit',
-			where Kc is the number of parameters for each variable in such observations, and X1, ..., Xn are
-			the dimensions of the 'observations' argument in the last call to 'fit' (there are X1*...*Xn
-			variables).
-		'''
-		return self._crvfitter_correction_parameters.copy().reshape(-1, *self._crvfitter_dims)
+    @property
+    def features(self):
+        """Matrix of shape (N, C+R), representing the features (correctors and predictors) of the model.
+            Note: do not modify the result (use its copy method if you need to treat this data).
+        """
+        return np.array(list(self._crvfitter_correctors.T) + list(self._crvfitter_predictors.T)).T.copy()
 
-	@property
-	def prediction_parameters(self):
-		'''Array-like structure of shape (Kr, X1, ..., Xn), representing the prediction parameters for which
-			the predictors best explain the observational data passed as argument in the last call to 'fit',
-			where Kr is the number of parameters for each variable in such observations, and X1, ..., Xn are
-			the dimensions of the 'observations' argument in the last call to 'fit' (there are X1*...*Xn
-			variables).
-		'''
-		return self._crvfitter_prediction_parameters.copy().reshape(-1, *self._crvfitter_dims)
+    @property
+    def correction_parameters(self):
+        """Array-like structure of shape (Kc, X1, ..., Xn), representing the correction parameters for which
+            the correctors best explain the observational data passed as argument in the last call to 'fit',
+            where Kc is the number of parameters for each variable in such observations, and X1, ..., Xn are
+            the dimensions of the 'observations' argument in the last call to 'fit' (there are X1*...*Xn
+            variables).
+        """
+        return self._crvfitter_correction_parameters.copy().reshape(-1, *self._crvfitter_dims)
 
-	def orthogonalize_correctors(self):
-		'''Orthogonalizes each corrector in the structure w.r.t. all the previous np.ones. That is, for each
-			column in the correctors matrix, its projection over the previous columns is computed and sub-
-			tracted from it.
-
-			Modifies:
-
-				- Correctors: each column has been orthogonalized with respect to the previous np.ones.
+    @property
+    def prediction_parameters(self):
+        """Array-like structure of shape (Kr, X1, ..., Xn), representing the prediction parameters for which
+            the predictors best explain the observational data passed as argument in the last call to 'fit',
+            where Kr is the number of parameters for each variable in such observations, and X1, ..., Xn are
+            the dimensions of the 'observations' argument in the last call to 'fit' (there are X1*...*Xn
+            variables).
+        """
+        return self._crvfitter_prediction_parameters.copy().reshape(-1, *self._crvfitter_dims)
 
-			Returns:
-
-				- Deorthogonalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
-					original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
-					is, given the original 'correctors' matrix, OC, and the new, orthogonalized 'correctors'
-					matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
-		'''
+    def orthogonalize_correctors(self):
+        """Orthogonalizes each corrector in the structure w.r.t. all the previous np.ones. That is, for each
+            column in the correctors matrix, its projection over the previous columns is computed and sub-
+            tracted from it.
+
+            Modifies:
 
-		# Original 'correctors' matrix:
-		# 	V = ( v_1 | v_2 | ... | v_C )
+                - Correctors: each column has been orthogonalized with respect to the previous np.ones.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+            Returns:
 
-		# New 'correctors' matrix (orthonormalized):
-		#	U = ( u_1 | u_2 | ... | u_C )
+                - Deorthogonalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
+                    original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
+                    is, given the original 'correctors' matrix, OC, and the new, orthogonalized 'correctors'
+                    matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
+        """
 
-		# Deorthogonalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< u_i, v_j > / < u_i, u_i >,	if i < j
-		#	 		1,								if i = j
-		#	 		0,								if i > j
+        # Original 'correctors' matrix:
+        # 	V = ( v_1 | v_2 | ... | v_C )
 
-		C = self._crvfitter_correctors.shape[1]
-		D = np.zeros((C, C))  # D[i, j] = 0, if i > j
-		if (C == 0):
-			return D
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
 
-		threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
+        # New 'correctors' matrix (orthonormalized):
+        #	U = ( u_1 | u_2 | ... | u_C )
 
-		for i in xrange(C - 1):
-			D[i, i] = 1.0  # D[i, j] = 1, if i = j
+        # Deorthogonalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< u_i, v_j > / < u_i, u_i >,	if i < j
+        #	 		1,								if i = j
+        #	 		0,								if i > j
 
-			u_i = self._crvfitter_correctors[:, i]
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
+        C = self._crvfitter_correctors.shape[1]
+        D = np.zeros((C, C))  # D[i, j] = 0, if i > j
+        if (C == 0):
+            return D
 
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
-				# work, hopefully with a small enough precision error)
-				continue
+        threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, C):  # for j > i
-				v_j = self._crvfitter_correctors[:, j]
+        for i in xrange(C - 1):
+            D[i, i] = 1.0  # D[i, j] = 1, if i = j
 
-				D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
+            u_i = self._crvfitter_correctors[:, i]
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
 
-		D[-1, -1] = 1.0  # D[i, j] = 1, if i = j
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+                # work, hopefully with a small enough precision error)
+                continue
 
-		return D
+            for j in xrange(i + 1, C):  # for j > i
+                v_j = self._crvfitter_correctors[:, j]
 
-	def normalize_correctors(self):
-		'''Normalizes the energy of each corrector (the magnitude of each feature interpreted as a vector,
-			that is, the magnitude of each column of the internal correctors matrix).
+                D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
 
-			Modifies:
+        D[-1, -1] = 1.0  # D[i, j] = 1, if i = j
 
-				- Correctors: each column has been normalized to have unit magnitude.
+        return D
 
-			Returns:
+    def normalize_correctors(self):
+        """Normalizes the energy of each corrector (the magnitude of each feature interpreted as a vector,
+            that is, the magnitude of each column of the internal correctors matrix).
 
-				- Denormalization matrix: A CxC (2-dimensional) diagonal matrix that yields the original
-					'correctors' matrix when right-multiplied with the new 'correctors' matrix. That is,
-					given the original 'correctors' matrix, OC, and the new, normalized 'correctors' matrix,
-					NC, the return value is a diagonal matrix D such that OC = NC x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'correctors' matrix:
-		#	V = ( v_1 | v_2 | ... | v_C )
+                - Correctors: each column has been normalized to have unit magnitude.
 
-		# Normalization:
-		#	u_j = v_j / ||v_j||
+            Returns:
 
-		# New 'correctors' matrix (normalized):
-		#	U = ( u_1 | u_2 | ... | u_C )
+                - Denormalization matrix: A CxC (2-dimensional) diagonal matrix that yields the original
+                    'correctors' matrix when right-multiplied with the new 'correctors' matrix. That is,
+                    given the original 'correctors' matrix, OC, and the new, normalized 'correctors' matrix,
+                    NC, the return value is a diagonal matrix D such that OC = NC x D (matrix multiplication).
+        """
 
-		# Deorthogonalization matrix (diagonal):
-		#	D[i, j] =
-		#	 		||u_i||,	if i = j
-		#	 		0,			if i != j
+        # Original 'correctors' matrix:
+        #	V = ( v_1 | v_2 | ... | v_C )
 
-		C = self._crvfitter_correctors.shape[1]
-		D = np.zeros((C, C))  # D[i, j] = 0, if i != j
+        # Normalization:
+        #	u_j = v_j / ||v_j||
 
-		threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
+        # New 'correctors' matrix (normalized):
+        #	U = ( u_1 | u_2 | ... | u_C )
 
-		for i in xrange(C):
-			u_i = self._crvfitter_correctors[:, i]
-			norm_sq = u_i.dot(u_i)
-			if norm_sq >= threshold:
-				D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
-				u_i /= D[i, i]  # Normalization
-			elif norm_sq != 0.0:
-				u_i[:] = 0.0
+        # Deorthogonalization matrix (diagonal):
+        #	D[i, j] =
+        #	 		||u_i||,	if i = j
+        #	 		0,			if i != j
 
-		return D
+        C = self._crvfitter_correctors.shape[1]
+        D = np.zeros((C, C))  # D[i, j] = 0, if i != j
 
-	def orthonormalize_correctors(self):
-		'''Orthogonalizes each corrector with respect to all the previous np.ones, and normalizes the results.
-			This is equivalent to applying orthogonalize_correctors and normalize_correctors consecutively
-			(in that same order), but slightly faster.
+        threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
 
-			Modifies:
+        for i in xrange(C):
+            u_i = self._crvfitter_correctors[:, i]
+            norm_sq = u_i.dot(u_i)
+            if norm_sq >= threshold:
+                D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
+                u_i /= D[i, i]  # Normalization
+            elif norm_sq != 0.0:
+                u_i[:] = 0.0
 
-				- Correctors: each column has been orthogonalized w.r.t. the previous np.ones, and normalized
-					afterwards.
+        return D
 
-			Returns:
+    def orthonormalize_correctors(self):
+        """Orthogonalizes each corrector with respect to all the previous np.ones, and normalizes the results.
+            This is equivalent to applying orthogonalize_correctors and normalize_correctors consecutively
+            (in that same order), but slightly faster.
 
-				- Deorthonormalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
-					original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
-					is, given the original 'correctors' matrix, OC, and the new, orthonormalized 'correctors'
-					matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'correctors' matrix:
-		# 	V = ( v_1 | v_2 | ... | v_C )
+                - Correctors: each column has been orthogonalized w.r.t. the previous np.ones, and normalized
+                    afterwards.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
-		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+            Returns:
 
-		# New 'correctors' matrix (orthonormalized):
-		#	W = ( w_1 | w_2 | ... | w_C )
+                - Deorthonormalization matrix: A CxC (2-dimensional) upper triangular matrix that yields the
+                    original 'correctors' matrix when right-multiplied with the new 'correctors' matrix. That
+                    is, given the original 'correctors' matrix, OC, and the new, orthonormalized 'correctors'
+                    matrix, NC, the return value is a matrix, D, such that OC = NC x D (matrix multiplication).
+        """
 
-		# Deorthonormalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< w_i, v_j >,		if i < j
-		#	 		||u_i||,			if i = j
-		#	 		0,					if i > j
+        # Original 'correctors' matrix:
+        # 	V = ( v_1 | v_2 | ... | v_C )
 
-		C = self._crvfitter_correctors.shape[1]
-		D = np.zeros((C, C))  # D[i, j] = 0, if i > j
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+        #	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
 
-		threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
+        # New 'correctors' matrix (orthonormalized):
+        #	W = ( w_1 | w_2 | ... | w_C )
 
-		for i in xrange(C):
-			u_i = self._crvfitter_correctors[:, i]
+        # Deorthonormalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< w_i, v_j >,		if i < j
+        #	 		||u_i||,			if i = j
+        #	 		0,					if i > j
 
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
-				# the deorthonormalization will still work, hopefully with a small enough precision error)
-				continue
+        C = self._crvfitter_correctors.shape[1]
+        D = np.zeros((C, C))  # D[i, j] = 0, if i > j
 
-			D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
-			u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+        threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, C):  # for j > i
-				v_j = self._crvfitter_correctors[:, j]
+        for i in xrange(C):
+            u_i = self._crvfitter_correctors[:, i]
 
-				D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+                # the deorthonormalization will still work, hopefully with a small enough precision error)
+                continue
 
-		return D
+            D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
+            u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
 
-	def orthogonalize_predictors(self):
-		'''Orthogonalizes each predictor in the structure w.r.t. all the previous np.ones. That is, for each
-			column in the predictors matrix, its projection over the previous columns is computed and sub-
-			tracted from it.
+            for j in xrange(i + 1, C):  # for j > i
+                v_j = self._crvfitter_correctors[:, j]
 
-			Modifies:
+                D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
 
-				- Regressors: each column has been orthogonalized with respect to the previous np.ones.
+        return D
 
-			Returns:
+    def orthogonalize_predictors(self):
+        """Orthogonalizes each predictor in the structure w.r.t. all the previous np.ones. That is, for each
+            column in the predictors matrix, its projection over the previous columns is computed and sub-
+            tracted from it.
 
-				- Deorthogonalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
-					original 'predictors' matrix when right-multiplied with the new 'predictors' matrix. That
-					is, given the original 'predictors' matrix, OR, and the new, orthogonalized 'predictors'
-					matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'predictors' matrix:
-		# 	V = ( v_1 | v_2 | ... | v_C )
+                - Regressors: each column has been orthogonalized with respect to the previous np.ones.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+            Returns:
 
-		# New 'predictors' matrix (orthonormalized):
-		#	U = ( u_1 | u_2 | ... | u_C )
+                - Deorthogonalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
+                    original 'predictors' matrix when right-multiplied with the new 'predictors' matrix. That
+                    is, given the original 'predictors' matrix, OR, and the new, orthogonalized 'predictors'
+                    matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
+        """
 
-		# Deorthogonalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< u_i, v_j > / < u_i, u_i >,	if i < j
-		#	 		1,								if i = j
-		#	 		0,								if i > j
+        # Original 'predictors' matrix:
+        # 	V = ( v_1 | v_2 | ... | v_C )
 
-		R = self._crvfitter_predictors.shape[1]
-		D = np.zeros((R, R))  # D[i, j] = 0, if i > j
-		if (R == 0):
-			return D
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
 
-		threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
+        # New 'predictors' matrix (orthonormalized):
+        #	U = ( u_1 | u_2 | ... | u_C )
 
-		for i in xrange(R - 1):
-			D[i, i] = 1.0  # D[i, j] = 1, if i = j
+        # Deorthogonalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< u_i, v_j > / < u_i, u_i >,	if i < j
+        #	 		1,								if i = j
+        #	 		0,								if i > j
 
-			u_i = self._crvfitter_predictors[:, i]
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
+        R = self._crvfitter_predictors.shape[1]
+        D = np.zeros((R, R))  # D[i, j] = 0, if i > j
+        if (R == 0):
+            return D
 
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
-				# work, hopefully with a small enough precision error)
-				continue
+        threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, R):  # for j > i
-				v_j = self._crvfitter_predictors[:, j]
+        for i in xrange(R - 1):
+            D[i, i] = 1.0  # D[i, j] = 1, if i = j
 
-				D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
+            u_i = self._crvfitter_predictors[:, i]
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
 
-		D[-1, -1] = 1.0  # D[i, j] = 1, if i = j
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+                # work, hopefully with a small enough precision error)
+                continue
 
-		return D
+            for j in xrange(i + 1, R):  # for j > i
+                v_j = self._crvfitter_predictors[:, j]
 
-	def normalize_predictors(self):
-		'''Normalizes the energy of each predictor (the magnitude of each feature interpreted as a vector,
-			that is, the magnitude of each column of the internal predictors matrix).
+                D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to u_i (Gram-Schmidt, iterating over j instead of i)
 
-			Modifies:
+        D[-1, -1] = 1.0  # D[i, j] = 1, if i = j
 
-				- Regressors: each column has been normalized to have unit magnitude.
+        return D
 
-			Returns:
+    def normalize_predictors(self):
+        """Normalizes the energy of each predictor (the magnitude of each feature interpreted as a vector,
+            that is, the magnitude of each column of the internal predictors matrix).
 
-				- Denormalization matrix: An RxR (2-dimensional) diagonal matrix that yields the original
-					'predictors' matrix when right-multiplied with the new 'predictors' matrix. That is,
-					given the original 'predictors' matrix, OR, and the new, normalized 'predictors' matrix,
-					NR, the return value is a diagonal matrix D such that OR = NR x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'predictors' matrix:
-		#	V = ( v_1 | v_2 | ... | v_C )
+                - Regressors: each column has been normalized to have unit magnitude.
 
-		# Normalization:
-		#	u_j = v_j / ||v_j||
+            Returns:
 
-		# New 'predictors' matrix (normalized):
-		#	U = ( u_1 | u_2 | ... | u_C )
+                - Denormalization matrix: An RxR (2-dimensional) diagonal matrix that yields the original
+                    'predictors' matrix when right-multiplied with the new 'predictors' matrix. That is,
+                    given the original 'predictors' matrix, OR, and the new, normalized 'predictors' matrix,
+                    NR, the return value is a diagonal matrix D such that OR = NR x D (matrix multiplication).
+        """
 
-		# Deorthogonalization matrix (diagonal):
-		#	D[i, j] =
-		#	 		||u_i||,	if i = j
-		#	 		0,			if i != j
+        # Original 'predictors' matrix:
+        #	V = ( v_1 | v_2 | ... | v_C )
 
-		R = self._crvfitter_predictors.shape[1]
-		D = np.zeros((R, R))  # D[i, j] = 0, if i != j
+        # Normalization:
+        #	u_j = v_j / ||v_j||
 
-		threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
+        # New 'predictors' matrix (normalized):
+        #	U = ( u_1 | u_2 | ... | u_C )
 
-		for i in xrange(R):
-			u_i = self._crvfitter_predictors[:, i]
-			norm_sq = u_i.dot(u_i)
-			if norm_sq >= threshold:
-				D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
-				u_i /= D[i, i]  # Normalization
-			elif norm_sq != 0.0:
-				u_i[:] = 0.0
+        # Deorthogonalization matrix (diagonal):
+        #	D[i, j] =
+        #	 		||u_i||,	if i = j
+        #	 		0,			if i != j
 
-		return D
+        R = self._crvfitter_predictors.shape[1]
+        D = np.zeros((R, R))  # D[i, j] = 0, if i != j
 
-	def orthonormalize_predictors(self):
-		'''Orthogonalizes each predictors with respect to all the previous np.ones, and normalizes the results.
-			This is equivalent to applying orthonormalize_predictors and normalize_predictors consecutively
-			(in that same order), but slightly faster.
+        threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
 
-			Modifies:
+        for i in xrange(R):
+            u_i = self._crvfitter_predictors[:, i]
+            norm_sq = u_i.dot(u_i)
+            if norm_sq >= threshold:
+                D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
+                u_i /= D[i, i]  # Normalization
+            elif norm_sq != 0.0:
+                u_i[:] = 0.0
 
-				- Regressors: each column has been orthogonalized w.r.t. the previous np.ones, and normalized
-					afterwards.
+        return D
 
-			Returns:
+    def orthonormalize_predictors(self):
+        """Orthogonalizes each predictors with respect to all the previous np.ones, and normalizes the results.
+            This is equivalent to applying orthonormalize_predictors and normalize_predictors consecutively
+            (in that same order), but slightly faster.
 
-				- Deorthonormalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
-					original 'predictors' matrix when right-multiplied with the new 'predictors' matrix. That
-					is, given the original 'predictors' matrix, OR, and the new, orthonormalized 'predictors'
-					matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'predictors' matrix:
-		# 	V = ( v_1 | v_2 | ... | v_C )
+                - Regressors: each column has been orthogonalized w.r.t. the previous np.ones, and normalized
+                    afterwards.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
-		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+            Returns:
 
-		# New 'predictors' matrix (orthonormalized):
-		#	W = ( w_1 | w_2 | ... | w_C )
+                - Deorthonormalization matrix: An RxR (2-dimensional) upper triangular matrix that yields the
+                    original 'predictors' matrix when right-multiplied with the new 'predictors' matrix. That
+                    is, given the original 'predictors' matrix, OR, and the new, orthonormalized 'predictors'
+                    matrix, NR, the return value is a matrix, D, such that OR = NR x D (matrix multiplication).
+        """
 
-		# Deorthonormalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< w_i, v_j >,		if i < j
-		#	 		||u_i||,			if i = j
-		#	 		0,					if i > j
+        # Original 'predictors' matrix:
+        # 	V = ( v_1 | v_2 | ... | v_C )
 
-		R = self._crvfitter_predictors.shape[1]
-		D = np.zeros((R, R))
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+        #	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
 
-		threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
+        # New 'predictors' matrix (orthonormalized):
+        #	W = ( w_1 | w_2 | ... | w_C )
 
-		for i in xrange(R):
-			u_i = self._crvfitter_predictors[:, i]
+        # Deorthonormalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< w_i, v_j >,		if i < j
+        #	 		||u_i||,			if i = j
+        #	 		0,					if i > j
 
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
-				# the deorthonormalization will still work, hopefully with a small enough precision error)
-				continue
+        R = self._crvfitter_predictors.shape[1]
+        D = np.zeros((R, R))
 
-			D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
-			u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+        threshold = self._crvfitter_predictors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, R):  # for j > i
-				v_j = self._crvfitter_predictors[:, j]
+        for i in xrange(R):
+            u_i = self._crvfitter_predictors[:, i]
 
-				D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+                # the deorthonormalization will still work, hopefully with a small enough precision error)
+                continue
 
-		return D
+            D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
+            u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
 
-	def orthogonalize_all(self):
-		'''Orthogonalizes each predictor w.r.t the others, all correctors w.r.t. the others, and all the
-			predictors w.r.t. all the correctors.
+            for j in xrange(i + 1, R):  # for j > i
+                v_j = self._crvfitter_predictors[:, j]
 
-			Modifies:
+                D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
 
-				- Correctors: each column has been orthogonalized with respect to the previous np.ones.
-				- Regressors: each column has been orthogonalized with respect to all the columns in the correctors
-					matrix and all the previous columns in the predictors matrix.
+        return D
 
-			Returns:
+    def orthogonalize_all(self):
+        """Orthogonalizes each predictor w.r.t the others, all correctors w.r.t. the others, and all the
+            predictors w.r.t. all the correctors.
 
-				- Deorthogonalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields the
-					original 'correctors' and 'predictors' matrices when right-multiplied with the new 'correctors' and
-					'predictors' matrices. More specifically, given the original 'correctors' matrix, OC, the original
-					'predictors' matrix, OR, and the new, orthogonalized 'correctors' and 'predictors' matrices, NC
-					and NR respectively, the return value is a matrix, D, such that (OC | OR) = (NC | NR) x D (matrix
-					multiplication).
-		'''
+            Modifies:
 
-		# Original 'features' matrix:
-		# 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
+                - Correctors: each column has been orthogonalized with respect to the previous np.ones.
+                - Regressors: each column has been orthogonalized with respect to all the columns in the correctors
+                    matrix and all the previous columns in the predictors matrix.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
+            Returns:
 
-		# New 'features' matrix (orthonormalized):
-		#	U = ( u_1 | u_2 | ... | u_(C+R) )
+                - Deorthogonalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields the
+                    original 'correctors' and 'predictors' matrices when right-multiplied with the new 'correctors' and
+                    'predictors' matrices. More specifically, given the original 'correctors' matrix, OC, the original
+                    'predictors' matrix, OR, and the new, orthogonalized 'correctors' and 'predictors' matrices, NC
+                    and NR respectively, the return value is a matrix, D, such that (OC | OR) = (NC | NR) x D (matrix
+                    multiplication).
+        """
 
-		# Deorthogonalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< u_i, v_j > / < u_i, u_i >,	if i < j
-		#	 		1,								if i = j
-		#	 		0,								if i > j
+        # Original 'features' matrix:
+        # 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
 
-		C = self._crvfitter_correctors.shape[1]
-		R = self._crvfitter_predictors.shape[1]
-		CR = C + R
-		D = np.zeros((CR, CR))  # D[i, j] = 0, if i > j
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( ( < u_i, v_j > / < u_i, u_i > ) * u_i ) # orthogonalize v_j with respect to every u_i, or equivalently, v_i, with i < j
 
-		threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
+        # New 'features' matrix (orthonormalized):
+        #	U = ( u_1 | u_2 | ... | u_(C+R) )
 
-		for i in xrange(C):
-			D[i, i] = 1.0  # D[i, j] = 1, if i = j
+        # Deorthogonalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< u_i, v_j > / < u_i, u_i >,	if i < j
+        #	 		1,								if i = j
+        #	 		0,								if i > j
 
-			u_i = self._crvfitter_correctors[:, i]
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
+        C = self._crvfitter_correctors.shape[1]
+        R = self._crvfitter_predictors.shape[1]
+        CR = C + R
+        D = np.zeros((CR, CR))  # D[i, j] = 0, if i > j
 
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
-				# work, hopefully with a small enough precision error)
-				continue
+        threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, C):
-				v_j = self._crvfitter_correctors[:, j]
+        for i in xrange(C):
+            D[i, i] = 1.0  # D[i, j] = 1, if i = j
 
-				D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
-				v_j -= D[i, j] * u_i
+            u_i = self._crvfitter_correctors[:, i]
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = sq(||u_i||)
 
-			for j in xrange(C, CR):
-				v_j = self._crvfitter_predictors[:, j - C]
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 1, as requested (this means that the deorthogonalization will still
+                # work, hopefully with a small enough precision error)
+                continue
 
-				D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
-				v_j -= D[i, j] * u_i
+            for j in xrange(i + 1, C):
+                v_j = self._crvfitter_correctors[:, j]
 
-		D[C:, C:] = self.orthogonalize_predictors()  # R x R
+                D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+                v_j -= D[i, j] * u_i
 
-		return D
+            for j in xrange(C, CR):
+                v_j = self._crvfitter_predictors[:, j - C]
 
-	def normalize_all(self):
-		'''Normalizes the energy of each corrector and each predictor (the magnitude of each feature
-			interpreted as a vector, that is, the magnitude of each column of the internal correctors and
-			predictors matrices).
+                D[i, j] = u_i.dot(v_j) / norm_sq  # D[i, j] = < u_i, v_j > / < u_i, u_i >, if i < j
+                v_j -= D[i, j] * u_i
 
-			Modifies:
+        D[C:, C:] = self.orthogonalize_predictors()  # R x R
 
-				- Correctors: each column has been normalized to have unit magnitude.
-				- Regressors: each column has been normalized to have unit magnitude.
+        return D
 
-			Returns:
+    def normalize_all(self):
+        """Normalizes the energy of each corrector and each predictor (the magnitude of each feature
+            interpreted as a vector, that is, the magnitude of each column of the internal correctors and
+            predictors matrices).
 
-				- Denormalization matrix: A (C+R)x(C+R) (2-dimensional) diagonal matrix that yields the original
-					'correctors' and 'predictors' matrices when right-multiplied with the new 'correctors' and
-					'predictors' matrices. That is, given the original 'correctors' matrix, namely OC, the original
-					'predictors' matrix, OR, and the new, normalized 'correctors' and 'predictors' matrices, NC and
-					NR respectively, the return value is a diagonal matrix D such that (OC | OR) = (NC | NR) x D
-					(matrix multiplication).
-		'''
+            Modifies:
 
-		# Deorthogonalization matrix (diagonal):
-		#	D[i, j] =
-		#	 		||u_i||,	if i = j
-		#	 		0,			if i != j
+                - Correctors: each column has been normalized to have unit magnitude.
+                - Regressors: each column has been normalized to have unit magnitude.
 
-		C = self._crvfitter_correctors.shape[1]
-		R = self._crvfitter_predictors.shape[1]
-		CR = C + R
-		D = np.zeros((CR, CR))
+            Returns:
 
-		D[:C, :C] = self.normalize_correctors()
-		D[C:, C:] = self.normalize_predictors()
+                - Denormalization matrix: A (C+R)x(C+R) (2-dimensional) diagonal matrix that yields the original
+                    'correctors' and 'predictors' matrices when right-multiplied with the new 'correctors' and
+                    'predictors' matrices. That is, given the original 'correctors' matrix, namely OC, the original
+                    'predictors' matrix, OR, and the new, normalized 'correctors' and 'predictors' matrices, NC and
+                    NR respectively, the return value is a diagonal matrix D such that (OC | OR) = (NC | NR) x D
+                    (matrix multiplication).
+        """
 
-		return D
+        # Deorthogonalization matrix (diagonal):
+        #	D[i, j] =
+        #	 		||u_i||,	if i = j
+        #	 		0,			if i != j
 
-	def orthonormalize_all(self):
-		'''Orthogonalizes each predictor w.r.t the others, all correctors w.r.t. the others, and all the
-			predictors w.r.t. all the correctors, and normalizes the results. This is equivalent to applying
-			orthogonalize_all and normalize_all consecutively (in that same order), but slightly faster.
+        C = self._crvfitter_correctors.shape[1]
+        R = self._crvfitter_predictors.shape[1]
+        CR = C + R
+        D = np.zeros((CR, CR))
 
-			Modifies:
+        D[:C, :C] = self.normalize_correctors()
+        D[C:, C:] = self.normalize_predictors()
 
-				- Correctors: each column has been orthogonalized with respect to the previous np.ones and nor-
-					malized afterwards.
-				- Regressors: each column has been orthogonalized with respect to all the columns in the
-					correctors matrix and all the previous columns in the predictors matrix, and normalized
-					afterwards.
+        return D
 
-			Returns:
+    def orthonormalize_all(self):
+        """Orthogonalizes each predictor w.r.t the others, all correctors w.r.t. the others, and all the
+            predictors w.r.t. all the correctors, and normalizes the results. This is equivalent to applying
+            orthogonalize_all and normalize_all consecutively (in that same order), but slightly faster.
 
-				- Deorthonormalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields
-					the original 'correctors' and 'predictors' matrices when right-multiplied with the new
-					'correctors and 'predictors' matrices. More specifically, given the original 'correctors'
-					matrix, namely OC, the original 'predictors' matrix, OR, and the new, orthonormalized
-					'correctors' and 'predictors' matrices, NC and NR respectively, the return value is a matrix,
-					D, such that (OC | OR) = (NC | NR) x D (matrix multiplication).
-		'''
+            Modifies:
 
-		# Original 'features' matrix:
-		# 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
+                - Correctors: each column has been orthogonalized with respect to the previous np.ones and nor-
+                    malized afterwards.
+                - Regressors: each column has been orthogonalized with respect to all the columns in the
+                    correctors matrix and all the previous columns in the predictors matrix, and normalized
+                    afterwards.
 
-		# Gram-Schmidt:
-		#	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
-		#	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
+            Returns:
 
-		# New 'features' matrix (orthonormalized):
-		#	W = ( w_1 | w_2 | ... | w_(C+R) )
+                - Deorthonormalization matrix: A (C+R)x(C+R) (2-dimensional) upper triangular matrix that yields
+                    the original 'correctors' and 'predictors' matrices when right-multiplied with the new
+                    'correctors and 'predictors' matrices. More specifically, given the original 'correctors'
+                    matrix, namely OC, the original 'predictors' matrix, OR, and the new, orthonormalized
+                    'correctors' and 'predictors' matrices, NC and NR respectively, the return value is a matrix,
+                    D, such that (OC | OR) = (NC | NR) x D (matrix multiplication).
+        """
 
-		# Deorthonormalization matrix (upper triangular):
-		#	D[i, j] =
-		#			< w_i, v_j >,		if i < j
-		#	 		||u_i||,			if i = j
-		#	 		0,					if i > j
+        # Original 'features' matrix:
+        # 	V = (C | R) = ( v_1 | v_2 | ... | v_(C+R) )
 
-		C = self._crvfitter_correctors.shape[1]
-		R = self._crvfitter_predictors.shape[1]
-		CR = C + R
-		D = np.zeros((CR, CR))
+        # Gram-Schmidt:
+        #	u_j = v_j - sum_{i < j} ( < w_i, v_j > * w_i ) # orthogonalize v_j with respect to w_i, or equivalently, u_i or v_i with i < j
+        #	w_j = u_j / (||u_j||) = u_j / sqrt(< u_j, u_j >) # normalize u_j
 
-		threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
+        # New 'features' matrix (orthonormalized):
+        #	W = ( w_1 | w_2 | ... | w_(C+R) )
 
-		for i in xrange(C):
-			u_i = self._crvfitter_correctors[:, i]
+        # Deorthonormalization matrix (upper triangular):
+        #	D[i, j] =
+        #			< w_i, v_j >,		if i < j
+        #	 		||u_i||,			if i = j
+        #	 		0,					if i > j
 
-			norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
-			if norm_sq < threshold:
-				u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
-				# Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
-				# the deorthonormalization will still work, hopefully with a small enough precision error)
-				continue
+        C = self._crvfitter_correctors.shape[1]
+        R = self._crvfitter_predictors.shape[1]
+        CR = C + R
+        D = np.zeros((CR, CR))
 
-			D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
-			u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
+        threshold = self._crvfitter_correctors.shape[0] * CurveFitter.__threshold
 
-			for j in xrange(i + 1, C):
-				v_j = self._crvfitter_correctors[:, j]
+        for i in xrange(C):
+            u_i = self._crvfitter_correctors[:, i]
 
-				D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+            norm_sq = u_i.dot(u_i)  # < u_i, u_i > = ||u_i||**2
+            if norm_sq < threshold:
+                u_i[:] = 0.0  # Set whole vector to 0, since it is a linear combination of other vectors in the matrix
+                # Notice that D[i, i] is set to 0, which is exactly the same as ||u_i||, as requested (this means that
+                # the deorthonormalization will still work, hopefully with a small enough precision error)
+                continue
 
-			for j in xrange(C, CR):
-				v_j = self._crvfitter_predictors[:, j - C]
+            D[i, i] = norm_sq ** 0.5  # D[i, j] = ||u_i||, if i = j
+            u_i /= D[i, i]  # Normalize u_i, now u_i denotes w_i (step 2 of Gram-Schmidt)
 
-				D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
-				v_j -= D[
-						   i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
+            for j in xrange(i + 1, C):
+                v_j = self._crvfitter_correctors[:, j]
 
-		D[C:, C:] = self.orthonormalize_predictors()  # R x R
+                D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
 
-		return D
+            for j in xrange(C, CR):
+                v_j = self._crvfitter_predictors[:, j - C]
 
-	@abstractstatic
-	def __fit__(correctors, predictors, observations, *args, **kwargs):
-		'''[Abstract method] Computes the correction and prediction parameters that best fit the observations.
-			This method is not intended to be called outside the CurveFitter class.
+                D[i, j] = u_i.dot(v_j)  # D[i, j] = < w_i, v_j >, if i < j
+                v_j -= D[
+                           i, j] * u_i  # Orthogonalize v_j with respect to w_i (step 1 of Gram-Schmidt, iterating over j instead of i)
 
-			Parameters:
+        D[C:, C:] = self.orthonormalize_predictors()  # R x R
 
-				- correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that
-					(may) explain a part of the observational data in which we are not interested, where C
-					is the number of correctors and N the number of elements for each corrector.
+        return D
 
-				- predictors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be
-					used to try to explain/predict the observations (experimental data), where R is the number
-					of predictors and N the number of elements for each predictor (the latter is ensured to be
-					the same as that in the 'correctors' argument).
+    @abstractstatic
+    def __fit__(correctors, predictors, observations, *args, **kwargs):
+        """[Abstract method] Computes the correction and prediction parameters that best fit the observations.
+            This method is not intended to be called outside the CurveFitter class.
 
-				- observations: NxM (2-dimensional) matrix, representing the observational data, i.e., values
-					obtained by measuring the variables of interest, whose behaviour is wanted to be explained
-					by the correctors and predictors, where M is the number of variables and N the number of
-					observations for each variable (the latter is ensured to be the same as those in the
-					'correctors' and the 'predictors' arguments).
+            Parameters:
 
-				- any other arguments will also be passed to the method in the subclass.
+                - correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that
+                    (may) explain a part of the observational data in which we are not interested, where C
+                    is the number of correctors and N the number of elements for each corrector.
 
-			Returns:
+                - predictors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be
+                    used to try to explain/predict the observations (experimental data), where R is the number
+                    of predictors and N the number of elements for each predictor (the latter is ensured to be
+                    the same as that in the 'correctors' argument).
 
-				- Correction parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best
-					fit the correctors to the observations for each variable, where M is the number of variables
-					(same as that in the 'observations' argument) and Kc is the number of correction parameters
-					for each variable.
+                - observations: NxM (2-dimensional) matrix, representing the observational data, i.e., values
+                    obtained by measuring the variables of interest, whose behaviour is wanted to be explained
+                    by the correctors and predictors, where M is the number of variables and N the number of
+                    observations for each variable (the latter is ensured to be the same as those in the
+                    'correctors' and the 'predictors' arguments).
 
-				- Regression parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best
-					fit the predictors to the corrected observations for each variable, where M is the number
-					of variables (same as that in the 'observations' argument) and Kr is the number of
-					prediction parameters for each variable.
+                - any other arguments will also be passed to the method in the subclass.
 
+            Returns:
 
-			[Developer notes]
-				- Assertions regarding the size and type of the arguments have already been performed before
-					the call to this method to ensure that the sizes of the arguments are coherent and the
-					observations matrix has at least one element.
+                - Correction parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best
+                    fit the correctors to the observations for each variable, where M is the number of variables
+                    (same as that in the 'observations' argument) and Kc is the number of correction parameters
+                    for each variable.
 
-				- The 'correctors' and 'predictors' matrices may have zero elements, in which case the behaviour
-					of the method is left to be decided by the subclass.
+                - Regression parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best
+                    fit the predictors to the corrected observations for each variable, where M is the number
+                    of variables (same as that in the 'observations' argument) and Kr is the number of
+                    prediction parameters for each variable.
 
-				- You may modify the 'observations' matrix if needed, but both the 'correctors' and the
-					'predictors' arguments should be left unchanged.
 
-				- The result should be returned as a tuple of 2 elements, containing the correction parameters
-					in the first position and the prediction parameters in the second position.
+            [Developer notes]
+                - Assertions regarding the size and type of the arguments have already been performed before
+                    the call to this method to ensure that the sizes of the arguments are coherent and the
+                    observations matrix has at least one element.
 
-				- Although it is defined as a static method here, this method supports a non-static implementation.
-		'''
-		raise NotImplementedError
+                - The 'correctors' and 'predictors' matrices may have zero elements, in which case the behaviour
+                    of the method is left to be decided by the subclass.
 
-	def fit(self, observations, *args, **kwargs):
-		'''Computes the correction and prediction parameters that best fit the observations.
+                - You may modify the 'observations' matrix if needed, but both the 'correctors' and the
+                    'predictors' arguments should be left unchanged.
 
-			Parameters:
+                - The result should be returned as a tuple of 2 elements, containing the correction parameters
+                    in the first position and the prediction parameters in the second position.
 
-				- observations: array-like structure of shape (N, X1, ..., Xn), representing the observational
-					data, i.e., values obtained by measuring the variables of interest, whose behaviour is wanted
-					to be explained by the correctors and predictors in the system, where M = X1*...*Xn is the
-					number of variables and N the number of observations for each variable.
+                - Although it is defined as a static method here, this method supports a non-static implementation.
+        """
+        raise NotImplementedError
 
-				- any other arguments will be passed to the __fit__ method.
+    def fit(self, observations, *args, **kwargs):
+        """Computes the correction and prediction parameters that best fit the observations.
 
-			Modifies:
+            Parameters:
 
-				- [created] Correction parameters: array-like structure of shape (Kc, X1, ..., Xn), representing
-					the parameters that best fit the correctors to the observations, where X1, ..., Xn are the
-					original dimensions of the 'observations' argument and Kc is the number of correction parameters
-					for each variable.
+                - observations: array-like structure of shape (N, X1, ..., Xn), representing the observational
+                    data, i.e., values obtained by measuring the variables of interest, whose behaviour is wanted
+                    to be explained by the correctors and predictors in the system, where M = X1*...*Xn is the
+                    number of variables and N the number of observations for each variable.
 
-				- [created] Regression parameters: array-like structure of shape (Kr, X1, ..., Xn), representing
-					the parameters that best fit the predictors to the observations, where X1, ..., Xn are the
-					original dimensions of the 'observations' argument and Kr is the number of prediction parameters
-					for each variable.
-		'''
-		obs = np.array(observations, dtype=np.float64)
-		dims = obs.shape
-		self._crvfitter_dims = dims[1:]
-		if dims[0] != self._crvfitter_predictors.shape[0]:
-			raise ValueError('Observations and features (correctors and/or predictors) have incompatible sizes')
+                - any other arguments will be passed to the __fit__ method.
 
-		if 0 in dims:
-			raise ValueError('There are no elements in argument \'observations\'')
+            Modifies:
 
-		obs = obs.reshape(dims[0], -1)
-		self._crvfitter_correction_parameters, self._crvfitter_prediction_parameters = self.__fit__(
-			self._crvfitter_correctors, self._crvfitter_predictors, obs, *args, **kwargs)
+                - [created] Correction parameters: array-like structure of shape (Kc, X1, ..., Xn), representing
+                    the parameters that best fit the correctors to the observations, where X1, ..., Xn are the
+                    original dimensions of the 'observations' argument and Kc is the number of correction parameters
+                    for each variable.
 
-	@abstractstatic
-	def __predict__(predictors, prediction_parameters, *args, **kwargs):
-		'''[Abstract method] Computes a prediction using the predictors together with the prediction parameters.
-			This method is not intended to be called outside the CurveFitter class.
+                - [created] Regression parameters: array-like structure of shape (Kr, X1, ..., Xn), representing
+                    the parameters that best fit the predictors to the observations, where X1, ..., Xn are the
+                    original dimensions of the 'observations' argument and Kr is the number of prediction parameters
+                    for each variable.
+        """
+        obs = np.array(observations, dtype=np.float64)
+        dims = obs.shape
+        self._crvfitter_dims = dims[1:]
+        if dims[0] != self._crvfitter_predictors.shape[0]:
+            raise ValueError('Observations and features (correctors and/or predictors) have incompatible sizes')
 
-			Parameters:
+        if 0 in dims:
+            raise ValueError('There are no elements in argument \'observations\'')
 
-				- predictors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
-					to try to explain/predict the observations (experimental data), where R is the number of
-					predictors and N the number of elements for each predictor.
+        obs = obs.reshape(dims[0], -1)
+        self._crvfitter_correction_parameters, self._crvfitter_prediction_parameters = self.__fit__(
+            self._crvfitter_correctors, self._crvfitter_predictors, obs, *args, **kwargs)
 
-				- prediction_parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best fit
-					the predictors to the corrected observations for each variable, where M is the number of
-					variables and Kr is the number of prediction parameters for each variable.
+    @abstractstatic
+    def __predict__(predictors, prediction_parameters, *args, **kwargs):
+        """[Abstract method] Computes a prediction using the predictors together with the prediction parameters.
+            This method is not intended to be called outside the CurveFitter class.
 
-				- any other arguments will also be passed to the method in the subclass.
+            Parameters:
 
-			Returns:
+                - predictors: NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
+                    to try to explain/predict the observations (experimental data), where R is the number of
+                    predictors and N the number of elements for each predictor.
 
-				- Prediction: NxM (2-dimensional) matrix, containing N predicted values for each of the M variables.
+                - prediction_parameters: (Kr)xM (2-dimensional) matrix, representing the parameters that best fit
+                    the predictors to the corrected observations for each variable, where M is the number of
+                    variables and Kr is the number of prediction parameters for each variable.
 
-			[Developer notes]
-				- Assertions regarding the size and type of the arguments have already been performed before the
-					call to this method to ensure that the sizes of the arguments are coherent and both, the
-					'predictors' and the 'prediction_parameters' matrices have at least one element each.
+                - any other arguments will also be passed to the method in the subclass.
 
-				- Both the 'predictors' and the 'prediction_parameters' arguments should be left unchanged.
+            Returns:
 
-				- Although it is defined as a static method here, this method supports a non-static implementation.
-		'''
-		raise NotImplementedError
+                - Prediction: NxM (2-dimensional) matrix, containing N predicted values for each of the M variables.
 
-	def predict(self, predictors=None, prediction_parameters=None, *args, **kwargs):
-		'''Computes a prediction using the predictors together with the prediction parameters.
+            [Developer notes]
+                - Assertions regarding the size and type of the arguments have already been performed before the
+                    call to this method to ensure that the sizes of the arguments are coherent and both, the
+                    'predictors' and the 'prediction_parameters' matrices have at least one element each.
 
-			Parameters:
+                - Both the 'predictors' and the 'prediction_parameters' arguments should be left unchanged.
 
-				- predictors: NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
-					to be used to try to explain/predict the observations (experimental data), where R is the number
-					of predictors and N the number of elements for each predictor. If set to None, the predictors of
-					the instance will be used.
+                - Although it is defined as a static method here, this method supports a non-static implementation.
+        """
+        raise NotImplementedError
 
-				- prediction_parameters: array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
-					the parameters to fit the predictors to the corrected observations for each variable, where M =
-					X1*...*Xn is the number of variables and Kr is the number of prediction parameters for each
-					variable. If set to None, the prediction parameters obtained in the last call to 'fit' will be
-					used.
+    def predict(self, predictors=None, prediction_parameters=None, *args, **kwargs):
+        """Computes a prediction using the predictors together with the prediction parameters.
 
-				- any other arguments will be passed to the __predict__ method.
+            Parameters:
 
-			Returns:
+                - predictors: NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
+                    to be used to try to explain/predict the observations (experimental data), where R is the number
+                    of predictors and N the number of elements for each predictor. If set to None, the predictors of
+                    the instance will be used.
 
-				- Prediction: array-like structure of shape (N, X1, ..., Xn), containing N predicted values for each of
-					the M = X1*...*Xn variables.
-		'''
-		if predictors is None:
-			preds = self._crvfitter_predictors
-			if 0 in preds.shape:
-				raise AttributeError('There are no predictors in this instance')
-		else:
-			preds = np.array(predictors, dtype=np.float64)
-			if len(preds.shape) != 2:
-				raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
-			if 0 in preds.shape:
-				raise ValueError('There are no elements in argument \'predictors\'')
+                - prediction_parameters: array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
+                    the parameters to fit the predictors to the corrected observations for each variable, where M =
+                    X1*...*Xn is the number of variables and Kr is the number of prediction parameters for each
+                    variable. If set to None, the prediction parameters obtained in the last call to 'fit' will be
+                    used.
 
-		if prediction_parameters is None:
-			params = self._crvfitter_prediction_parameters
-			dims = (1,) + self._crvfitter_dims
-		else:
-			params = np.array(prediction_parameters, dtype=np.float64)
-			# Keep original dimensions (to reset dimensions of prediction)
-			dims = params.shape
-			# Make matrix 2-dimensional
-			params = params.reshape(dims[0], -1)
+                - any other arguments will be passed to the __predict__ method.
 
-		if 0 in dims:
-			raise ValueError('There are no elements in argument \'prediction_parameters\'')
+            Returns:
 
-		prediction = self.__predict__(preds, params, *args, **kwargs)
+                - Prediction: array-like structure of shape (N, X1, ..., Xn), containing N predicted values for each of
+                    the M = X1*...*Xn variables.
+        """
+        if predictors is None:
+            preds = self._crvfitter_predictors
+            if 0 in preds.shape:
+                raise AttributeError('There are no predictors in this instance')
+        else:
+            preds = np.array(predictors, dtype=np.float64)
+            if len(preds.shape) != 2:
+                raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
+            if 0 in preds.shape:
+                raise ValueError('There are no elements in argument \'predictors\'')
 
-		# Restore original dimensions (except for the first axis)
-		return prediction.reshape(-1, *dims[1:])
+        if prediction_parameters is None:
+            params = self._crvfitter_prediction_parameters
+            dims = (1,) + self._crvfitter_dims
+        else:
+            params = np.array(prediction_parameters, dtype=np.float64)
+            # Keep original dimensions (to reset dimensions of prediction)
+            dims = params.shape
+            # Make matrix 2-dimensional
+            params = params.reshape(dims[0], -1)
 
-	@abstractstatic
-	def __correct__(observations, correctors, correction_parameters, *args, **kwargs):
-		'''[Abstract method] Computes the values of the data after accounting for the correctors by using the
-			correction parameters.
-			This method is not intended to be called outside the CurveFitter class.
+        if 0 in dims:
+            raise ValueError('There are no elements in argument \'prediction_parameters\'')
 
-			Parameters:
+        prediction = self.__predict__(preds, params, *args, **kwargs)
 
-				- observations: NxM (2-dimensional) matrix, representing the observational data to be corrected,
-					i.e., the values obtained by measuring the variables of interest from which we want to subtract
-					the contribution of the correctors, where M is the number of variables and N the number of
-					observations for each variable.
+        # Restore original dimensions (except for the first axis)
+        return prediction.reshape(-1, *dims[1:])
 
-				- correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that (may)
-					explain a part of the observational data in which we are not interested, where C is the number
-					of correctors and N the number of elements for each corrector.
+    @abstractstatic
+    def __correct__(observations, correctors, correction_parameters, *args, **kwargs):
+        """[Abstract method] Computes the values of the data after accounting for the correctors by using the
+            correction parameters.
+            This method is not intended to be called outside the CurveFitter class.
 
-				- correction_parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best fit
-					the correctors to the observations for each variable, where M is the number of variables and Kc
-					is the number of correction parameters for each variable.
+            Parameters:
 
-				- any other arguments will also be passed to the method in the subclass.
+                - observations: NxM (2-dimensional) matrix, representing the observational data to be corrected,
+                    i.e., the values obtained by measuring the variables of interest from which we want to subtract
+                    the contribution of the correctors, where M is the number of variables and N the number of
+                    observations for each variable.
 
-			Returns:
+                - correctors: NxC (2-dimensional) matrix, representing the covariates, i.e., features that (may)
+                    explain a part of the observational data in which we are not interested, where C is the number
+                    of correctors and N the number of elements for each corrector.
 
-				- Corrected data: NxM (2-dimensional) matrix, containing the observational data after having sub-
-					tracted the contribution of the correctors by using the correction parameters.
+                - correction_parameters: (Kc)xM (2-dimensional) matrix, representing the parameters that best fit
+                    the correctors to the observations for each variable, where M is the number of variables and Kc
+                    is the number of correction parameters for each variable.
 
-			[Developer notes]
-				- Assertions regarding the size and type of the arguments have already been performed before the
-					call to this method to ensure that the sizes of the arguments are coherent and all, the
-					'observations', 'correctors', and 'correction_parameters' matrices have at least one element
-					each.
+                - any other arguments will also be passed to the method in the subclass.
 
-				- The 'correction_parameters' matrix may have zero elements.
+            Returns:
 
-				- You may modify the 'observations' matrix if needed. However, both the 'correctors' and the
-					'correction_parameters' arguments should be left unchanged.
+                - Corrected data: NxM (2-dimensional) matrix, containing the observational data after having sub-
+                    tracted the contribution of the correctors by using the correction parameters.
 
-				- Although it is defined as a static method here, this method supports a non-static implementation.
-		'''
-		raise NotImplementedError
+            [Developer notes]
+                - Assertions regarding the size and type of the arguments have already been performed before the
+                    call to this method to ensure that the sizes of the arguments are coherent and all, the
+                    'observations', 'correctors', and 'correction_parameters' matrices have at least one element
+                    each.
 
-	def correct(self, observations, correctors=None, correction_parameters=None, *args, **kwargs):
-		'''Computes the values of the data after accounting for the correctors by using the correction parameters.
+                - The 'correction_parameters' matrix may have zero elements.
 
-			Parameters:
+                - You may modify the 'observations' matrix if needed. However, both the 'correctors' and the
+                    'correction_parameters' arguments should be left unchanged.
 
-				- observations: array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
-					i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
-					explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
-					variables and N the number of observations for each variable.
+                - Although it is defined as a static method here, this method supports a non-static implementation.
+        """
+        raise NotImplementedError
 
-				- correctors: NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
-					that (may) explain a part of the observational data in which we are not interested, where C is
-					the number of correctors and N the number of elements for each corrector. If set to None, the
-					internal correctors will be used.
+    def correct(self, observations, correctors=None, correction_parameters=None, *args, **kwargs):
+        """Computes the values of the data after accounting for the correctors by using the correction parameters.
 
-				- correction_parameters: array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
-					the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
-					is the number of variables and Kc the number of correction parameters for each variable. If set
-					to None, the correction parameters obtained in the last call to 'fit' will be used.
+            Parameters:
 
-				- any other arguments will be passed to the __correct__ method.
+                - observations: array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+                    i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+                    explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+                    variables and N the number of observations for each variable.
 
-			Returns:
+                - correctors: NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+                    that (may) explain a part of the observational data in which we are not interested, where C is
+                    the number of correctors and N the number of elements for each corrector. If set to None, the
+                    internal correctors will be used.
 
-				- Corrected data: array-like matrix of shape (N, X1, ..., Xn), containing the observational data
-					after having subtracted the contribution of the correctors by using the correction parameters.
-		'''
+                - correction_parameters: array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+                    the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+                    is the number of variables and Kc the number of correction parameters for each variable. If set
+                    to None, the correction parameters obtained in the last call to 'fit' will be used.
 
-		## Treat observations
-		obs = np.array(observations, dtype=np.float64)
-		# Keep original dimensions (to reset dimensions of corrected data)
-		dims = obs.shape
-		# Make matrix 2-dimensional
-		obs = obs.reshape(dims[0], -1)
+                - any other arguments will be passed to the __correct__ method.
 
-		# Check correctness of matrix
-		if 0 in dims:
-			return np.zeros(dims)
+            Returns:
 
-		## Treat correctors
-		if correctors is None:
-			cors = self._crvfitter_correctors
-			if 0 in cors.shape:
-				return observations
-		else:
-			cors = np.array(correctors, dtype=np.float64)
-			if len(cors.shape) != 2:
-				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
-			if 0 in cors.shape:
-				raise ValueError('There are no elements in argument \'correctors\'')
+                - Corrected data: array-like matrix of shape (N, X1, ..., Xn), containing the observational data
+                    after having subtracted the contribution of the correctors by using the correction parameters.
+        """
 
-		if obs.shape[0] != cors.shape[0]:
-			raise ValueError('The dimensions of the observations and the correctors are incompatible')
+        ## Treat observations
+        obs = np.array(observations, dtype=np.float64)
+        # Keep original dimensions (to reset dimensions of corrected data)
+        dims = obs.shape
+        # Make matrix 2-dimensional
+        obs = obs.reshape(dims[0], -1)
 
-		## Treat correction parameters
-		if correction_parameters is None:
-			params = self._crvfitter_correction_parameters
-		else:
-			params = np.array(correction_parameters, dtype=np.float64)
-			params = params.reshape(params.shape[0], -1)
+        # Check correctness of matrix
+        if 0 in dims:
+            return np.zeros(dims)
 
-			if 0 in params.shape:
-				raise ValueError('There are no elements in argument \'correction_parameters\'')
+        ## Treat correctors
+        if correctors is None:
+            cors = self._crvfitter_correctors
+            if 0 in cors.shape:
+                return observations
+        else:
+            cors = np.array(correctors, dtype=np.float64)
+            if len(cors.shape) != 2:
+                raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
+            if 0 in cors.shape:
+                raise ValueError('There are no elements in argument \'correctors\'')
 
-		if obs.shape[1] != params.shape[1]:
-			raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+        if obs.shape[0] != cors.shape[0]:
+            raise ValueError('The dimensions of the observations and the correctors are incompatible')
 
-		## Compute corrected data
-		corrected_data = self.__correct__(obs, cors, params, *args, **kwargs)
+        ## Treat correction parameters
+        if correction_parameters is None:
+            params = self._crvfitter_correction_parameters
+        else:
+            params = np.array(correction_parameters, dtype=np.float64)
+            params = params.reshape(params.shape[0], -1)
 
-		# Restore original dimensions
-		return corrected_data.reshape(dims)
+            if 0 in params.shape:
+                raise ValueError('There are no elements in argument \'correction_parameters\'')
+
+        if obs.shape[1] != params.shape[1]:
+            raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+
+        ## Compute corrected data
+        corrected_data = self.__correct__(obs, cors, params, *args, **kwargs)
+
+        # Restore original dimensions
+        return corrected_data.reshape(dims)
+
+    def __df_correction__(self, observations, correctors, correction_parameters):
+        """
+        Computes the (effective) degrees of freedom for the fitted correctors.
+        This method is not intended to be called outside the CurveFitter class.
+
+        Parameters
+        ----------
+
+        observations : numpy.array
+            array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+            i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+            explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+            variables and N the number of observations for each variable.
+
+        correctors : numpy.array
+            NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+            that (may) explain a part of the observational data in which we are not interested, where C is
+            the number of correctors and N the number of elements for each corrector. If set to None, the
+            internal correctors will be used.
+
+        correction_parameters : numpy.array
+            array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+            the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+            is the number of variables and Kc the number of correction parameters for each variable. If set
+            to None, the correction parameters obtained in the last call to 'fit' will be used.
+
+        Returns
+        -------
+
+        numpy.array
+            The (effective) degrees of freedom for the fitted correctors for each variable
+            X1, X2, ..., Xn
+        """
+        raise NotImplementedError
+
+    def df_correction(self, observations, correctors=None, correction_parameters=None):
+        """
+        Computes the (effective) degrees of freedom for the fitted correctors.
+        This method is not intended to be called outside the CurveFitter class.
+
+        Parameters
+        ----------
+
+        observations : numpy.array
+            array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+            i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+            explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+            variables and N the number of observations for each variable.
+
+        correctors : numpy.array
+            NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+            that (may) explain a part of the observational data in which we are not interested, where C is
+            the number of correctors and N the number of elements for each corrector. If set to None, the
+            internal correctors will be used.
+
+        correction_parameters : numpy.array
+            array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+            the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+            is the number of variables and Kc the number of correction parameters for each variable. If set
+            to None, the correction parameters obtained in the last call to 'fit' will be used.
+
+        Returns
+        -------
+
+        numpy.array
+            The (effective) degrees of freedom for the fitted correctors for each variable
+            X1, X2, ..., Xn
+        """
+        # Treat observations
+        obs = np.array(observations, dtype=np.float64)
+        # Keep original dimensions (to reset dimensions of corrected data)
+        dims = obs.shape
+        # Make matrix 2-dimensional
+        obs = obs.reshape(dims[0], -1)
+
+        # Check correctness of matrix
+        if 0 in dims:
+            return np.zeros((1, dims[1:]))
+
+        # Treat correctors
+        if correctors is None:
+            cors = self._crvfitter_correctors
+            if 0 in cors.shape:
+                return np.zeros((1, dims[1:]))
+        else:
+            cors = np.array(correctors, dtype=np.float64)
+            if len(cors.shape) != 2:
+                raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
+            if 0 in cors.shape:
+                raise ValueError('There are no elements in argument \'correctors\'')
+
+        if obs.shape[0] != cors.shape[0]:
+            raise ValueError('The dimensions of the observations and the correctors are incompatible')
+
+        ## Treat correction parameters
+        if correction_parameters is None:
+            params = self._crvfitter_correction_parameters
+        else:
+            params = np.array(correction_parameters, dtype=np.float64)
+            params = params.reshape(params.shape[0], -1)
+
+            if 0 in params.shape:
+                raise ValueError('There are no elements in argument \'correction_parameters\'')
+
+        if obs.shape[1] != params.shape[1]:
+            raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+
+        # Compute the (effective) degrees of freedom for correctors
+        df_correction = self.__df_correction__(obs, cors, params)
+
+        # Restore original dimensions (except for the first axis)
+        return df_correction.reshape(-1, *dims[1:])
+
+    def __df_prediction__(self, observations, predictors, prediction_parameters):
+        """
+        Computes the (effective) degrees of freedom for the fitted predictors.
+        This method is not intended to be called outside the CurveFitter class.
+
+        Parameters
+        ----------
+
+        observations : numpy.array
+            array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+            i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+            explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+            variables and N the number of observations for each variable.
+
+        predictors : numpy.array
+            NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
+            to try to explain/predict the observations (experimental data), where R is the number of
+            predictors and N the number of elements for each predictor.
+
+        prediction_parameters : numpy.array
+            (Kr)xM (2-dimensional) matrix, representing the parameters that best fit
+            the predictors to the corrected observations for each variable, where M is the number of
+            variables and Kr is the number of prediction parameters for each variable.
+
+        Returns
+        -------
+
+        numpy.array
+            The (effective) degrees of freedom for the fitted predictors for each variable
+            X1, X2, ..., Xn
+        """
+        raise NotImplementedError
+
+    def df_prediction(self, observations, predictors=None, prediction_parameters=None):
+        """
+        Computes the (effective) degrees of freedom for the fitted predictors
+
+        Parameters
+        ----------
+
+        observations : numpy.array
+            array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+            i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+            explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+            variables and N the number of observations for each variable. Be aware that the observations
+            must be the same as the ones used in prediction, that is, if the prediction was performed over
+            corrected observations, these corrected observations are the ones that must be used here.
+
+        predictors : numpy.array
+            NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
+            to be used to try to explain/predict the observations (experimental data), where R is the number
+            of predictors and N the number of elements for each predictor. If set to None, the predictors of
+            the instance will be used. For this method to work properly the predictors must be the same
+            as the ones used in training (fit method).
+
+        prediction_parameters : numpy.array
+            array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
+            the parameters to fit the predictors to the corrected observations for each variable, where M =
+            X1*...*Xn is the number of variables and Kr is the number of prediction parameters for each
+            variable. If set to None, the prediction parameters obtained in the last call to 'fit' will be
+            used.
+
+        Returns
+        -------
+
+        numpy.array
+            The (effective) degrees of freedom for the fitted predictors for each variable
+            X1, X2, ..., Xn
+        """
+        ## Treat observations
+        obs = np.array(observations, dtype=np.float64)
+        # Keep original dimensions (to reset dimensions of corrected data)
+        dims = obs.shape
+        # Make matrix 2-dimensional
+        obs = obs.reshape(dims[0], -1)
+
+        # Check correctness of matrix
+        if 0 in dims:
+            return np.zeros((1, dims[1:]))
+
+        # Treat predictors
+        if predictors is None:
+            preds = self._crvfitter_predictors
+            if 0 in preds.shape:
+                raise AttributeError('There are no predictors in this instance')
+        else:
+            preds = np.array(predictors, dtype=np.float64)
+            if len(preds.shape) != 2:
+                raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
+            if 0 in preds.shape:
+                raise ValueError('There are no elements in argument \'predictors\'')
+
+        # Treat prediction parameters
+        if prediction_parameters is None:
+            params = self._crvfitter_prediction_parameters
+            dims = (1,) + self._crvfitter_dims
+        else:
+            params = np.array(prediction_parameters, dtype=np.float64)
+            # Keep original dimensions (to reset dimensions of prediction)
+            dims = params.shape
+            # Make matrix 2-dimensional
+            params = params.reshape(dims[0], -1)
+
+        if 0 in dims:
+            raise ValueError('There are no elements in argument \'prediction_parameters\'')
+
+        df_prediction = self.__df_prediction__(obs, preds, params)
+
+        # Restore original dimensions (except for the first axis)
+        return df_prediction.reshape(-1, *dims[1:])
 
 
 class AdditiveCurveFitter(CurveFitter):
-	'''CurveFitter subclass for the cases in which the following model is assumed:
-			Y = fp(C, CP) + fp(R, RP) + err
-		where 'Y' is the set of observations, 'C' is the set of correctors, 'CP' is the set of correction parameters,
-		'R' is the set of predictors, 'RP' the set of prediction parameters, 'fp' is an arbitrary function (more
-		specifically, it is the prediction function), and 'err' is the residual error of the model.
-	'''
+    """CurveFitter subclass for the cases in which the following model is assumed:
+            Y = fp(C, CP) + fp(R, RP) + err
+        where 'Y' is the set of observations, 'C' is the set of correctors, 'CP' is the set of correction parameters,
+        'R' is the set of predictors, 'RP' the set of prediction parameters, 'fp' is an arbitrary function (more
+        specifically, it is the prediction function), and 'err' is the residual error of the model.
+    """
 
-	def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
-		'''The correction is performed by applying the following formula:
-				Y - fp(C, CP)
-			where 'Y' is the 'observations' argument, 'C' is the 'correctors' argument, 'CP' is the 'correction_parameters'
-			argument and 'fp' is the '__predict__' method of the subclass. Any additional arguments are also passed
-			to the 'fp' function.
-			(See the '__predict__' and '__correct__' abstract methods in CurveFitter)
-		'''
-		return observations - self.__predict__(correctors, correction_parameters, *args, **kwargs)
+    def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
+        """The correction is performed by applying the following formula:
+                Y - fp(C, CP)
+            where 'Y' is the 'observations' argument, 'C' is the 'correctors' argument, 'CP' is the 'correction_parameters'
+            argument and 'fp' is the '__predict__' method of the subclass. Any additional arguments are also passed
+            to the 'fp' function.
+            (See the '__predict__' and '__correct__' abstract methods in CurveFitter)
+        """
+        return observations - self.__predict__(correctors, correction_parameters, *args, **kwargs)
 
 
 #TODO: use metaclass instead of method
-
 def MixedFitter(correction_fitter_type, prediction_fitter_type):
 
-	class MixedFitter(CurveFitter):
+    class MixedFitter(CurveFitter):
+        """Mixed Fitter that allows to use a fitter for correction and a different fitter for prediction"""
 
-		def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
-			self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors, intercept = intercept)
-			self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None, intercept = intercept)
-			self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors
-			self._crvfitter_predictors = self._mixedfitter_prediction_fitter._crvfitter_predictors
-			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
-			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
-		
-		def fit(self, observations, **kwargs):
-			kwargs_correction = {}
-			kwargs_prediction = {}
-			correction_varnames = set(self._mixedfitter_correction_fitter.__fit__.func_code.co_varnames)
-			prediction_varnames = set(self._mixedfitter_prediction_fitter.__fit__.func_code.co_varnames)
-			for (arg, value) in kwargs.iteritems():
-				if arg in correction_varnames:
-					correction_varnames.remove(arg)
-					kwargs_correction[arg] = value
-				if arg in prediction_varnames:
-					prediction_varnames.remove(arg)
-					kwargs_prediction[arg] = value
+        def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
+            self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors,
+                                                                         intercept = intercept)
+            self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None,
+                                                                         intercept = intercept)
+            self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors
+            self._crvfitter_predictors = self._mixedfitter_prediction_fitter._crvfitter_predictors
+            self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
+            self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
 
-			self._mixedfitter_correction_fitter.fit(observations = observations, **kwargs_correction)
-			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
-			obs = self.correct(observations)
-			
-			self._mixedfitter_prediction_fitter.fit(observations = obs, **kwargs_prediction)
-			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
+        def fit(self, observations, **kwargs):
+            kwargs_correction = {}
+            kwargs_prediction = {}
+            correction_varnames = set(self._mixedfitter_correction_fitter.__fit__.func_code.co_varnames)
+            prediction_varnames = set(self._mixedfitter_prediction_fitter.__fit__.func_code.co_varnames)
+            for (arg, value) in kwargs.iteritems():
+                if arg in correction_varnames:
+                    correction_varnames.remove(arg)
+                    kwargs_correction[arg] = value
+                if arg in prediction_varnames:
+                    prediction_varnames.remove(arg)
+                    kwargs_prediction[arg] = value
 
-		def correct(self, observations, correctors = None, correction_parameters = None, *args, **kwargs):
-			return self._mixedfitter_correction_fitter.correct(observations = observations, correctors = correctors, correction_parameters = correction_parameters, *args, **kwargs)
+            self._mixedfitter_correction_fitter.fit(observations = observations, **kwargs_correction)
+            self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
+            obs = self.correct(observations)
 
-		def predict(self, predictors = None, prediction_parameters = None, *args, **kwargs):
-			return self._mixedfitter_prediction_fitter.predict(predictors = predictors, prediction_parameters = prediction_parameters, *args, **kwargs)
+            self._mixedfitter_prediction_fitter.fit(observations = obs, **kwargs_prediction)
+            self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
 
-		def getattr(self, attr_name):
-			try:
-				return getattr(self._mixedfitter_prediction_fitter, attr_name)
-			except AttributeError:
-				return getattr(self._mixedfitter_correction_fitter, attr_name)
+        def correct(self, observations, correctors = None, correction_parameters = None, *args, **kwargs):
+            return self._mixedfitter_correction_fitter.correct(observations = observations, correctors = correctors, correction_parameters = correction_parameters, *args, **kwargs)
 
-		def set_pred_attr(self, attr_name, attr_value):
-			setattr(self._mixedfitter_prediction_fitter, attr_name, attr_value)
+        def predict(self, predictors = None, prediction_parameters = None, *args, **kwargs):
+            return self._mixedfitter_prediction_fitter.predict(predictors = predictors, prediction_parameters = prediction_parameters, *args, **kwargs)
 
-		def set_corr_attr(self, attr_name, attr_value):
-			setattr(self._mixedfitter_correction_fitter, attr_name, attr_value)
+        def getattr(self, attr_name):
+            try:
+                return getattr(self._mixedfitter_prediction_fitter, attr_name)
+            except AttributeError:
+                return getattr(self._mixedfitter_correction_fitter, attr_name)
 
-	return MixedFitter
+        def set_pred_attr(self, attr_name, attr_value):
+            setattr(self._mixedfitter_prediction_fitter, attr_name, attr_value)
+
+        def set_corr_attr(self, attr_name, attr_value):
+            setattr(self._mixedfitter_correction_fitter, attr_name, attr_value)
+
+    return MixedFitter

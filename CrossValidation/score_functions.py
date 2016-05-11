@@ -38,7 +38,8 @@ def statisticC_p(y_true, y_predicted, df):
 
     # Estimate the error variance
     eps = y_true - y_predicted
-    eps_var = (1 / (N-1)) * (eps - np.mean(eps)).dot(eps - np.mean(eps))
+    eps_mean = np.mean(eps, axis=0)
+    eps_var = mse(eps, eps_mean, 0) * N / (N - 1)
 
     # Compute Cp statistic
     return err + (2.0 / N)*df*eps_var

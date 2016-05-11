@@ -1,40 +1,42 @@
-from sklearn.svm import SVR
+from Fitters.SVR import GaussianSVR as GSVR
 import matplotlib.pyplot as plt
 import numpy as np
 
 """ FUNCTIONS """
 
-def compute_pseudoresiduals(y_true, y_predicted, X, support_vector_index, dual_coeff, kernel):
+
+def compute_pseudoresiduals(y_true, y_predicted, _X, support_vector_index, dual_coeff, kernel):
     # Prepare dual coefficients
     dual_coeff = dual_coeff.ravel()
     coeff = np.zeros(y_true.shape)
     coeff[support_vector_index] = dual_coeff
 
     # Compute kernel matrix diagonal --> K(x_i, x_i)
-    if kernel=='linear':
-        kernel_diag = np.diag(X.dot(X.T))
-    elif kernel=='rbf':
+    if kernel == 'linear':
+        kernel_diag = np.diag(_X.dot(_X.T))
+    elif kernel == 'rbf':
         kernel_diag = np.ones(coeff.shape)
     else:
         raise Exception("A kernel name (linear or rbf) must be provided")
 
     return kernel_diag, y_true - y_predicted + coeff * kernel_diag
 
-def effective_df(X, y, fitter):
+
+def effective_df(_X, _y, _fitter):
     kernel_diag, pseudoresiduals = compute_pseudoresiduals(
-        y,
-        fitter.predict(X),
-        X,
-        fitter.support_,
-        fitter.dual_coef_,
-        fitter.kernel
+        _y,
+        fitter.predict(_X),
+        _X,
+        _fitter.support_,
+        _fitter.dual_coef_,
+        _fitter.kernel
     )
 
-    C = fitter.C
-    epsilon = fitter.epsilon
+    _C = fitter.C
+    _epsilon = fitter.epsilon
 
-    min_value = epsilon * np.ones(pseudoresiduals.shape)
-    max_value = min_value + C * kernel_diag
+    min_value = _epsilon * np.ones(pseudoresiduals.shape)
+    max_value = min_value + _C * kernel_diag
     comp_min = min_value <= np.abs(pseudoresiduals)
     comp_max = np.abs(pseudoresiduals) <= max_value
 
@@ -55,10 +57,13 @@ if __name__ == "__main__":
     y = y.ravel()
     # y = np.atleast_2d(y)
 
+    print("Creating SVR fitter for artificial data...")
+    fitter = GSVR(predictors=X, correctors=None, intercept=GSVR.PredictionIntercept)
+
     # Exploratory Grid Search
-    C_vals = [10000]
-    epsilon_vals = [0.07]
-    gamma_vals = [1]
+    C_vals = [10, 50, 1000]
+    epsilon_vals = [0.2, 0.1, 0.05]
+    gamma_vals = [0.1, 0.25, 0.5]
     n_jobs = 1
 
     for C in C_vals:
@@ -71,16 +76,14 @@ if __name__ == "__main__":
                 print("gamma --> " + str(gamma))
 
                 """ PART 1: ARTIFICIAL DATA """
-                # Init Polynomial SVR fitters
-                print("Creating SVR fitter for artificial data...")
-                fitter = SVR(kernel='rbf', gamma=gamma, C=C, epsilon=epsilon)
                 # Fit data
                 print("Fitting artificial data...")
-                fitter.fit(X, y)
+                fitter.fit(y, C=C, epsilon=epsilon, gamma=gamma)
                 # Predict
-                predicted = fitter.predict(X)
+                predicted = fitter.predict()
                 # Compute degrees of freedom
-                df = effective_df(X, y, fitter)
+                df = fitter.df_prediction(y)
+                # df = effective_df(X, y, fitter)
                 print "Degrees of freedom: " + str(df)
                 # Plot prediction
                 print("Plotting curves in dimension 1...")

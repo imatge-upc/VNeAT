@@ -83,17 +83,17 @@ class PolySVRProcessor(Processor):
     def __read_user_defined_parameters__(self, regressor_names, corrector_names):
         # Intercept term
         intercept = PolySVRProcessor._psvrprocessor_intercept_options[super(PolySVRProcessor, self).__getoneof__(
-			PolySVRProcessor._psvrprocessor_intercept_options_names,
-			default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[2],
-			show_text = 'PolySVR Processor: How do you want to include the intercept term? (default: ' + PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
-		)]
+            PolySVRProcessor._psvrprocessor_intercept_options_names,
+            default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[2],
+            show_text = 'PolySVR Processor: How do you want to include the intercept term? (default: ' + PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
+        )]
 
         # Treat data option
         perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
-			PolySVRProcessor._psvrprocessor_perp_norm_options_names,
-			default_value = 'Use correctors and predictor as they are',
-			show_text = 'PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
-		)]
+            PolySVRProcessor._psvrprocessor_perp_norm_options_names,
+            default_value = 'Use correctors and predictor as they are',
+            show_text = 'PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
+        )]
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
@@ -133,7 +133,7 @@ class PolySVRProcessor(Processor):
         # Create a new PolySVR fitter to return the curve prediction
         psvr = PolySVR(predictor, degrees = self._psvrprocessor_degrees[:1], intercept = self._psvrprocessor_intercept)
         PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option](psvr)
-        return psvr.predict(prediction_parameters = prediction_parameters)
+        return psvr.predict(prediction_parameters=prediction_parameters)
 
     def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
                 mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
@@ -145,11 +145,11 @@ class GaussianSVRProcessor(Processor):
     Processor for Support Vector Regression with Gaussian kernel
     """
     _gsvrprocessor_perp_norm_options_names = [
-		'Normalize all',
-		'Normalize predictor',
-		'Normalize correctors',
-		'Use correctors and predictor as they are'
-	]
+        'Normalize all',
+        'Normalize predictor',
+        'Normalize correctors',
+        'Use correctors and predictor as they are'
+    ]
 
     _gsvrprocessor_perp_norm_options_list = [
         PolySVR.normalize_all,
@@ -160,16 +160,16 @@ class GaussianSVRProcessor(Processor):
 
     _gsvrprocessor_perp_norm_options = {
         'Normalize all': 0,
-		'Normalize predictor': 1,
-		'Normalize correctors': 2,
-		'Use correctors and predictor as they are': 3
+        'Normalize predictor': 1,
+        'Normalize correctors': 2,
+        'Use correctors and predictor as they are': 3
     }
 
     _gsvrprocessor_intercept_options_names = [
-		'Do not include the intercept term',
-		'As a corrector',
-		'As a predictor'
-	]
+        'Do not include the intercept term',
+        'As a corrector',
+        'As a predictor'
+    ]
 
     _gsvrprocessor_intercept_options_list = [
         PolySVR.NoIntercept,
@@ -179,8 +179,8 @@ class GaussianSVRProcessor(Processor):
 
     _gsvrprocessor_intercept_options = {
         'Do not include the intercept term': 0,
-		'As a corrector': 1,
-		'As a predictor': 2
+        'As a corrector': 1,
+        'As a predictor': 2
     }
 
     def __fitter__(self, user_defined_parameters):
@@ -210,17 +210,17 @@ class GaussianSVRProcessor(Processor):
     def __read_user_defined_parameters__(self, regressor_names, corrector_names):
         # Intercept term
         intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options[super(GaussianSVRProcessor, self).__getoneof__(
-			GaussianSVRProcessor._gsvrprocessor_intercept_options_names,
-			default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2],
-			show_text = 'GaussianSVR Processor: How do you want to include the intercept term? (default: ' + GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2] + ')'
-		)]
+            GaussianSVRProcessor._gsvrprocessor_intercept_options_names,
+            default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2],
+            show_text = 'GaussianSVR Processor: How do you want to include the intercept term? (default: ' + GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2] + ')'
+        )]
 
         # Treat data option
         perp_norm_option = GaussianSVRProcessor._gsvrprocessor_perp_norm_options[super(GaussianSVRProcessor, self).__getoneof__(
-			GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
-			default_value = 'Use correctors and predictor as they are',
-			show_text = 'GaussianSVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
-		)]
+            GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
+            default_value = 'Use correctors and predictor as they are',
+            show_text = 'GaussianSVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
+        )]
 
         # C regularization parameter
         C = super(GaussianSVRProcessor, self).__getfloat__(
@@ -246,8 +246,7 @@ class GaussianSVRProcessor(Processor):
             show_text='GaussianSVR Processor: Please, enter the gamma for the gaussian kernel (default: 0.5)'
         )
 
-
-        return (intercept, perp_norm_option, C, epsilon, gamma)
+        return intercept, perp_norm_option, C, epsilon, gamma
 
     def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
                 mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):

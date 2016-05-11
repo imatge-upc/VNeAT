@@ -1,5 +1,4 @@
 import CrossValidation.score_functions as score_f
-import CrossValidation.degrees_freedom as df_f
 
 import Utils.DataLoader as DataLoader
 import numpy as np
@@ -23,9 +22,9 @@ if __name__ == "__main__":
     # C = 10 ** (4 * np.random.rand(20))
 
     # Create grid of hyperparams using linear and logscale
-    epsilon = np.linspace(0.05, 0.5, 10)
+    epsilon = np.linspace(0.01, 0.2, 25)
     # gamma = np.linspace(0.1, 1.5, 15)
-    C = np.logspace(0.5, 3, 10)
+    C = np.logspace(0.5, 2.5, 20)
     grid_params = {
         'epsilon': list(epsilon),
         # 'gamma': list(gamma),
@@ -36,11 +35,13 @@ if __name__ == "__main__":
     gs = GridSearch(fitter=gsvr)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=1000, degrees_of_freedom=df_f.df_SVR,
-           score=score_f.mse, saveAllScores=True, filename="gsvr_gamma_vs_epsilon")
-
-    # Save results
-    gs.store_results("gsvr_opt_gamma_vs_epsilon", verbose=True)
+    gs.fit(grid_parameters=grid_params, N=1, m=1000, score=score_f.statisticC_p,
+           saveAllScores=True, filename="gsvr_C_vs_eps_Cp")
 
     # Plot error
     gs.plot_error()
+
+    # Save results
+    gs.store_results("gsvr_opt_C_vs_eps_Cp", verbose=True)
+
+

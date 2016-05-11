@@ -12,29 +12,30 @@ from Utils.Transforms import polynomial
 from Fitters.CurveFitting import CurveFitter
 from Fitters.CurveFitting import AdditiveCurveFitter
 
+
 class LinSVR(AdditiveCurveFitter):
     """
     LINEAR SVR
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
+    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
         self._svr_intercept = intercept
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
-        super(LinSVR, self).__init__(predictors, correctors, intercept)
+        super(LinSVR, self).__init__(predictors, correctors, CurveFitter.NoIntercept)
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
 
         # Parameters for linear SVR
-        C = kwargs['C'] if 'C' in kwargs else 100.0
-        epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
+        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = LinearSVR(epsilon=epsilon, tol=tol, C=C, fit_intercept=self._svr_intercept,
-                               intercept_scaling=C, max_iter=max_iter)
+        svr_fitter = LinearSVR(epsilon=self._svr_epsilon, tol=tol, C=self._svr_C, fit_intercept=self._svr_intercept,
+                               intercept_scaling=self._svr_C, max_iter=max_iter)
 
         num_variables = observations.shape[1]
 
@@ -44,8 +45,6 @@ class LinSVR(AdditiveCurveFitter):
 
         # Predictors preprocessing
         fit_predictors = True
-        if predictor_intercept:
-            predictors = predictors[:, 1:]
         p_size = predictors.size
 
         if p_size == 0 and predictor_intercept:
@@ -56,8 +55,6 @@ class LinSVR(AdditiveCurveFitter):
 
         # Correctors preprocessing
         fit_correctors = True
-        if corrector_intercept:
-            correctors = correctors[:, 1:]
         c_size = correctors.size
 
         if c_size == 0 and corrector_intercept:
@@ -87,15 +84,74 @@ class LinSVR(AdditiveCurveFitter):
         # Get correction and regression coefficients
         return cparams, pparams
 
-    @staticmethod
-    def __predict__(predictors, prediction_parameters, *args, **kwargs):
-        return predictors.dot(prediction_parameters)
+    def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
+        # Compute prediction as a simple dot product between coefficients and predictors
+        if self._svr_intercept == self.PredictionIntercept:
+            intercept = prediction_parameters[0, :]
+            prediction_parameters = prediction_parameters[1:, :]
+        return predictors.dot(prediction_parameters) + intercept
+
+    def __df_correction__(self, observations, correctors, correction_parameters):
+        # Compute correction (as a prediction using the correctors)
+        corrrection = self.__predict__(correctors, correction_parameters)
+        # Delete intercept term, if any
+        if self._svr_intercept == self.CorrectionIntercept:
+            pred_params = correction_parameters[1:, :]
+        else:
+            pred_params = correction_parameters[:, :]
+        # Create kernel diagonal for each variable to explain: K(x_i, x_i) = <x_i, x_i>
+        kernel_diag = np.diag(correctors.dot(correctors.T))  # Column vector
+        kernel_diag_expanded = np.atleast_2d(kernel_diag).T.dot(np.ones(1, observations.shape[1]))
+
+        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
+        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
+        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
+        pseudoresiduals = observations - corrrection + pred_params * kernel_diag_expanded
+
+        # Compute effective degrees of freedom from pseudoresiduals
+        _C = self._svr_C
+        _epsilon = self._svr_epsilon
+
+        # Logical operations
+        min_value = _epsilon * np.ones(pseudoresiduals.shape)
+        max_value = min_value + _C * kernel_diag
+        comp_min = min_value <= np.abs(pseudoresiduals)
+        comp_max = np.abs(pseudoresiduals) <= max_value
+        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
+
+    def __df_prediction__(self, observations, predictors, prediction_parameters):
+        # Compute prediction
+        prediction = self.__predict__(predictors, prediction_parameters)
+        # Delete intercept term, if any
+        if self._svr_intercept == self.PredictionIntercept:
+            pred_params = prediction_parameters[1:, :]
+        else:
+            pred_params = prediction_parameters
+        # Create kernel diagonal for each variable to explain: K(x_i, x_i) = <x_i, x_i>
+        kernel_diag = np.diag(predictors.dot(predictors.T)) # Column vector
+        kernel_diag_expanded = np.atleast_2d(kernel_diag).T.dot(np.ones((1, observations.shape[1])))
+
+        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
+        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
+        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
+        pseudoresiduals = observations - prediction + pred_params * kernel_diag_expanded
+
+        # Compute effective degrees of freedom from pseudoresiduals
+        _C = self._svr_C
+        _epsilon = self._svr_epsilon
+
+        # Logical operations
+        min_value = _epsilon * np.ones(pseudoresiduals.shape)
+        max_value = min_value + _C * kernel_diag
+        comp_min = min_value <= np.abs(pseudoresiduals)
+        comp_max = np.abs(pseudoresiduals) <= max_value
+        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
 
 
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, predictors = None, degrees = None, intercept = CurveFitter.NoIntercept):
+    def __init__(self, features, predictors=None, degrees=None, intercept=CurveFitter.NoIntercept):
         # Check features matrix
         self._svr_features = np.array(features)
         if len(self._svr_features.shape) != 2:
@@ -172,7 +228,6 @@ class PolySVR(LinSVR):
         super(PolySVR, self).__init__(predictors, correctors, self._svr_intercept)
 
 
-
 class GaussianSVR(CurveFitter):
     """ GAUSSIAN SVR """
 
@@ -182,9 +237,7 @@ class GaussianSVR(CurveFitter):
         self._svr_C = C
         self._svr_epsilon = epsilon
         self._svr_gamma = gamma
-        # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
-        super(GaussianSVR, self).__init__(predictors, correctors, intercept)
-
+        super(GaussianSVR, self).__init__(predictors, correctors, self.NoIntercept)
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         # Parameters for SVR training
@@ -207,8 +260,6 @@ class GaussianSVR(CurveFitter):
 
         # Predictors preprocessing
         fit_predictors = True
-        if predictor_intercept:
-            predictors = predictors[:, 1:]
         p_size = predictors.size
 
         if p_size == 0 and predictor_intercept:
@@ -219,8 +270,6 @@ class GaussianSVR(CurveFitter):
 
         # Correctors preprocessing
         fit_correctors = True
-        if corrector_intercept:
-            correctors = correctors[:, 1:]
         c_size = correctors.size
 
         if c_size == 0 and corrector_intercept:
@@ -256,10 +305,10 @@ class GaussianSVR(CurveFitter):
             # Get intercept term as the last coefficient in pparams
             intercept = prediction_parameters[-1, :]
             prediction_parameters = prediction_parameters[:-1,:]
-            training_examples = self.predictors[:, 1:]
         else:
             intercept = 0
-            training_examples = self.predictors
+
+        training_examples = self.predictors
 
         return self.__predict_from_params__(predictors, prediction_parameters,
                                             intercept, training_examples)
@@ -270,10 +319,10 @@ class GaussianSVR(CurveFitter):
             # Get intercept term as the last coefficient in pparams
             intercept = correction_parameters[-1, :]
             correction_parameters = correction_parameters[:-1,:]
-            training_examples = self.correctors[:, 1:]
         else:
             intercept = 0
-            training_examples = self.correctors
+
+        training_examples = self.correctors[:, 1:]
 
         # Correction
         correction = self.__predict_from_params__(correctors, correction_parameters,
@@ -281,6 +330,65 @@ class GaussianSVR(CurveFitter):
 
         return observations - correction
 
+    def __df_correction__(self, observations, correctors, correction_parameters):
+        # Manually compute correction (as in __correct__() )
+        if self._svr_intercept == self.CorrectionIntercept:
+            # Get intercept term as the last coefficient in pparams
+            intercept = correction_parameters[-1, :]
+            correction_parameters = correction_parameters[:-1, :]
+        else:
+            intercept = 0
+
+        training_examples = correctors[:, 1:]
+        correction = self.__predict_from_params__(correctors, correction_parameters,
+                                                  intercept, training_examples)
+        # Create kernel diagonal for each variable to explain (ones, because the kernel is gaussian,
+        # K(x_i, x_i) = 1
+        kernel_diag = np.ones(correction_parameters.shape)
+
+        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
+        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
+        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
+        pseudoresiduals = observations - correction + correction_parameters * kernel_diag
+
+        # Compute effective degrees of freedom from pseudoresiduals
+        _C = self._svr_C
+        _epsilon = self._svr_epsilon
+
+        # Logical operations
+        min_value = _epsilon * np.ones(pseudoresiduals.shape)
+        max_value = min_value + _C * kernel_diag
+        comp_min = min_value <= np.abs(pseudoresiduals)
+        comp_max = np.abs(pseudoresiduals) <= max_value
+        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
+
+    def __df_prediction__(self, observations, predictors, prediction_parameters):
+        # Compute prediction
+        prediction = self.__predict__(predictors, prediction_parameters)
+        # Delete intercept term, if any
+        if self._svr_intercept == self.PredictionIntercept:
+            pred_params = prediction_parameters[:-1, :]
+        else:
+            pred_params = prediction_parameters
+        # Create kernel diagonal for each variable to explain (ones, because the kernel is gaussian,
+        # K(x_i, x_i) = 1
+        kernel_diag = np.ones(pred_params.shape)
+
+        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
+        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
+        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
+        pseudoresiduals = observations - prediction + pred_params * kernel_diag
+
+        # Compute effective degrees of freedom from pseudoresiduals
+        _C = self._svr_C
+        _epsilon = self._svr_epsilon
+
+        # Logical operations
+        min_value = _epsilon * np.ones(pseudoresiduals.shape)
+        max_value = min_value + _C * kernel_diag
+        comp_min = min_value <= np.abs(pseudoresiduals)
+        comp_max = np.abs(pseudoresiduals) <= max_value
+        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
 
     def __predict_from_params__(self, test_data, params, intercept, training_data):
         """

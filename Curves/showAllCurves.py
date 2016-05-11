@@ -3,7 +3,6 @@
         - Poly GAM
         - Poly SVR
 """
-
 from os.path import join
 
 import matplotlib.pyplot as plot
@@ -21,12 +20,12 @@ from Processors.SVRProcessing import PolySVRProcessor as PSVRP, GaussianSVRProce
 
 # Info
 fitters = [
-#     NAME          PROCESSOR  PATH                                                         COLOR      MARKER
-    ['Poly GLM',    PGLMP,     join('..', 'results', 'PGLM', 'pglm_'),                      '#8A5EB8', 'd'   ],
-    ['Poly GAM',    GAMP,      join('..', 'results', 'PGAM', 'gam_poly_d3_'),               '#FFFB69', 'x'   ],
-    ['Poly SVR',    PSVRP,     join('..', 'results', 'PSVR', 'psvr_C3_eps0.08_'),           '#B22918', '+'   ],
-    ['Gaussian SVR',GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C10.0_eps0.1_gamma0.2_'),'#FF29B8', '+'   ],
-    # ['GSVR2',       GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C1000_eps0.07_gamma1_'), '#8AA769', 'x'   ]
+#     NAME           PROCESSOR  PATH                                                         COLOR      MARKER
+    ['Poly GLM',     PGLMP,     join('..', 'results', 'PGLM', 'pglm_curve_'),                '#8A5EB8', 'd'   ],
+    #['Poly GAM',    GAMP,      join('..', 'results', 'PGAM', 'gam_poly_d3_'),               '#FFFB69', 'x'   ],
+    ['Poly SVR',     PSVRP,     join('..', 'results', 'PSVR', 'psvr_C3_eps0.08_'),           '#B22918', '+'   ],
+    ['Gaussian SVR', GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C10.0_eps0.1_gamma0.2_'),'#FF29B8', '+'   ],
+    #['GSVR2',       GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C1000_eps0.07_gamma1_'), '#8AA769', 'x'   ]
 ]
 
 print 'Obtaining data from Excel file...'
@@ -111,13 +110,13 @@ while True:
 
         # Get (corrected) grey matter data
         corrected_data = processors[0].gm_values(
-            x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+            x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1)
 
         # Get curves for all processors
         for i in range(len(processors)):
             axis, curve = processors[i].curve(
                 prediction_parameters[i],
-                x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+                x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
             random_color = np.random.rand(3,1)
             plot.plot(axis, curve[:, 0, 0, 0],
                       lw=2, label=fitters[i][0], color=fitters[i][3], marker=fitters[i][4])
@@ -125,7 +124,7 @@ while True:
         color = ['co', 'bo', 'mo', 'ko']
         for i in xrange(len(diag)):
             l = diag[i]
-            plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label = Subject.Diagnostics[i])
+            plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
         # Plot info
         plot.legend(fontsize='xx-large')
         plot.xlabel('ADCSF', fontsize='xx-large')

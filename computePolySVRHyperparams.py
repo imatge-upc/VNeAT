@@ -1,6 +1,4 @@
 import CrossValidation.score_functions as score_f
-import CrossValidation.degrees_freedom as df_f
-
 import Utils.DataLoader as DataLoader
 import numpy as np
 from Fitters.CurveFitting import AdditiveCurveFitter
@@ -32,8 +30,8 @@ if __name__ == "__main__":
     gs = GridSearch(fitter=psvr)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=200, degrees_of_freedom=df_f.df_SVR,
-           score=score_f.mse, saveAllScores=True, filename="psvr_scores_hyperparams")
+    gs.fit(grid_parameters=grid_params, N=1, m=200, score=score_f.mse,
+           saveAllScores=True, filename="psvr_scores_hyperparams")
 
     # Plot error
     gs.plot_error()
