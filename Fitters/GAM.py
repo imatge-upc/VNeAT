@@ -16,7 +16,7 @@ class GAM(AdditiveCurveFitter):
     Additive model with non-parametric, smoothed components
     '''
 
-    def __init__(self, corrector_smoothers=None, predictor_smoothers=None, intercept = AdditiveCurveFitter.CorrectionIntercept):
+    def __init__(self, corrector_smoothers=None, predictor_smoothers=None, intercept = AdditiveCurveFitter.PredictionIntercept):
 
         self.TYPE_SMOOTHER = [InterceptSmoother, PolynomialSmoother, SplinesSmoother]
 
@@ -65,8 +65,6 @@ class GAM(AdditiveCurveFitter):
                                        self.__code_parameters(self.predictor_smoothers)))
 
 
-
-
             crv_corr.append(corr)
             crv_reg.append(pred)
 
@@ -77,7 +75,11 @@ class GAM(AdditiveCurveFitter):
         y_predict = []
         for reg_param in prediction_parameters.T:
             y_pred = np.zeros((predictors.shape[0],))
-            indx_smthr = 0
+            if reg_param[0] == 0:
+                y_pred += reg_param[2]
+                indx_smthr = 3
+            else:
+                indx_smthr = 0
             for reg in predictors.T:
                 smoother = self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](reg)
                 n_params = int(reg_param[indx_smthr + 1])
@@ -221,6 +223,7 @@ class SplinesSmoother(Smoother):
         self.smoothing_factor = smoothing_factor
         self.order = order
         self.xdata = np.sort(xdata)
+        self.index_xdata = np.argsort(xdata)
         self.spline_parameters = spline_parameters
         if name is None:
             name = 'SplinesSmoother'
@@ -255,7 +258,7 @@ class SplinesSmoother(Smoother):
     def fit(self, ydata):
         if ydata.ndim == 1:
             ydata = ydata[:, None]
-        spline = UnivariateSpline(self.xdata, ydata, k=self.order, s=self.smoothing_factor,
+        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
         # / (max(ydata) * np.sqrt(len(ydata))) * np.ones(len(ydata))
         self.spline_parameters = spline._eval_args  # spline.get_knots(),spline.get_coeffs(),self.order
@@ -264,7 +267,9 @@ class SplinesSmoother(Smoother):
 
         if xdata is None:
             xdata = self.xdata
-        elif xdata.ndim > 1:
+        else:
+            xdata = np.sort(xdata)
+        if xdata.ndim > 1:
             raise ValueError("Each smoother must have a single covariate.")
 
         if spline_parameters is None:
