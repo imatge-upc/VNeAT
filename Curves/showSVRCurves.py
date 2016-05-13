@@ -2,25 +2,40 @@ from os.path import join
 
 import nibabel as nib
 from matplotlib.pyplot import plot, legend, show
-from Processors.SVRProcessing import PolySVRProcessor as PSVR
+#from Processors.SVRProcessing import GaussianSVRProcessor as PSVR
+from Processors.SVRProcessing import PolySVRProcessor as PSVRP, GaussianSVRProcessor as GSVRP
 from Utils.Subject import Subject
 
 from Utils.DataLoader import getSubjects
 
-# SVR prefix
-filename_prefix = join('..', 'results', 'PSVR', 'psvr_C50_eps0.15_')
+# PolySVR prefix
+filename_prefix = join('results', 'PSVR', 'psvr_C3.16227766017_eps0.16_')
 
 print 'Obtaining data from Excel file'
 subjects = getSubjects(corrected_data=True)
 
-print 'Loading precomputed parameters for GLM'
+print 'Loading precomputed parameters for Polynomial SVR'
 psvr_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
 
 with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
 	user_defined_parameters = eval(f.read())
 
-print 'Initializing GLM Processor'
-psvrp = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+print 'Initializing Polynomial SVR Processor'
+psvrp = PSVRP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+
+# GausSVR prefix
+filename_prefix = join('results', 'GSVR', 'gsvr_C3.16227766017_eps0.0891666666667_gamma0.25_')
+
+print 'Loading precomputed parameters for Gaussian SVR'
+gsvr_prediction_parameters = nib.load(filename_prefix + 'pparams.nii').get_data()
+
+with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
+	user_defined_parameters = eval(f.read())
+
+print 'Initializing Gaussian SVR Processor'
+gsvrp = GSVRP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters)
+
+
 
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], psvrp.subjects)
 diag = [[], [], [], []]
@@ -67,10 +82,14 @@ while True:
 	try:
 		# PolySVR Curve
 		corrected_data = psvrp.gm_values(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
-		axis, curve = psvrp.curve(psvr_prediction_parameters,
-                                  x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+		axis, pcurve = psvrp.curve(psvr_prediction_parameters,
+                                   x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
 
-		plot(axis, curve[:, 0, 0, 0], 'r', label = 'Fitted total curve')
+		_, gcurve = gsvrp.curve(gsvr_prediction_parameters,
+                                x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1, tpoints = 50)
+
+		plot(axis, pcurve[:, 0, 0, 0], 'b', label = 'Fitted Polynomic SVR curve')
+		plot(axis, gcurve[:, 0, 0, 0], 'r', label = 'Fitted Gaussian SVR curve')
 
 		color = ['co', 'bo', 'mo', 'ko']
 		for i in xrange(len(diag)):

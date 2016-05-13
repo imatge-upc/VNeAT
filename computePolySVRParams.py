@@ -13,13 +13,13 @@ if __name__ == "__main__":
     subjects = DataLoader.getSubjects(corrected_data=True)
 
     print 'Initializing PolySVR Processor...'
-    # user_defined_parameters = (2, 9, 3.16227766017, 0.16, 3)
-    user_defined_parameters = (2, 3, 5.0, 0.05, 3)
+    user_defined_parameters = (2, 3, 3.16227766017, 0.16, 3)
+    # user_defined_parameters = (2, 3, 5.0, 0.05, 3)
     
     psvr = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters)
 
     print 'Processing data...'
-    results = psvr.process(n_jobs=4, mem_usage=128)
+    results = psvr.process(n_jobs=4, mem_usage=512)
     C = psvr.user_defined_parameters[2]
     epsilon = psvr.user_defined_parameters[3]
 
