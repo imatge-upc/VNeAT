@@ -5,6 +5,7 @@ from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
 import Utils.DataLoader as DataLoader
 from user_paths import RESULTS_DIR
+RESULTS_DIR = join(RESULTS_DIR, 'GAM')
 
 niiFile = nib.Nifti1Image
 affine = DataLoader.getMNIAffine()

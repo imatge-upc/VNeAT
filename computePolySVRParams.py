@@ -5,6 +5,7 @@ import Utils.DataLoader as DataLoader
 from Processors.SVRProcessing import PolySVRProcessor as PSVR
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
+RESULTS_DIR = join(RESULTS_DIR, 'PSVR')
 
 if __name__ == "__main__":
 
@@ -12,7 +13,7 @@ if __name__ == "__main__":
     subjects = DataLoader.getSubjects(corrected_data=True)
 
     print 'Initializing PolySVR Processor...'
-    user_defined_parameters = (2, 9, 50, 0.15, 3)
+    user_defined_parameters = (2, 9, 3.16227766017, 0.16, 3)
     psvr = PSVR(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters=user_defined_parameters)
 
     print 'Processing data...'

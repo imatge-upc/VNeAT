@@ -123,7 +123,6 @@ class CurveFitter(object):
 	@property
 	def features(self):
 		'''Matrix of shape (N, C+R), representing the features (correctors and predictors) of the model.
-			Note: do not modify the result (use its copy method if you need to treat this data).
 		'''
 		return np.array(list(self._crvfitter_correctors.T) + list(self._crvfitter_predictors.T)).T.copy()
 
@@ -148,7 +147,7 @@ class CurveFitter(object):
 		return self._crvfitter_prediction_parameters.copy().reshape(-1, *self._crvfitter_dims)
 
 	def orthogonalize_correctors(self):
-		'''Orthogonalizes each corrector in the structure w.r.t. all the previous np.ones. That is, for each
+		'''Orthogonalizes each corrector in the structure w.r.t. all the previous ones. That is, for each
 			column in the correctors matrix, its projection over the previous columns is computed and sub-
 			tracted from it.
 
@@ -256,7 +255,7 @@ class CurveFitter(object):
 		return D
 
 	def orthonormalize_correctors(self):
-		'''Orthogonalizes each corrector with respect to all the previous np.ones, and normalizes the results.
+		'''Orthogonalizes each corrector with respect to all the previous ones, and normalizes the results.
 			This is equivalent to applying orthogonalize_correctors and normalize_correctors consecutively
 			(in that same order), but slightly faster.
 
@@ -317,7 +316,7 @@ class CurveFitter(object):
 		return D
 
 	def orthogonalize_predictors(self):
-		'''Orthogonalizes each predictor in the structure w.r.t. all the previous np.ones. That is, for each
+		'''Orthogonalizes each predictor in the structure w.r.t. all the previous ones. That is, for each
 			column in the predictors matrix, its projection over the previous columns is computed and sub-
 			tracted from it.
 
@@ -425,7 +424,7 @@ class CurveFitter(object):
 		return D
 
 	def orthonormalize_predictors(self):
-		'''Orthogonalizes each predictors with respect to all the previous np.ones, and normalizes the results.
+		'''Orthogonalizes each predictors with respect to all the previous ones, and normalizes the results.
 			This is equivalent to applying orthonormalize_predictors and normalize_predictors consecutively
 			(in that same order), but slightly faster.
 
@@ -758,6 +757,7 @@ class CurveFitter(object):
 		obs = obs.reshape(dims[0], -1)
 		self._crvfitter_correction_parameters, self._crvfitter_prediction_parameters = self.__fit__(
 			self._crvfitter_correctors, self._crvfitter_predictors, obs, *args, **kwargs)
+		return self
 
 	@abstractstatic
 	def __predict__(predictors, prediction_parameters, *args, **kwargs):
@@ -992,7 +992,8 @@ def MixedFitter(correction_fitter_type, prediction_fitter_type):
 			self._crvfitter_predictors = self._mixedfitter_prediction_fitter._crvfitter_predictors
 			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
 			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
-		
+			self._mixedfitter_current_call = 0 # 0 for corrector, 1 for predictor
+
 		def fit(self, observations, **kwargs):
 			kwargs_correction = {}
 			kwargs_prediction = {}
@@ -1006,29 +1007,43 @@ def MixedFitter(correction_fitter_type, prediction_fitter_type):
 					prediction_varnames.remove(arg)
 					kwargs_prediction[arg] = value
 
+			self._mixedfitter_current_call = 0
 			self._mixedfitter_correction_fitter.fit(observations = observations, **kwargs_correction)
 			self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
 			obs = self.correct(observations)
 			
+			self._mixedfitter_current_call = 1
 			self._mixedfitter_prediction_fitter.fit(observations = obs, **kwargs_prediction)
 			self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
 
 		def correct(self, observations, correctors = None, correction_parameters = None, *args, **kwargs):
+			self._mixedfitter_current_call = 0
 			return self._mixedfitter_correction_fitter.correct(observations = observations, correctors = correctors, correction_parameters = correction_parameters, *args, **kwargs)
 
 		def predict(self, predictors = None, prediction_parameters = None, *args, **kwargs):
+			self._mixedfitter_current_call = 1
 			return self._mixedfitter_prediction_fitter.predict(predictors = predictors, prediction_parameters = prediction_parameters, *args, **kwargs)
 
 		def getattr(self, attr_name):
-			try:
-				return getattr(self._mixedfitter_prediction_fitter, attr_name)
-			except AttributeError:
-				return getattr(self._mixedfitter_correction_fitter, attr_name)
+			if self._mixedfitter_current_call == 0:
+				# look in corrector first
+				try:
+					return getattr(self._mixedfitter_correction_fitter, attr_name)
+				except AttributeError:
+					return getattr(self._mixedfitter_prediction_fitter, attr_name)
+			else:
+				# look in predictor first
+				try:
+					return getattr(self._mixedfitter_prediction_fitter, attr_name)
+				except AttributeError:
+					return getattr(self._mixedfitter_correction_fitter, attr_name)
 
 		def set_pred_attr(self, attr_name, attr_value):
+			self._mixedfitter_current_call = 1
 			setattr(self._mixedfitter_prediction_fitter, attr_name, attr_value)
 
 		def set_corr_attr(self, attr_name, attr_value):
+			self._mixedfitter_current_call = 0
 			setattr(self._mixedfitter_correction_fitter, attr_name, attr_value)
 
 	return MixedFitter

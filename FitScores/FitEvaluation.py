@@ -477,11 +477,10 @@ def mse(correction_fitter, prediction_fitter, observations, correctors, correcti
 	return (prediction_error**2).sum(axis = 0)/np.float64(len(prediction_error))
 
 @evaluation_function
-def relvar(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
+def r2(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
 	'''Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-		the relative variance of the prediction error with respect to the corrected data. In particular, this
-		method computes the ratio between the variance of the error and the variance of the corrected data.
-		Thus, the smaller the result, the better the fit.
+		the value of the R-squared measurement, which is basically a range adjusted version of the MSE.
+		In this case, however, the larger the result, the better the fit.
 	'''
 	if 0 in correctors.shape:
 		# There is no correction -> Corrected data is same as observations
@@ -499,7 +498,7 @@ def relvar(correction_fitter, prediction_fitter, observations, correctors, corre
 	error_variance = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
 	# We don't divide it by N-1 because the final ratio will eliminate this factor
 
-	return error_variance / correction_variance
+	return 1 - error_variance / correction_variance
 
 @evaluation_function
 def fstat(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
