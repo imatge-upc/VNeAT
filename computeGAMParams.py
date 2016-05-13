@@ -5,7 +5,7 @@ from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
 import Utils.DataLoader as DataLoader
 from user_paths import RESULTS_DIR
-RESULTS_DIR = join(RESULTS_DIR, 'PGAM')
+RESULTS_DIR = join(RESULTS_DIR, 'SGAM')
 
 niiFile = nib.Nifti1Image
 affine = DataLoader.getMNIAffine()
@@ -18,7 +18,7 @@ subjects = DataLoader.getSubjects(corrected_data=True)
 # ]
 
 user_defined_parameters = [
-    (9,[2,2,1,1])
+    (9,[2,2,12.9,3])
 ]
 filename_prefix = [
     'gam_splines_'
@@ -30,7 +30,7 @@ for udp, fn in zip(user_defined_parameters, filename_prefix):
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex],user_defined_parameters=udp)
 
     print 'Processing data...'
-    results = gamp.process(mem_usage=512)
+    results = gamp.process(mem_usage=256)
 
     print 'Saving results to files...'
 
