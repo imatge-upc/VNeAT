@@ -12,6 +12,10 @@ from scipy.stats import norm
 print 'Obtaining data from Excel file...'
 
 from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DATA_DIR, RESULTS_DIR
+RESULTS_DIR = join(RESULTS_DIR, 'GAM')
+
+filename_prefix = 'gam_poly_d3_'
+
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -50,12 +54,11 @@ for r in exc.get_rows(fieldstype={
     )
 
 print 'Loading precomputed parameters for GLM'
-filename_prefix = 'PGAM\\gam_poly_d3_'
 
 gam_correction_parameters = nib.load(join(RESULTS_DIR, filename_prefix + 'cparams.nii')).get_data()
 gam_prediction_parameters = nib.load(join(RESULTS_DIR, filename_prefix + 'pparams.nii')).get_data()
 
-with open(join(RESULTS_DIR,filename_prefix + 'userdefparams.txt'), 'rb') as f:
+with open(join(RESULTS_DIR, filename_prefix + 'userdefparams.txt'), 'rb') as f:
     user_defined_parameters = eval(f.read())
 
 print 'Initializing GAM Processor...'
@@ -70,7 +73,7 @@ fitting_scores = GAMP.evaluate_fit(
     prediction_parameters=gam_prediction_parameters,
     # x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
     # origx = 0, origy = 0, origz = 0,
-    gm_threshold=0.1,
+    # gm_threshold=0.1,
     filter_nans=True,
     default_value=0.0,
     mem_usage = 128,

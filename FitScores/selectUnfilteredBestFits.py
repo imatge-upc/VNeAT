@@ -42,5 +42,17 @@ nib.save(niiFile(best_fit, affine), filename_prefix + 'best_fit.nii')
 nib.save(niiFile(best_fit_model, affine), filename_prefix + 'best_fit_model.nii')
 
 
+best_fit = -best_fit
+best_fit = (best_fit - best_fit.mean())/(best_fit.std())
+
+mask = best_fit > norm.cdf(0.99)
+best_fit[~mask] = 0.0
+best_fit_model[~mask] = 0.0
+
+nib.save(niiFile(best_fit, affine), filename_prefix + 'best_fit_postprocessed.nii')
+nib.save(niiFile(best_fit_model, affine), filename_prefix + 'best_fit_model_postprocessed.nii')
+
+# best_fit_rgb = np.zeros()
+
 
 print 'Done.'

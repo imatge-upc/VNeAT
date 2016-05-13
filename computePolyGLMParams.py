@@ -7,7 +7,9 @@ from Utils.Subject import Subject
 
 from Utils.DataLoader import getSubjects
 
-filename_prefix = join('results', 'PGLM', 'pglm_')
+from user_paths import RESULTS_DIR
+filename_prefix = join(RESULTS_DIR, 'PGLM', 'pglm_')
+
 
 niiFile = nib.Nifti1Image
 

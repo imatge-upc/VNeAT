@@ -176,6 +176,10 @@ class GLMProcessor(Processor):
 
 		ZC = glm.correctors
 		ZR = glm.predictors
+
+		if 0 in ZR.shape:
+			return results
+
 		Z = np.concatenate((ZC, ZR), axis = 1)
 
 		Beta2R = results.prediction_parameters.reshape(ZR.shape[1], -1)
@@ -460,6 +464,10 @@ class PolyGLMProcessor(Processor):
 
 		ZC = pglm.correctors
 		ZR = pglm.predictors
+
+		if 0 in ZR.shape:
+			return results
+
 		Z = np.concatenate((ZC, ZR), axis = 1)
 
 		Beta2R = results.prediction_parameters.reshape(ZR.shape[1], -1)
