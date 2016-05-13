@@ -959,6 +959,230 @@ class CurveFitter(object):
 		# Restore original dimensions
 		return corrected_data.reshape(dims)
 
+	def __df_correction__(self, observations, correctors, correction_parameters):
+		'''
+		Computes the (effective) degrees of freedom for the fitted correctors.
+		This method is not intended to be called outside the CurveFitter class.
+
+		Parameters
+		----------
+
+		observations : numpy.array
+			array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+			i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+			explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+			variables and N the number of observations for each variable.
+
+		correctors : numpy.array
+			NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+			that (may) explain a part of the observational data in which we are not interested, where C is
+			the number of correctors and N the number of elements for each corrector. If set to None, the
+			internal correctors will be used.
+
+		correction_parameters : numpy.array
+			array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+			the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+			is the number of variables and Kc the number of correction parameters for each variable. If set
+			to None, the correction parameters obtained in the last call to 'fit' will be used.
+
+		Returns
+		-------
+
+		numpy.array
+			The (effective) degrees of freedom for the fitted correctors for each variable
+			X1, X2, ..., Xn
+		'''
+		raise NotImplementedError
+
+	def df_correction(self, observations, correctors=None, correction_parameters=None):
+		'''
+		Computes the (effective) degrees of freedom for the fitted correctors.
+		This method is not intended to be called outside the CurveFitter class.
+
+		Parameters
+		----------
+
+		observations : numpy.array
+			array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+			i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+			explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+			variables and N the number of observations for each variable.
+
+		correctors : numpy.array
+			NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+			that (may) explain a part of the observational data in which we are not interested, where C is
+			the number of correctors and N the number of elements for each corrector. If set to None, the
+			internal correctors will be used.
+
+		correction_parameters : numpy.array
+			array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+			the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+			is the number of variables and Kc the number of correction parameters for each variable. If set
+			to None, the correction parameters obtained in the last call to 'fit' will be used.
+
+		Returns
+		-------
+
+		numpy.array
+			The (effective) degrees of freedom for the fitted correctors for each variable
+			X1, X2, ..., Xn
+		'''
+		# Treat observations
+		obs = np.array(observations, dtype=np.float64)
+		# Keep original dimensions (to reset dimensions of corrected data)
+		dims = obs.shape
+		# Make matrix 2-dimensional
+		obs = obs.reshape(dims[0], -1)
+
+		# Check correctness of matrix
+		if 0 in dims:
+			return np.zeros((1, dims[1:]))
+
+		# Treat correctors
+		if correctors is None:
+			cors = self._crvfitter_correctors
+			if 0 in cors.shape:
+				return np.zeros((1, dims[1:]))
+		else:
+			cors = np.array(correctors, dtype=np.float64)
+			if len(cors.shape) != 2:
+				raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
+			if 0 in cors.shape:
+				raise ValueError('There are no elements in argument \'correctors\'')
+
+		if obs.shape[0] != cors.shape[0]:
+			raise ValueError('The dimensions of the observations and the correctors are incompatible')
+
+		## Treat correction parameters
+		if correction_parameters is None:
+			params = self._crvfitter_correction_parameters
+		else:
+			params = np.array(correction_parameters, dtype=np.float64)
+			params = params.reshape(params.shape[0], -1)
+
+			if 0 in params.shape:
+				raise ValueError('There are no elements in argument \'correction_parameters\'')
+
+		if obs.shape[1] != params.shape[1]:
+			raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+
+		# Compute the (effective) degrees of freedom for correctors
+		df_correction = self.__df_correction__(obs, cors, params)
+
+		# Restore original dimensions (except for the first axis)
+		return df_correction.reshape(-1, *dims[1:])
+
+	def __df_prediction__(self, observations, predictors, prediction_parameters):
+		'''
+		Computes the (effective) degrees of freedom for the fitted predictors.
+		This method is not intended to be called outside the CurveFitter class.
+
+		Parameters
+		----------
+
+		observations : numpy.array
+			array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+			i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+			explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+			variables and N the number of observations for each variable.
+
+		predictors : numpy.array
+			NxR (2-dimensional) matrix, representing the predictors, i.e., features to be used
+			to try to explain/predict the observations (experimental data), where R is the number of
+			predictors and N the number of elements for each predictor.
+
+		prediction_parameters : numpy.array
+			(Kr)xM (2-dimensional) matrix, representing the parameters that best fit
+			the predictors to the corrected observations for each variable, where M is the number of
+			variables and Kr is the number of prediction parameters for each variable.
+
+		Returns
+		-------
+
+		numpy.array
+			The (effective) degrees of freedom for the fitted predictors for each variable
+			X1, X2, ..., Xn
+		'''
+		raise NotImplementedError
+
+	def df_prediction(self, observations, predictors=None, prediction_parameters=None):
+		'''
+		Computes the (effective) degrees of freedom for the fitted predictors
+
+		Parameters
+		----------
+
+		observations : numpy.array
+			array-like matrix of shape (N, X1, ..., Xn), representing the observational data,
+			i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+			explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+			variables and N the number of observations for each variable. Be aware that the observations
+			must be the same as the ones used in prediction, that is, if the prediction was performed over
+			corrected observations, these corrected observations are the ones that must be used here.
+
+		predictors : numpy.array
+			NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
+			to be used to try to explain/predict the observations (experimental data), where R is the number
+			of predictors and N the number of elements for each predictor. If set to None, the predictors of
+			the instance will be used. For this method to work properly the predictors must be the same
+			as the ones used in training (fit method).
+
+		prediction_parameters : numpy.array
+			array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
+			the parameters to fit the predictors to the corrected observations for each variable, where M =
+			X1*...*Xn is the number of variables and Kr is the number of prediction parameters for each
+			variable. If set to None, the prediction parameters obtained in the last call to 'fit' will be
+			used.
+
+		Returns
+		-------
+
+		numpy.array
+			The (effective) degrees of freedom for the fitted predictors for each variable
+			X1, X2, ..., Xn
+		'''
+		## Treat observations
+		obs = np.array(observations, dtype=np.float64)
+		# Keep original dimensions (to reset dimensions of corrected data)
+		dims = obs.shape
+		# Make matrix 2-dimensional
+		obs = obs.reshape(dims[0], -1)
+
+		# Check correctness of matrix
+		if 0 in dims:
+			return np.zeros((1, dims[1:]))
+
+		# Treat predictors
+		if predictors is None:
+			preds = self._crvfitter_predictors
+			if 0 in preds.shape:
+				raise AttributeError('There are no predictors in this instance')
+		else:
+			preds = np.array(predictors, dtype=np.float64)
+			if len(preds.shape) != 2:
+				raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
+			if 0 in preds.shape:
+				raise ValueError('There are no elements in argument \'predictors\'')
+
+		# Treat prediction parameters
+		if prediction_parameters is None:
+			params = self._crvfitter_prediction_parameters
+			dims = (1,) + self._crvfitter_dims
+		else:
+			params = np.array(prediction_parameters, dtype=np.float64)
+			# Keep original dimensions (to reset dimensions of prediction)
+			dims = params.shape
+			# Make matrix 2-dimensional
+			params = params.reshape(dims[0], -1)
+
+		if 0 in dims:
+			raise ValueError('There are no elements in argument \'prediction_parameters\'')
+
+		df_prediction = self.__df_prediction__(obs, preds, params)
+
+		# Restore original dimensions (except for the first axis)
+		return df_prediction.reshape(-1, *dims[1:])
+
 
 class AdditiveCurveFitter(CurveFitter):
 	'''CurveFitter subclass for the cases in which the following model is assumed:
@@ -985,7 +1209,7 @@ def MixedFitter(correction_fitter_type, prediction_fitter_type):
 
 	class MixedFitter(CurveFitter):
 
-		def __init__(self, predictors = None, correctors = None, intercept = NoIntercept):
+		def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
 			self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors, intercept = intercept)
 			self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None, intercept = intercept)
 			self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors

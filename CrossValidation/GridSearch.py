@@ -51,7 +51,7 @@ class GridSearch(object):
 
 
 
-    def fit(self, grid_parameters, N, m, degrees_of_freedom, score=score_functions.mse,
+    def fit(self, grid_parameters, N, m, score=score_functions.mse,
             saveAllScores=False, filename="xvalidation_scores"):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
@@ -88,7 +88,7 @@ class GridSearch(object):
         self._m = m
 
         # Map parameters into two lists
-        for key,value in grid_parameters.iteritems():
+        for key, value in grid_parameters.iteritems():
             self._param_names.append(key)
             self._param_values.append(value)
             self._total_computations *= len(value)
@@ -96,10 +96,8 @@ class GridSearch(object):
         # Check number of parameters for error plotting
         if len(self._param_names) <= 0:
             raise Exception("There are no parameters to optimize")
-        elif len(self._param_names) == 1:
-            self._num_params = 1
         else:
-            self._num_params = 2
+            self._num_params = len(self._param_names)
 
         # Save all scores variable (if required)
         if saveAllScores:
@@ -149,8 +147,7 @@ class GridSearch(object):
             # Cartesian products between all the possible parameters
             for params in it.product(*self._param_values):
                 # Create temporary dictionary to pass it to fitter as optional params
-                tmp_params = {self._param_names[i]: params[i] \
-                              for i in range(len(params))}
+                tmp_params = {self._param_names[i]: params[i] for i in range(len(params))}
                 # Show progress
                 print "\r",
                 print (float(progress_counter) / self._total_computations)*100, "%",
@@ -159,7 +156,7 @@ class GridSearch(object):
                 # Predict data
                 predicted = self._fitter.predict()
                 # Degrees of freedom
-                df = degrees_of_freedom(current_observations, self._fitter)
+                df = self._fitter.df_prediction(current_observations)
                 # Score function
                 score_value = score(current_observations, predicted, df)
                 # Convert variances list to numpy array
@@ -209,9 +206,9 @@ class GridSearch(object):
             Default is False.
         """
         # Create string to store
-        string =   "m=" + str(self._m) + " randomly selected voxels, " + \
-                "N=" + str(self._N) + " iterations, " + \
-                "and total_error=" + str(self._total_error) + ":\n\n"
+        string = "m=" + str(self._m) + " randomly selected voxels, " + \
+            "N=" + str(self._N) + " iterations, " + \
+            "and total_error=" + str(self._total_error) + ":\n\n"
         for key, value in self._optimal_params.iteritems():
             string += str(key) + " --> " + str(value) + "\n"
 
@@ -256,8 +253,8 @@ class GridSearch(object):
             X, Y = np.meshgrid(X, Y)
             # Arrange the error matrix to match the X, Y dimensions
             Z = np.array(self._errors_vector).reshape(
-                (len(self._param_values[1]), len(self._param_values[0]))
-            )
+                (len(self._param_values[0]), len(self._param_values[1]))
+            ).T
             # Plot surface
             fig = plot.figure()
             ax = fig.gca(projection='3d')
@@ -266,3 +263,6 @@ class GridSearch(object):
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
             plot.show()
+        else:
+            print
+            print "Cannot draw the error curve or surface as there are more than 2 parameters"

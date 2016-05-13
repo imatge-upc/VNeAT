@@ -14,10 +14,10 @@ filename_prefix = join(RESULTS_DIR, 'PGLM', 'pglm_')
 niiFile = nib.Nifti1Image
 
 print 'Getting data from Excel file...'
-subjects = getSubjects(corrected_data=True)
+subjects = getSubjects(corrected_data=False)
 
 print 'Initializing PolyGLM Processor...'
-pglmp = PGLMP(subjects, predictors = [Subject.ADCSFIndex])
+pglmp = PGLMP(subjects, predictors=[Subject.ADCSFIndex], correctors=[Subject.Age, Subject.Sex])
 
 print 'Processing data...'
 results = pglmp.process(mem_usage=256)# x1 = 80, x2 = 81, y1 = 49, y2 = 50, z1 = 82, z2 = 83)
