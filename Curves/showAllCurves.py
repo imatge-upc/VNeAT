@@ -21,10 +21,10 @@ from Processors.SVRProcessing import PolySVRProcessor as PSVRP, GaussianSVRProce
 # Info
 fitters = [
 #     NAME           PROCESSOR  PATH                                                         COLOR      MARKER
-    ['Poly GLM',     PGLMP,     join('..', 'results', 'PGLM', 'pglm_curve_'),                '#8A5EB8', 'd'   ],
-    #['Poly GAM',    GAMP,      join('..', 'results', 'PGAM', 'gam_poly_d3_'),               '#FFFB69', 'x'   ],
-    ['Poly SVR',     PSVRP,     join('..', 'results', 'PSVR', 'psvr_C3_eps0.08_'),           '#B22918', '+'   ],
-    ['Gaussian SVR', GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C10.0_eps0.1_gamma0.2_'),'#FF29B8', '+'   ],
+    ['Poly GLM',     PGLMP,     join('results', 'PGLM', 'pglm_'),                                            '#8A5EB8', 'd'   ],
+    ['Poly GAM',     GAMP,      join('results', 'PGAM', 'gam_poly_'),                                        '#FFFB69', 'x'   ],
+    ['Poly SVR',     PSVRP,     join('results', 'PSVR', 'psvr_C3.16227766017_eps0.16_'),                     '#B22918', 'o'   ],
+    ['Gaussian SVR', GSVRP,     join('results', 'GSVR', 'gsvr_C3.16227766017_eps0.0891666666667_gamma0.25_'),'#FF29B8', '+'   ],
     #['GSVR2',       GSVRP,     join('..', 'results', 'GSVR', 'gsvr_C1000_eps0.07_gamma1_'), '#8AA769', 'x'   ]
 ]
 

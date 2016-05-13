@@ -5,7 +5,7 @@ from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
 import Utils.DataLoader as DataLoader
 from user_paths import RESULTS_DIR
-RESULTS_DIR = join(RESULTS_DIR, 'GAM')
+RESULTS_DIR = join(RESULTS_DIR, 'PGAM')
 
 niiFile = nib.Nifti1Image
 affine = DataLoader.getMNIAffine()
@@ -27,7 +27,7 @@ for udp, fn in zip(user_defined_parameters, filename_prefix):
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
     print 'Processing data...'
-    results = gamp.process(mem_usage=256)
+    results = gamp.process(mem_usage=512)
 
     print 'Saving results to files...'
 
