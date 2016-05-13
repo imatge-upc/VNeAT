@@ -311,11 +311,14 @@ class SplinesSmoother(Smoother):
 
         parameters = np.squeeze(parameters)
         self.smoothing_factor = parameters[0]
-        n_knots = int(parameters[1])
-        n_coeff = int(parameters[2 + n_knots])
-        self.spline_parameters = tuple([parameters[2:2 + n_knots], parameters[3 + n_knots:3+n_knots+n_coeff],
-                                        int(parameters[4+n_knots+n_coeff])])
-        self.order = int(parameters[4+n_knots+n_coeff])
+        try:
+            n_knots = int(parameters[1])
+            n_coeff = int(parameters[2 + n_knots])
+            self.spline_parameters = tuple([parameters[2:2 + n_knots], parameters[3 + n_knots:3+n_knots+n_coeff],
+                                            int(parameters[4+n_knots+n_coeff])])
+            self.order = int(parameters[4+n_knots+n_coeff])
+        except:
+            self.order = int(parameters[1])
 
     @property
     def name(self):
