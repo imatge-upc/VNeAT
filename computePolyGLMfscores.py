@@ -23,7 +23,9 @@ affine = np.array(
 
 print 'Obtaining data from Excel file'
 filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem), listdir(DATA_DIR)))
-filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
+filenames_by_id = {
+    basename(fn).split('_')[0][8:]: fn for fn in filenames
+}
 
 exc = Excel(EXCEL_FILE)
 
