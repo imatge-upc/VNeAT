@@ -152,9 +152,9 @@ class GaussianSVRProcessor(Processor):
     ]
 
     _gsvrprocessor_perp_norm_options_list = [
-        PolySVR.normalize_all,
-        PolySVR.normalize_predictors,
-        PolySVR.normalize_correctors,
+        GaussianSVR.normalize_all,
+        GaussianSVR.normalize_predictors,
+        GaussianSVR.normalize_correctors,
         lambda *args, **kwargs: zeros((0, 0))
     ]
 

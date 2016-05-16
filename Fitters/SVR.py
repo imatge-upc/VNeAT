@@ -85,11 +85,25 @@ class LinSVR(AdditiveCurveFitter):
         return cparams, pparams
 
     def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
-        # Compute prediction as a simple dot product between coefficients and predictors
+        # Compute prediction
+        pred_params = prediction_parameters
+        intercept = 0
         if self._svr_intercept == self.PredictionIntercept:
             intercept = prediction_parameters[0, :]
-            prediction_parameters = prediction_parameters[1:, :]
-        return predictors.dot(prediction_parameters) + intercept
+            pred_params = prediction_parameters[1:, :]
+        return predictors.dot(pred_params) + intercept
+
+    def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
+        # Compute correction
+        corr_params = correction_parameters
+        intercept = 0
+        if self._svr_intercept == self.CorrectionIntercept:
+            intercept = correction_parameters[0, :]
+            corr_params = correction_parameters[1:, :]
+        correction = correctors.dot(corr_params) + intercept
+
+        # Return observations corrected by correction
+        return observations - correction
 
     def __df_correction__(self, observations, correctors, correction_parameters):
         # Compute correction (as a prediction using the correctors)
