@@ -23,7 +23,7 @@ fitters = [
 #     NAME              PROCESSOR   PATH                                                                            COLOR       MARKER
     ['GLM',             PGLMP,      join('results', 'PGLM', 'pglm_'),                                               'm',        'd'   ],
     ['Polynomial GAM',  GAMP,       join('results', 'PGAM', 'gam_poly_'),                                           'y',        'd'   ],
-#    ['Splines GAM',     GAMP,       join('results', 'SGAM', 'gam_splines_'),                                        'g',        'd'   ],
+    ['Splines GAM',     GAMP,       join('results', 'SGAM', 'gam_splines_'),                                        'g',        'd'   ],
     ['Polynomial SVR',  PSVRP,      join('results', 'PSVR', 'psvr_C3.16227766017_eps0.16_'),                        'b',        'd'   ],
     ['Gaussian SVR',    GSVRP,      join('results', 'GSVR', 'gsvr_C3.16227766017_eps0.0891666666667_gamma0.25_'),   'r',        'd'   ]
 ]

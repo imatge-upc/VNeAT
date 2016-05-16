@@ -18,7 +18,7 @@ subjects = DataLoader.getSubjects(corrected_data=True)
 # ]
 
 user_defined_parameters = [
-    (9,[2,2,12.9,3])
+    (9,[2,2,80,3])
 ]
 filename_prefix = [
     'gam_splines_'
