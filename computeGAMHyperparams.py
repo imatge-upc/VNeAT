@@ -5,7 +5,7 @@ from Utils.DataLoader import getGMData, getFeatures
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
-from Fitters.GAM import GAM, SplinesSmoother
+from Fitters.GAM import GAM, SplinesSmoother, SmootherSet
 
 if __name__ == "__main__":
 
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # Get data from Excel and nii files
     print "Getting data from NIFTI files..."
     predictor = getFeatures([Subject.ADCSFIndex])
-    predictor_smoother = SplinesSmoother(predictor,order=3)
+    predictor_smoother = SmootherSet(SplinesSmoother(predictor,order=3))
     observations = getGMData(corrected_data=True)
 
     # Dimensions
@@ -26,13 +26,13 @@ if __name__ == "__main__":
     m = 100                                     # number of voxels to select randomly in each iteration
     gm_threshold = 0.1                          # grey matter threshold used to filter voxels with no gm
     params = {
-        'smoothing_factor': np.linspace(110,135,50),
+        'smoothing_factor': np.linspace(50,129,50),
     }
 
     """ INITIALIZATION """
     optim_params = { 'smoothing_factor': -1 }    # optimal params initialization
     total_error = 1000000000                    # total error initialization
-    fitter = GAM(predictor_smoothers=predictor_smoother)     # PolySVR fitter with 3rd order polynomic
+    fitter = GAM(predictor_smoothers=predictor_smoother)
     total_computations = len(params['smoothing_factor'])
 
     for i in range(N):

@@ -11,8 +11,10 @@ print 'Obtaining data from Excel file...'
 
 subjects = DataLoader.getSubjects(corrected_data=True)
 print 'Initializing GAM Processor...'
+
+s_target=105
 user_defined_parameters = [
-	(9,[2,2,68,3]),
+	(9,[2,2,s_target,3]),
 ]
 
 filenames = [
@@ -20,11 +22,11 @@ filenames = [
 	'gam_splines_d3_s1',
 
 ]
-x1 = 71#85  # 103#
+x1 = 85#  71#  103#
 x2 = x1 + 1
-y1 = 79#101  # 45#
+y1 = 101#  79#    45#
 y2 = y1 + 1
-z1 = 39#45  # 81#
+z1 = 45  #39# 81#
 z2 = z1 + 1
 
 for udp,filename in zip(user_defined_parameters,filenames):
@@ -40,8 +42,15 @@ import numpy as np
 
 adcsf = np.sort(gamp.predictors.T[0])
 index_adcsf = np.argsort(gamp.predictors.T[0])
+
+from Fitters.GAM import SplinesSmoother
+spl_smoother = SplinesSmoother(adcsf,order=3,smoothing_factor=s_target)
+df_target = spl_smoother.df_model(gamp.gm_values(x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)[index_adcsf, 0, 0, 0])
+
+
 plt.plot(adcsf, gamp.gm_values(x1=x1,x2=x2,y1=y1,y2=y2,z1=z1,z2=z2)[index_adcsf, 0, 0, 0], 'k.')
 plt.plot(adcsf, gamp.__curve__(-1, np.sort(adcsf[:, np.newaxis]), np.squeeze(results.prediction_parameters)))
+plt.title(df_target)
 plt.show()
 
 print 'Done.'

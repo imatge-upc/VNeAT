@@ -11,3 +11,4 @@ data/*
 nonlinear2/FPMAlfa_GAM.py
 *tmp.py
 user_paths.py
+GAMFIT/*

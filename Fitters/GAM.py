@@ -229,20 +229,25 @@ class SplinesSmoother(Smoother):
             name = 'SplinesSmoother'
         self._name = name
 
-    def df_model(self, parameters=None):
+    def df_model(self, ydata,parameters=None):
         #     """
         #     Degrees of freedom used in the fit.
         #     """
-        p=self.xdata.shape[0]
-        eye = np.identity(p)
-        smoother_matrix = np.zeros((p,p))
-        for index, vector in enumerate(eye):
-            spline = UnivariateSpline(self.xdata, vector, k=self.order, s=self.smoothing_factor,
-                                      w = 1 * np.sqrt(p)/2 * np.ones(len(vector)))
-            vector_response = spline(self.xdata)
-            smoother_matrix[:,index] = vector_response
+        # p=self.xdata.shape[0]
+        # eye = np.identity(p)
+        # smoother_matrix = np.zeros((p,p))
+        # for index, vector in enumerate(eye):
+        #     spline = UnivariateSpline(self.xdata, vector, k=self.order, s=self.smoothing_factor,
+        #                               w = 1 * np.sqrt(p)/2 * np.ones(len(vector)))
+        #     vector_response = spline(self.xdata)
+        #     smoother_matrix[:,index] = vector_response
+        # return np.trace(smoother_matrix)
 
-        return np.trace(smoother_matrix)
+        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
+                                  w=1 / np.std(ydata) * np.ones(len(ydata)))
+        return len(spline.get_coeffs())
+
+
 
 
 
