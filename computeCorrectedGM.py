@@ -7,11 +7,7 @@ from Utils.Subject import Subject
 import Utils.DataLoader as DataLoader
 from user_paths import CORRECTED_DATA_DIR
 
-
-
 gm_threshold = 0.1 # set to 0 if you don't want to filter by gray matter volume
-
-
 
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=False)

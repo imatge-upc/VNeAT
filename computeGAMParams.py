@@ -13,13 +13,13 @@ affine = DataLoader.getMNIAffine()
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=True)
 
-# user_defined_parameters = [
-#     (9, [1, 1, 3]),
-# ]
-
 user_defined_parameters = [
-    (9,[2,2,80,3])
+    (9, [2, 2, 80, 3])
 ]
+#
+# user_defined_parameters = [
+#     (9, [1, 1, 3])
+# ]
 filename_prefix = [
     'gam_splines_'
 ]
@@ -27,10 +27,10 @@ filename_prefix = [
 for udp, fn in zip(user_defined_parameters, filename_prefix):
 
     print 'Initializing GAM Polynomial Processor...'
-    gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex],user_defined_parameters=udp)
+    gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex])
 
     print 'Processing data...'
-    results = gamp.process(mem_usage=256)
+    results = gamp.process(mem_usage=64)
 
     print 'Saving results to files...'
 

@@ -1,9 +1,4 @@
-""" Shows curves for all fitters created:
-        - Poly GLM
-        - Poly GAM
-        - Splines GAM
-        - Poly SVR
-        - Gaussian SVR
+""" Shows curves for Mixed Processors
 """
 from os.path import join
 
@@ -14,47 +9,44 @@ import numpy as np
 # Utils
 from Utils.DataLoader import getSubjects, getMNIAffine
 from Utils.Subject import Subject
-
-# Processors
-from Processors.GLMProcessing import PolyGLMProcessor as PGLMP
-from Processors.GAMProcessing import GAMProcessor as GAMP
-from Processors.SVRProcessing import PolySVRProcessor as PSVRP, GaussianSVRProcessor as GSVRP
-
 from user_paths import RESULTS_DIR
+from Processors.MixedProcessor import MixedProcessor
+
+RESULTS_DIR = join(RESULTS_DIR, 'MIXED')
 
 # Info
 fitters = [
-    # NAME              PROCESSOR   PATH
-    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_'),                                               'm',        'd'   ],
-    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                                           'y',        'd'   ],
-    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_'),                                        'g',        'd'   ],
-    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C3.16227766017_eps0.16_'),                        'b',        'd'   ],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C3.16227766017_eps0.0891666666667_gamma0.25_'),   'r',        'd'   ]
+    # NAME                          # PREFIX
+    ['PolyGLM - PolyGLM',           'pglm_pglm_'],
+    ['PolyGLM - GaussianSVR',       'pglm_gsvr_'],
+    ['PolyGLM - PolyGAM',           'mixedprocessor_']
 ]
 
 print 'Obtaining data from Excel file...'
-subjects = getSubjects(corrected_data=True)
+subjects = getSubjects(corrected_data=False)
 
 print 'Obtaining affine matrix to map mm<-->voxels...'
 affine = getMNIAffine()
 
 print 'Loading precomputed parameters for all fitters...'
 prediction_parameters = []
+correction_parameters = []
 user_defined_parameters = []
 for fitter in fitters:
-    prediction_parameters.append(nib.load(fitter[2] + 'pparams.nii').get_data())
-    with open(fitter[2] + 'userdefparams.txt', 'rb') as f:
+    prediction_parameters.append(nib.load(join(RESULTS_DIR, fitter[1] + 'pparams.nii')).get_data())
+    correction_parameters.append(nib.load(join(RESULTS_DIR, fitter[1] + 'cparams.nii')).get_data())
+    with open(join(RESULTS_DIR, fitter[1] + 'userdefparams.txt'), 'rb') as f:
         user_defined_parameters.append(eval(f.read()))
-
 
 print 'Initializing processors'
 processors = []
-for fitter, user_params in zip(fitters, user_defined_parameters):
+for user_params in user_defined_parameters:
     processors.append(
-        fitter[1](
+        MixedProcessor(
             subjects,
-            predictors = [Subject.ADCSFIndex],
-            user_defined_parameters = user_params
+            predictors=[Subject.ADCSFIndex],
+            correctors=[Subject.Age, Subject.Sex],
+            user_defined_parameters=user_params
         )
     )
 
@@ -114,33 +106,34 @@ while True:
 
         print 'This is voxel', x, y, z
 
-        # Get (corrected) grey matter data
-        corrected_data = processors[0].gm_values(
-            x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1)
-
         # Get curves for all processors
         for i in range(len(processors)):
+            # Get (corrected) grey matter data
+            corrected_data = processors[i].corrected_values(
+                correction_parameters[i],
+                x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
             axis, curve = processors[i].curve(
                 prediction_parameters[i],
-                x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
-            random_color = np.random.rand(3,1)
+                x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1, tpoints=50)
+            color = '#aa4433'
             plot.plot(axis, curve[:, 0, 0, 0],
-                      lw=2, label=fitters[i][0], color=fitters[i][3], marker=fitters[i][4])
+                      lw=2, label=fitters[i][0], color=color, marker='d')
 
-        color = ['co', 'bo', 'mo', 'ko']
-        for i in xrange(len(diag)):
-            l = diag[i]
-            plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
-        # Plot info
-        plot.legend(fontsize='xx-large')
-        plot.xlabel('ADCSF', fontsize='xx-large')
-        plot.ylabel('Grey matter', fontsize='xx-large')
-        plt_title = 'Coordinates: ' + \
-                    str(mm_coordinates_prima[0]) + ', ' + \
-                    str(mm_coordinates_prima[1]) + ', ' + \
-                    str(mm_coordinates_prima[2]) + ' mm'
-        plot.title(plt_title, size="xx-large")
-        plot.show()
+            color = ['co', 'bo', 'mo', 'ko']
+            for i in xrange(len(diag)):
+                l = diag[i]
+                plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
+            # Plot info
+            plot.legend(fontsize='xx-large')
+            plot.xlabel('ADCSF', fontsize='xx-large')
+            plot.ylabel('Grey matter', fontsize='xx-large')
+            plt_title = 'Coordinates: ' + \
+                        str(mm_coordinates_prima[0]) + ', ' + \
+                        str(mm_coordinates_prima[1]) + ', ' + \
+                        str(mm_coordinates_prima[2]) + ' mm'
+            plot.title(plt_title, size="xx-large")
+            plot.show()
+
         print
     except Exception as e:
         print '[ERROR] Unexpected error occurred while computing and showing the results:'

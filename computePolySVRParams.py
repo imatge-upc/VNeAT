@@ -4,33 +4,33 @@ import nibabel as nib
 import Utils.DataLoader as DataLoader
 from Processors.SVRProcessing import PolySVRProcessor as PSVR
 from Utils.Subject import Subject
+from user_paths import RESULTS_DIR
 
 if __name__ == "__main__":
 
     # Define filename prefix
-    filename_prefix = join('results', 'PSVR')
+    filename_prefix = join(RESULTS_DIR, 'PSVR')
 
     print 'Obtaining data from Excel file...'
-    # subjects = DataLoader.getSubjects(corrected_data=True) # Used for prediction
-    subjects = DataLoader.getSubjects(corrected_data=False) # Used for correction and prediction
+    subjects = DataLoader.getSubjects(corrected_data=True) # Used for prediction
+    # subjects = DataLoader.getSubjects(corrected_data=False) # Used for correction and prediction
 
     print 'Initializing PolySVR Processor...'
-    # udp = (2, 3, 3.16227766017, 0.16, 3)          # Used for prediction
-    udp = (1, 0, 3.0, 0.08, 3, 2, 1)                # Used for correction and prediction
+    udp = (2, 3, 3.16227766017, 0.16, 3)          # Used for prediction
+    # udp = (1, 0, 3.0, 0.08, 3, 2, 1)              # Used for correction and prediction
     psvr = PSVR(subjects,
                 predictors=[Subject.ADCSFIndex],
-                correctors=[Subject.Age, Subject.Sex],
                 user_defined_parameters=udp)
 
     print 'Processing data...'
-    results = psvr.process(n_jobs=4, mem_usage=512)
+    results = psvr.process(n_jobs=3, mem_usage=1024)
     C = psvr.user_defined_parameters[2]
     epsilon = psvr.user_defined_parameters[3]
 
     print 'Saving results to files...'
     affine = DataLoader.getMNIAffine()
     niiFile = nib.Nifti1Image
-    filename = 'psvr_C' + str(C) + '_eps' + str(epsilon) + '_full_'
+    filename = 'psvr_C' + str(C) + '_eps' + str(epsilon) + '_'
     nib.save(niiFile(results.correction_parameters, affine), join(filename_prefix, filename + 'cparams.nii'))
     nib.save(niiFile(results.prediction_parameters, affine), join(filename_prefix, filename + 'pparams.nii'))
 
