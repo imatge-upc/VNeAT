@@ -1,5 +1,0 @@
-
-DATA_DIR = '/mnt/imatge-work/acasamitjana/FPM/data_backup/Non-linear/Nonlinear_NBA_15'
-CORRECTED_DIR = '/mnt/imatge-work/acasamitjana/FPM/data_backup/Non-linear/Nonlinear_NBA_15_corrected'
-EXCEL_FILE = '/mnt/imatge-work/acasamitjana/FPM/data_backup/Non-linear/work_DB_CSF.R1.final.xls'
-
