@@ -111,6 +111,37 @@ class MixedProcessor(Processor):
 
         return correct_option, correct_udp, predict_option, predict_udp
 
+    def __post_process__(self, prediction_parameters, correction_parameters):
+        # Route post-processing routines to the corresponding processors
+        prediction_results = self._prediction_processor.__post_process__(
+            prediction_parameters, correction_parameters
+        )
+        correction_results = self._correction_processor.__post_process__(
+            prediction_parameters, correction_parameters
+        )
+
+        # Return the post_processed parameters
+        return Processor.Results(
+            prediction_results.prediction_parameters,
+            correction_results.correction_parameters
+        )
+
+    def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
+        # Route pre-processing routines to the corresponding processors
+        pparams, dummy = self._prediction_processor.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            predictors,
+            correctors
+        )
+        dummy, cparams = self._correction_processor.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            predictors,
+            correctors
+        )
+        return pparams, cparams
+
     def __curve__(self, fitter, predictor, prediction_parameters):
         return self._prediction_processor.__curve__(fitter, predictor, prediction_parameters)
 

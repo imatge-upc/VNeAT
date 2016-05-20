@@ -509,13 +509,13 @@ def fstat(correction_fitter, prediction_fitter, observations, correctors, correc
     ## Now compare the variances of the errors
     
     # Residual Sum of Squares for restricted model
-    rss1 = ((correction_error - correction_error.mean(axis = 0))**2).sum(axis = 0)
+    rss1 = ((correction_error - correction_error.mean(axis=0))**2).sum(axis=0)
     p1 = correction_fitter.df_correction(observations, correctors, correction_parameters)
     
     # Residual Sum of Squares for full model
-    rss2 = (prediction_error**2).sum(axis = 0) # TODO: Check if this is correct or the following line should replace it
+    rss2 = (prediction_error**2).sum(axis=0) # TODO: Check if this is correct or the following line should replace it
     # rss2 = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
-    p2 = p1 + prediction_fitter.df_prediction(observations, predictors, prediction_parameters)
+    p2 = p1 + prediction_fitter.df_prediction(correction_error, predictors, prediction_parameters)
     
     # Degrees of freedom
     n = observations.shape[0]
@@ -546,8 +546,15 @@ def ftest(correction_fitter, prediction_fitter, observations, correctors, correc
 
     f_score = fstat(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters)
 
-    p1 = correctors.shape[1]
-    p2 = p1 + predictors.shape[1]
+    if 0 in correctors.shape:
+        # There is no correction -> Correction error is same as observations
+        correction_error = observations
+    else:
+        # Compute correction error
+        correction_error = correction_fitter.correct(observations, correctors, correction_parameters)
+
+    p1 = correction_fitter.df_correction(observations, correctors, correction_parameters)
+    p2 = p1 + prediction_fitter.df_prediction(correction_error, predictors, prediction_parameters)
     n = observations.shape[0]
 
     # Degrees of freedom

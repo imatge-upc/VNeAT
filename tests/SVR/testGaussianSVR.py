@@ -46,9 +46,9 @@ if __name__ == "__main__":
     aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.PredictionIntercept)
 
     # Exploratory Grid Search
-    C_vals = [3.6, 10]
-    epsilon_vals = [0.08, 0.1]
-    gamma_vals = [0.25]
+    C_vals = [10, 100]
+    epsilon_vals = [0.089, 0.05]
+    gamma_vals = [0.25, 0.5, 0.7]
     n_jobs = 1
 
     for C in C_vals:
@@ -89,6 +89,16 @@ if __name__ == "__main__":
                 aet_svr.fit(reshaped_obs, C=C, epsilon=epsilon, gamma=gamma, n_jobs=n_jobs)
                 end_time = time.clock()
 
+                # Print execution info
+                print("Using the following parameters for the SVR fitter the fitting time was " +
+                      str(end_time - start_time) + " s")
+                print("\tC: " + str(C))
+                print("\tepsilon: " + str(epsilon))
+                print("\tgamma: " + str(gamma))
+                print("\t# processes: " + str(n_jobs))
+                print("\t# voxels fitted: " + str(num_voxels))
+                print "\t# degrees of freedom: ", aet_svr.df_prediction(reshaped_obs)
+
                 # Generate x data for first fitted voxel [:, 0]
                 reg = aet_regressors[:, 0]
                 x = np.atleast_2d(np.linspace(min(reg), max(reg), 100)).T
@@ -107,11 +117,3 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.show()
 
-                # Print execution info
-                print("Using the following parameters for the SVR fitter the fitting time was " +
-                      str(end_time - start_time) + " s")
-                print("\tC: " + str(C))
-                print("\tepsilon: " + str(epsilon))
-                print("\tgamma: " + str(gamma))
-                print("\t# processes: " + str(n_jobs))
-                print("\t# voxels fitted: " + str(num_voxels))

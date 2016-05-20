@@ -195,7 +195,11 @@ class Processor(object):
         if not mem_usage is None:
             self._processor_mem_usage = float(mem_usage)
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+        chunks = Utils.Subject.chunks(
+            self._processor_subjects,
+            x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+            mem_usage=self._processor_mem_usage
+        )
         dims = chunks.dims
 
         # Initialize progress
@@ -259,7 +263,52 @@ class Processor(object):
 
         if self.progress != 100.0:
             self.__processor_update_progress(10000.0 - self._processor_progress)
-        return Processor.Results(prediction_parameters, correction_parameters) #, fitting_scores)
+
+        # Call post_processing routine
+        return self.__post_process__(prediction_parameters, correction_parameters)
+
+    def __post_process__(self, prediction_parameters, correction_parameters):
+        """
+        [Private method] Allows the post-processing of the prediction and correction parameters
+        after the process() method has finished. By default returns the same prediction and correction
+        parameters that were found in process.
+
+        Parameters
+        ----------
+        prediction_parameters : numpy.array
+            Parameters found for the predictors
+        correction_parameters : numpy.array
+            Parameters found for the correctors
+
+        Returns
+        -------
+        Processor.Results
+            Results instance with the post-processed prediction and correction parameters
+        """
+        return Processor.Results(prediction_parameters, correction_parameters)
+
+    def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
+        """
+        [Private and static method] Allows the pre-processing of the prediction and correction
+        parameters before other methods are called (e.g. curve(), evaluate_fit() ).
+
+        Parameters
+        ----------
+        prediction_parameters : numpy.array
+            Prediction parameters to be pre-processed
+        correction_parameters : numpy.array
+            Correction parameters to be pre-processed
+        predictors : numpy.array
+            Predictors used to compute the prediction parameters
+        correctors : numpy.array
+            Correctors used to compute the correction parameters
+
+        Returns
+        -------
+        tuple(numpy.array, numpy.array)
+            The pre-processed prediction_parameters and correction_parameters in this particular order
+        """
+        return prediction_parameters, correction_parameters
 
     #TODO: Document properly
     def __curve__(self, fitter, predictor, prediction_parameters):
@@ -353,30 +402,15 @@ class Processor(object):
 
         return corrected_data
 
-    def gm_values(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, mem_usage = None):
-        """
+    def gm_values(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, mem_usage=None):
 
-        Parameters
-        ----------
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
-        mem_usage
-
-        Returns
-        -------
-
-        """
         if not mem_usage is None:
             self._processor_mem_usage = float(mem_usage)
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2, mem_usage=self._processor_mem_usage)
         dims = chunks.dims
 
-        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype = np.float64)
+        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
 
         for chunk in chunks:
             # Get relative (to the solution matrix) coordinates of the chunk
@@ -393,15 +427,25 @@ class Processor(object):
 
         return gm_data
 
-
-
-
-    #TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
+    # TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
     # since such values affect the values inside the region (if not considered, the clusters could potentially
     # seem smaller and thus be filtered accordingly)
     @staticmethod
     def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
-
+        # Preprocess parameters
+        prediction_parameters, dummy = prediction_processor.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            prediction_processor.predictors,
+            correction_processor.correctors
+        )
+        dummy, correction_parameters = correction_processor.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            prediction_processor.predictors,
+            correction_processor.correctors
+        )
+        # Evaluate fitting from pre-processed parameters
         if mem_usage is None:
             mem_usage = correction_processor._processor_mem_usage
             if mem_usage is None:

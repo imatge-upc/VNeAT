@@ -402,7 +402,8 @@ class GaussianSVR(CurveFitter):
         max_value = min_value + _C * kernel_diag
         comp_min = min_value <= np.abs(pseudoresiduals)
         comp_max = np.abs(pseudoresiduals) <= max_value
-        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
+        df = np.sum(np.logical_and(comp_min, comp_max), axis=0)
+        return df
 
     def __predict_from_params__(self, test_data, params, intercept, training_data):
         """

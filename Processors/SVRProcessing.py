@@ -136,9 +136,14 @@ class PolySVRProcessor(Processor):
         return psvr.predict(prediction_parameters=prediction_parameters)
 
     def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None,
-                mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
+                mem_usage=None, evaluation_kwargs={}, *args, **kwargs):
         # Call parent function process with additional parameters obtained through __read_user_defined_parameters__
-        return super(PolySVRProcessor, self).process(x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon, *args, **kwargs)
+        return super(PolySVRProcessor, self).process(
+            x1, x2, y1, y2, z1, z2,
+            mem_usage, evaluation_kwargs,
+            C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon,
+            *args, **kwargs
+        )
 
 
 class GaussianSVRProcessor(Processor):
@@ -249,8 +254,8 @@ class GaussianSVRProcessor(Processor):
 
         return intercept, perp_norm_option, C, epsilon, gamma
 
-    def process(self, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
-                mem_usage = None, evaluation_kwargs = {}, *args, **kwargs):
+    def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None,
+                mem_usage=None, evaluation_kwargs={}, *args, **kwargs):
         # Call parent function process with additional parameters 
         return super(GaussianSVRProcessor, self).process(
             x1, x2, y1, y2, z1, z2, mem_usage, evaluation_kwargs,

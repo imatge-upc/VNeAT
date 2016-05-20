@@ -6,11 +6,13 @@ import nibabel as nib
 from matplotlib.pyplot import plot, legend, show
 from Processors.SVRProcessing import GaussianSVRProcessor as GSVRP
 from Utils.Subject import Subject
-
 from Utils.DataLoader import getSubjects
+from user_paths import RESULTS_DIR
+
+RESULTS_DIR = join(RESULTS_DIR, 'GSVR')
 
 # SVR prefix
-filename_prefix = join('..', 'results', 'GSVR', 'gsvr_C3.0_eps0.08_gamma0.25_full')
+filename_prefix = join(RESULTS_DIR, 'gsvr_C3.0_eps0.08_gamma0.25_full')
 
 print 'Obtaining data from Excel file'
 subjects = getSubjects(corrected_data=False)
