@@ -34,22 +34,24 @@ class GAM(AdditiveCurveFitter):
         self.predictor_smoothers = SmootherSet(predictor_smoothers)
         self.corrector_smoothers = SmootherSet(corrector_smoothers)
 
-        super(GAM, self).__init__(predictors, correctors, True)
+        super(GAM, self).__init__(predictors=predictors, correctors=correctors, intercept=self._gam_intercept)
 
-    def __fit__(self, correctors, predictors, observations, rtol=1.0e-08, maxiter=500):
+    def __fit__(self, correctors, predictors, observations, rtol=1.0e-08, maxiter=500, *args, **kwargs):
 
         dims = observations.shape
+        for smoother, corr in zip(self.corrector_smoothers, correctors.T[1:]):
+            smoother.set_covariate(corr.reshape(dims[0], -1))
 
-        [smoother.set_covariate(corr.reshape(dims[0], -1)) for smoother, corr in
-         zip(self.corrector_smoothers, correctors.T[1:])]
-        [smoother.set_covariate(reg.reshape(dims[0], -1)) for smoother, reg in
-         zip(self.predictor_smoothers, predictors.T)]
+
+        for smoother, reg in zip(self.predictor_smoothers, predictors.T):
+            smoother.set_covariate(reg.reshape(dims[0], -1))
+
 
         smoother_functions = SmootherSet(self.corrector_smoothers + self.predictor_smoothers)
         crv_reg = []
         crv_corr = []
         for obs in observations.T:
-            alpha, smoothers = self.__backfitting_algorithm(obs, smoother_functions, rtol=rtol, maxiter=maxiter)
+            alpha, smoothers = self.__backfitting_algorithm(obs, smoother_functions, rtol=rtol, maxiter=maxiter, *args, **kwargs)
 
             self.intercept_smoother.set_parameters(alpha)
             self.corrector_smoothers = SmootherSet(smoothers[:self.corrector_smoothers.n_smoothers])
@@ -70,7 +72,7 @@ class GAM(AdditiveCurveFitter):
 
         return (np.array(crv_corr).T, np.array(crv_reg).T)
 
-    def __predict__(self, predictors, prediction_parameters):
+    def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
 
         y_predict = []
         for reg_param in prediction_parameters.T:
@@ -117,14 +119,14 @@ class GAM(AdditiveCurveFitter):
             parameters = np.concatenate((parameters, [self.TYPE_SMOOTHER.index(smoother.__class__)], params))
         return parameters
 
-    def __backfitting_algorithm(self, observation, smoother_functions, rtol=1e-8, maxiter=500):
+    def __backfitting_algorithm(self, observation, smoother_functions, rtol=1e-8, maxiter=500, *args, **kwargs):
 
         N = observation.shape[0]
         alpha, mu, offset = self.__init_iter(observation, smoother_functions.n_smoothers)
 
         for smoother in smoother_functions:
             r = observation - alpha - mu
-            smoother.fit(r)
+            smoother.fit(r, *args, **kwargs)
             f_i_pred = smoother.predict()
             offset = f_i_pred.sum() / N
             f_i_pred -= offset
@@ -140,7 +142,7 @@ class GAM(AdditiveCurveFitter):
                 f_i_prev = smoother.predict() - smoother.predict().sum() / N
                 mu = mu - f_i_prev
                 r = observation - alpha - mu
-                smoother.fit(r)
+                smoother.fit(r,*args, **kwargs)
                 f_i_pred = smoother.predict()
                 offset = f_i_pred.sum() / N
                 f_i_pred -= offset
@@ -152,12 +154,37 @@ class GAM(AdditiveCurveFitter):
 
 
 
-    def df_model(self):
-        df = []
-        for smoother in self.predictor_smoothers:
-            df.append(smoother.df_model())
+    def __df_correction__(self,observations, correctors, correction_parameters):
 
-        return df
+        df,df_partial = [],[]
+        for reg_param in correction_parameters.T:
+            y_pred = np.zeros((correctors.shape[0],))
+            if reg_param[0] == 0:
+                y_pred += reg_param[2]
+                indx_smthr = 3
+            else:
+                indx_smthr = 0
+            for corr in correctors.T:
+                smoother = self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](corr)
+                df_partial.append(smoother.df_mo)
+        df.append(df_partial)
+        return np.asarray(df)
+
+
+    def __df_prediction__(self, observations, predictors, prediction_parameters):
+        df, df_partial = [], []
+        for reg_param in prediction_parameters.T:
+            y_pred = np.zeros((predictors.shape[0],))
+            if reg_param[0] == 0:
+                y_pred += reg_param[2]
+                indx_smthr = 3
+            else:
+                indx_smthr = 0
+            for pred in predictors.T:
+                smoother = self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](pred)
+                df_partial.append(smoother.df_mo)
+        df.append(df_partial)
+        return np.asarray(df)
 
 
 class SmootherSet(list):
@@ -208,7 +235,7 @@ class Smoother():
 
 
 class SplinesSmoother(Smoother):
-    def __init__(self, xdata, order=3, smoothing_factor=None, spline_parameters=None, name=None):
+    def __init__(self, xdata, order=3, smoothing_factor=None, df = None, spline_parameters=None, name=None):
         # Implements smoothing splines regression
         # xdata:
         # order:
@@ -221,7 +248,10 @@ class SplinesSmoother(Smoother):
         if smoothing_factor is None:
             smoothing_factor = len(xdata)
         self.smoothing_factor = smoothing_factor
+        self.df = df
         self.order = order
+
+        xdata = np.squeeze(xdata)
         self.xdata = np.sort(xdata)
         self.index_xdata = np.argsort(xdata)
         self.spline_parameters = spline_parameters
@@ -229,46 +259,47 @@ class SplinesSmoother(Smoother):
             name = 'SplinesSmoother'
         self._name = name
 
-    def df_model(self, ydata,parameters=None):
-        #     """
-        #     Degrees of freedom used in the fit.
-        #     """
-        # p=self.xdata.shape[0]
-        # eye = np.identity(p)
-        # smoother_matrix = np.zeros((p,p))
-        # for index, vector in enumerate(eye):
-        #     spline = UnivariateSpline(self.xdata, vector, k=self.order, s=self.smoothing_factor,
-        #                               w = 1 * np.sqrt(p)/2 * np.ones(len(vector)))
-        #     vector_response = spline(self.xdata)
-        #     smoother_matrix[:,index] = vector_response
-        # return np.trace(smoother_matrix)
+    def df_model(self, ydata, smoothing_factor=None, order = None):
+        """
+        Degrees of freedom used in the fit.
+        """
 
-        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
+        if smoothing_factor is None:
+            smoothing_factor = self.smoothing_factor
+        if order is None:
+            order = self.order
+
+        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=order, s=smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
         return len(spline.get_coeffs())
 
 
-
-
-
     def df_resid(self, parameters=None):
-        pass
-
-    #     """
-    #     Residual degrees of freedom from last fit.
-    #     """
-    #     return self.N - self.df_model(parameters=parameters)
+        """
+        Residual degrees of freedom from last fit.
+        """
+        return self.N - self.df_model(parameters=parameters)
 
 
-    def fit(self, ydata):
+    def fit(self, ydata, *args, **kwargs):
+
+        self.df = kwargs['df'] if 'df' in kwargs else self.df
+
+        if self.df is not None:
+            self.smoothing_factor = self.compute_smoothing_factor(ydata, self.df)
+        elif 's' in kwargs:
+            self.smoothing_factor = kwargs['s']
+
         if ydata.ndim == 1:
             ydata = ydata[:, None]
+
+
         spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
         # / (max(ydata) * np.sqrt(len(ydata))) * np.ones(len(ydata))
         self.spline_parameters = spline._eval_args  # spline.get_knots(),spline.get_coeffs(),self.order
 
-    def predict(self, xdata=None, spline_parameters=None):
+    def predict(self, xdata=None, spline_parameters=None, *args, **kwargs):
 
         if xdata is None:
             xdata = self.xdata
@@ -330,6 +361,26 @@ class SplinesSmoother(Smoother):
         except:
             self.order = int(parameters[1])
 
+    def compute_smoothing_factor(self, ydata, df_target, xdata = None):
+
+        found = False
+        too_much = False
+        step=129
+        while not found:
+            df = self.df_model(ydata,smoothing_factor=s)
+            if df == df_target:
+                found = True
+            elif df < df_target:
+                step = step/2 if too_much else step
+                s = s - step
+            else:
+                too_much = True
+                step = step/2
+                s = s + step
+
+        return s
+
+
     @property
     def name(self):
         return self._name
@@ -343,7 +394,7 @@ class PolynomialSmoother(Smoother):
     def __init__(self, xdata, order=3, coefficients=None, name=None):
 
         self.order = order
-
+        xdata = np.squeeze(xdata)
         if xdata.ndim > 1:
             raise ValueError("Error, each smoother a single covariate associated.")
 
