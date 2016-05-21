@@ -51,12 +51,12 @@ if __name__ == "__main__":
     features[:, :num_regs] = aet_regressors
     features[:, num_regs:] = aet_correctors
     # PSVR to predict data
-    poly_svr = PSVR(features=aet_regressors, predictors=range(num_regs), degrees=[3], intercept=CurveFitter.PredictionIntercept)
-
+    poly_svr = PSVR(features=aet_regressors, predictors=range(num_regs), degrees=[3],
+                    intercept=CurveFitter.PredictionIntercept)
 
     # Exploratory Grid Search
-    C_vals = [3.16, 10, 100]
-    epsilon_vals = [0.078, 0.05]
+    C_vals = [10, 50, 100, 1000]
+    epsilon_vals = [0.05, 0.08]
     n_jobs = 1
 
     for C in C_vals:

@@ -30,12 +30,13 @@ class LinSVR(AdditiveCurveFitter):
         self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
         self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
-        tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
+        tol = kwargs['tol'] if 'tol' in kwargs else 1e-6
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = LinearSVR(epsilon=self._svr_epsilon, tol=tol, C=self._svr_C, fit_intercept=self._svr_intercept,
-                               intercept_scaling=self._svr_C, max_iter=max_iter)
+        svr_fitter = LinearSVR(epsilon=self._svr_epsilon, tol=tol, C=self._svr_C,
+                               fit_intercept=self._svr_intercept,
+                               max_iter=max_iter)
 
         num_variables = observations.shape[1]
 
@@ -106,6 +107,8 @@ class LinSVR(AdditiveCurveFitter):
         return observations - correction
 
     def __df_correction__(self, observations, correctors, correction_parameters):
+        # TODO Implement this properly
+        return np.zeros((1, observations.shape[1]))
         # Compute correction (as a prediction using the correctors)
         corrrection = self.__predict__(correctors, correction_parameters)
         # Delete intercept term, if any
@@ -134,6 +137,8 @@ class LinSVR(AdditiveCurveFitter):
         return np.sum(np.logical_and(comp_min, comp_max), axis=0)
 
     def __df_prediction__(self, observations, predictors, prediction_parameters):
+        # TODO Implement this properly
+        return np.zeros((1, observations.shape[1]))
         # Compute prediction
         prediction = self.__predict__(predictors, prediction_parameters)
         # Delete intercept term, if any

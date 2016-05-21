@@ -17,16 +17,20 @@ class GridSearch(object):
      values the parameters can take, and assessing their results with a variety of
      score functions """
 
-    def __init__(self, fitter):
+    def __init__(self, fitter, results_directory=RESULTS_DIR):
         """
 
         Parameters
         ----------
         fitter : Fitters.CurveFitter
             Fitter instance whose hyperparams you want to find
+        results_directory : Optional[string]
+            Path into the results directory where the file will be stored.
+            Default is your RESULTS_DIR in user_paths
         """
         # Init
         self._fitter = fitter
+        self._results_dir = results_directory
         self._total_error = 1000000000                      # total error initialization
         self._param_names = []                              # names of parameters
         self._param_values = []                             # values of parameters
@@ -49,10 +53,8 @@ class GridSearch(object):
         self._num_subjects = self._observations.shape[0]
         self._X_dim, self._Y_dim, self._Z_dim = self._observations.shape[1:]
 
-
-
     def fit(self, grid_parameters, N, m, score=score_functions.mse,
-            saveAllScores=False, filename="xvalidation_scores"):
+            save_all_scores=False, filename="xvalidation_scores"):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
         value of all N iterations
@@ -66,13 +68,10 @@ class GridSearch(object):
             Number of iterations
         m : int
             Number of randomly selected voxels (without repetition) for each iteration
-        degrees_of_freedom : function
-            function to calculate the degrees of freedom. Must follow the protype specified
-            at degrees_of_freedom.py
         score : Optional[function]
             Score function used to decide the best selection of parameters.
             Default is MSE.
-        saveAllScores : Optional[boolean]
+        save_all_scores : Optional[boolean]
             Whether to save all scores for all possible combinations of parameters of each iteration.
             Default is False
         filename : Optional[String]
@@ -100,7 +99,7 @@ class GridSearch(object):
             self._num_params = len(self._param_names)
 
         # Save all scores variable (if required)
-        if saveAllScores:
+        if save_all_scores:
             errors = [['Iteration'] + self._param_names + ['Error']]
 
         # Pre-assign errors for N iterations
@@ -173,7 +172,7 @@ class GridSearch(object):
                 self._errors_vector[iteration].append(tmp_error)
 
                 # Save score if required
-                if saveAllScores:
+                if save_all_scores:
                     l_params = map(lambda x: round(x, 2), list(params))
                     errors.append([iteration+1] + l_params + [round(tmp_error, 2)])
 
@@ -181,8 +180,8 @@ class GridSearch(object):
                 progress_counter += 1
 
         # Save scores to file if required
-        if saveAllScores:
-            with open(join(RESULTS_DIR, filename + '.csv'), 'wb') as f:
+        if save_all_scores:
+            with open(join(self._results_dir, filename + '.csv'), 'wb') as f:
                 writer = csv.writer(f, delimiter=";")
                 for row in errors:
                     writer.writerow(row)
@@ -190,7 +189,7 @@ class GridSearch(object):
         # Return found optimal parameters
         return self._optimal_params
 
-    def store_results(self, filename, results_directory=RESULTS_DIR, verbose=False):
+    def store_results(self, filename, verbose=False):
         """
         Store optimal parameters found in fit method
         Parameters
@@ -198,9 +197,6 @@ class GridSearch(object):
         filename : str
             Name of the file where the optimal parameters will be stored.
             Extension is not necessary, as it will be stored as .txt
-        results_directory : Optional[string]
-            Path into the results directory where the file will be stored.
-            Default is your RESULTS_DIR in nonlinear2.user_paths
         verbose : Optional[boolean]
             Whether to print the results to stdout after saving them.
             Default is False.
@@ -213,7 +209,7 @@ class GridSearch(object):
             string += str(key) + " --> " + str(value) + "\n"
 
         # Store results
-        with open(join(results_directory, filename + ".txt"), 'wb') as f:
+        with open(join(self._results_dir, filename + ".txt"), 'wb') as f:
             f.write(string)
 
         # Print final results if verbose

@@ -46,9 +46,9 @@ if __name__ == "__main__":
     aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.PredictionIntercept)
 
     # Exploratory Grid Search
-    C_vals = [10, 100]
-    epsilon_vals = [0.089, 0.05]
-    gamma_vals = [0.25, 0.5, 0.7]
+    C_vals = [1.25]
+    epsilon_vals = [0.0644]
+    gamma_vals = [0.3]
     n_jobs = 1
 
     for C in C_vals:
