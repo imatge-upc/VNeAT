@@ -34,7 +34,7 @@ class GAM(AdditiveCurveFitter):
         self.predictor_smoothers = SmootherSet(predictor_smoothers)
         self.corrector_smoothers = SmootherSet(corrector_smoothers)
 
-        super(GAM, self).__init__(predictors=predictors, correctors=correctors, intercept=self._gam_intercept)
+        super(GAM, self).__init__(predictors=predictors, correctors=correctors, intercept=False)
 
     def __fit__(self, correctors, predictors, observations, rtol=1.0e-08, maxiter=500, *args, **kwargs):
 
@@ -364,18 +364,23 @@ class SplinesSmoother(Smoother):
     def compute_smoothing_factor(self, ydata, df_target, xdata = None):
 
         found = False
-        too_much = False
-        step=129
+        change = True
+        s=129
+        step=20
         while not found:
             df = self.df_model(ydata,smoothing_factor=s)
             if df == df_target:
                 found = True
             elif df < df_target:
-                step = step/2 if too_much else step
+                if change is True:
+                    change = False
+                    step = step/2
+
                 s = s - step
             else:
-                too_much = True
-                step = step/2
+                if change is False:
+                    change = True
+                    step = step/2
                 s = s + step
 
         return s
