@@ -140,6 +140,22 @@ while True:
                     str(mm_coordinates_prima[1]) + ', ' + \
                     str(mm_coordinates_prima[2]) + ' mm'
         plot.title(plt_title, size="xx-large")
+
+        # Show in full screen mode
+        backend = plot.get_backend()
+        print backend
+        if backend == "Qt4Agg":
+            mng = plot.get_current_fig_manager()
+            mng.window.showMaximized()
+        elif backend == 'TkAgg':
+            mng = plot.get_current_fig_manager()
+            mng.window.state('zoomed')
+        elif backend == 'wxAgg':
+            mng = plot.get_current_fig_manager()
+            mng.frame.Maximize(True)
+
+        # Show all curves (tight mode)
+        plot.tight_layout()
         plot.show()
         print
     except Exception as e:
