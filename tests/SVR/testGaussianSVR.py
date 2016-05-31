@@ -15,7 +15,7 @@ if __name__ == "__main__":
     voxel = eval(raw_input("Voxel to be fitted (use the following input format: X, Y, Z): "))
 
     # Coordinates of the voxels to fit
-    x1 = voxel[0] #74
+    x1 = voxel[0] #44
     x2 = x1+1
     y1 = voxel[1] #82
     y2 = y1+1
@@ -43,11 +43,11 @@ if __name__ == "__main__":
 
     # LinSVR fitter
     print("Creating SVR fitter for Aetionomy data...")
-    aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.PredictionIntercept)
+    aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.NoIntercept)
 
     # Exploratory Grid Search
-    C_vals = [1.25]
-    epsilon_vals = [0.0644]
+    C_vals = [3.162]
+    epsilon_vals = [0.08916]
     gamma_vals = [0.3]
     n_jobs = 1
 
@@ -75,7 +75,6 @@ if __name__ == "__main__":
                     plt.title('Gaussian Support Vector Regression')
                     plt.legend()
                     plt.show()
-
 
                 """ PART 2: AETIONOMY DATA """
 

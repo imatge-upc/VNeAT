@@ -17,10 +17,10 @@ RESULTS_DIR = join(RESULTS_DIR, 'MIXED')
 # Info
 fitters = [
     # NAME                              # PREFIX
-    ['PolyGLM - PolyGLM',               'pglm_pglm_'],
-    ['PolyGLM - GaussianSVR',           'pglm_gsvr_'],
+    ['PolyGLM - PolyGLM',               join('PGLM-PGLM', 'pglm_pglm_')],
+    ['PolyGLM - GaussianSVR',           join('PGLM-GSVR', 'pglm_gsvr_')],
     # ['PolyGLM - GaussianSVR_opt',       'pglm_gsvr_opt_'],
-    ['PolyGLM - PolyGAM',               'pglm_pgam_']
+    ['PolyGLM - PolyGAM',               join('PGLM-PGAM', 'pglm_pgam_')]
 ]
 
 print 'Obtaining data from Excel file...'

@@ -71,15 +71,15 @@ if __name__ == "__main__":
 
     ''' CONSTANTS '''
     l = 64                                  # number of samples per dataset
-    N = 50                                  # number of datasets
+    N = 100                                 # number of datasets
     grid_shape = (30, 30)                   # shape of the surface grid (C, epsilon)
-    noise_var = np.sqrt(0.09)               # noise variance
+    noise_var = 0.09                        # noise variance
 
     ''' GENERATE DATA '''
     x = np.array([(i - 1.0) / (l - 1) for i in range(1, l+1)])
     x = np.atleast_2d(x).T
     f_0 = np.exp(np.sin(8 * x))
-    noise = np.random.randn(l, N) * noise_var
+    noise = np.random.randn(l, N) * np.sqrt(noise_var)
 
     ''' COMPUTE CUSTOM KERNEL (CUBIC B-SPLINE) '''
     kernel = compute_kernel(x)
@@ -118,7 +118,7 @@ if __name__ == "__main__":
                 df = degrees_of_freedom(y, y_predicted, kernel, dual_coeff, C, epsilon)
 
                 # Compute Cp statistic and store it in mesh
-                err = (1.0 / l) * np.linalg.norm(y - y_predicted)
+                err = (1.0 / l) * (np.linalg.norm(y - y_predicted) ** 2)
                 # Use noise variance, but in a real world example, noise variance would be estimated
                 cp_val = err + (2.0 / l) * df * noise_var
                 Cp_surface[i, j, n] = cp_val

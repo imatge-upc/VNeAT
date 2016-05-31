@@ -19,7 +19,10 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
+    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept,
+                 C=100, epsilon=0.1):
+        self._svr_C = C
+        self._svr_epsilon = epsilon
         self._svr_intercept = intercept
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
         super(LinSVR, self).__init__(predictors, correctors, CurveFitter.NoIntercept)
@@ -27,8 +30,8 @@ class LinSVR(AdditiveCurveFitter):
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
 
         # Parameters for linear SVR
-        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
-        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
+        self._svr_C = kwargs['C'] if 'C' in kwargs else self._svr_C
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else self._svr_epsilon
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-6
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
@@ -260,9 +263,9 @@ class GaussianSVR(CurveFitter):
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         # Parameters for SVR training
-        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
-        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
-        self._svr_gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.5
+        self._svr_C = kwargs['C'] if 'C' in kwargs else self._svr_C
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else self._svr_epsilon
+        self._svr_gamma = kwargs['gamma'] if 'gamma' in kwargs else self._svr_gamma
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         cache_size = kwargs['cache_size'] if 'cache_size' in kwargs else 1000
@@ -323,7 +326,7 @@ class GaussianSVR(CurveFitter):
         if self._svr_intercept == self.PredictionIntercept:
             # Get intercept term as the last coefficient in pparams
             intercept = prediction_parameters[-1, :]
-            prediction_parameters = prediction_parameters[:-1,:]
+            prediction_parameters = prediction_parameters[:-1, :]
         else:
             intercept = 0
 
@@ -337,7 +340,7 @@ class GaussianSVR(CurveFitter):
         if self._svr_intercept == self.CorrectionIntercept:
             # Get intercept term as the last coefficient in pparams
             intercept = correction_parameters[-1, :]
-            correction_parameters = correction_parameters[:-1,:]
+            correction_parameters = correction_parameters[:-1, :]
         else:
             intercept = 0
 

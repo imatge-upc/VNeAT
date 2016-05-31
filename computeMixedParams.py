@@ -14,19 +14,19 @@ if __name__ == "__main__":
     user_def_params = {
         'PolyGLM-PolyGLM': [
             (1, [1, 0, 2, 1], 1, [0, 0, 3]),  # correctors: intercept, age^2, sex; predictors: adcsf^3
-            'pglm_pglm_'
+            join('PGLM-PGLM', 'pglm_pglm_')
         ],
         'PolyGLM-GaussianSVR': [
-            (1, [1, 0, 2, 1], 4, [0, 3, 3.162, 0.08916, 0.5]),  # correctors: intercept, age^2, sex; predictors: adcsf
-            'pglm_gsvr_'
+            (1, [1, 0, 2, 1], 4, [2, 3, 3.162, 0.08916, 0.3]),  # correctors: intercept, age^2, sex; predictors: adcsf
+            join('PGLM-GSVR', 'pglm_gsvr_')
         ],
         'PolyGLM-GaussianSVR-opt': [
-            (1, [1, 0, 2, 1], 4, [0, 3, 1.29388264073, 0.0757399250878, 0.109193245682]),  # correctors: intercept, age^2, sex; predictors: adcsf
-            'pglm_gsvr_opt_'
+            (1, [0, 0, 2, 1], 4, [2, 3, 3.162, 0.08916, 0.3]),  # correctors: age^2, sex; predictors: adcsf
+            join('PGLM-GSVR', 'pglm_gsvr_opt_')
         ],
         'PolyGLM-PolyGAM': [
             (1, [1, 0, 2, 1], 2, [9, [1, 1, 3]]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
-            'pglm_pgam_'
+            join('PGLM-PGAM', 'pglm_pgam_')
         ],
         'None': [
             (),
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     )
 
     print 'Processing...'
-    results = processor.process(mem_usage=256)
+    results = processor.process(mem_usage=512)
 
     # User defined parameters
     print 'Storing user defined parameters...'
