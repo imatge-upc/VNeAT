@@ -17,7 +17,7 @@ class GridSearch(object):
      values the parameters can take, and assessing their results with a variety of
      score functions """
 
-    def __init__(self, fitter, results_directory=RESULTS_DIR):
+    def __init__(self, fitter, results_directory=RESULTS_DIR, n_jobs=4):
         """
 
         Parameters
@@ -31,6 +31,7 @@ class GridSearch(object):
         # Init
         self._fitter = fitter
         self._results_dir = results_directory
+        self._n_jobs = n_jobs                               # number of parallel jobs used to fit
         self._total_error = 1000000000                      # total error initialization
         self._param_names = []                              # names of parameters
         self._param_values = []                             # values of parameters
@@ -151,7 +152,7 @@ class GridSearch(object):
                 print "\r",
                 print (float(progress_counter) / self._total_computations)*100, "%",
                 # Fit data
-                self._fitter.fit(current_observations, **tmp_params)
+                self._fitter.fit(current_observations, n_jobs=self._n_jobs, **tmp_params)
                 # Predict data
                 predicted = self._fitter.predict()
                 # Degrees of freedom

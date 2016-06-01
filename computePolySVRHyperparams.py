@@ -19,8 +19,8 @@ if __name__ == "__main__":
     psvr = PolySVR(predictors, [0], [3], AdditiveCurveFitter.PredictionIntercept)
 
     # Create grid of hyperparams using uniform random sampling
-    epsilon = np.sort(np.random.uniform(0.01, 0.09, 20))
-    C = np.sort([10 ** i for i in np.random.uniform(0.01, 1, 10)])
+    epsilon = np.sort(np.random.uniform(0.01, 0.15, 15))
+    C = np.sort([10 ** i for i in np.random.uniform(0.1, 1, 15)])
 
     # Create grid of hyperparams using linear and logscale
     # epsilon = np.linspace(0.01, 0.5, 15)
@@ -31,10 +31,10 @@ if __name__ == "__main__":
     }
 
     # Create GridSearch instance
-    gs = GridSearch(fitter=psvr, results_directory=RESULTS_DIR)
+    gs = GridSearch(fitter=psvr, results_directory=RESULTS_DIR, n_jobs=6)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=500, score=score_f.mse,
+    gs.fit(grid_parameters=grid_params, N=1, m=200, score=score_f.statisticC_p,
            save_all_scores=True, filename="psvr_all_scores")
 
     # Save results
