@@ -14,10 +14,10 @@ if __name__ == "__main__":
     """ SELECTION """
     # Pre-defined user_defined_params for MixedProcessor
     prefixes = {
-        'PolyGLM-PolyGLM': 'pglm_pglm_',
-        'PolyGLM-GaussianSVR': 'pglm_gsvr_',
-        'PolyGLM-GaussianSVR_opt': 'pglm_gsvr_opt_',
-        'PolyGLM-PolyGAM': 'pglm_pgam_'
+        'PolyGLM-PolyGLM': join('PGLM-PGLM', 'pglm_pglm_'),
+        'PolyGLM-GaussianSVR': join('PGLM-GSVR', 'pglm_gsvr_'),
+        'PolyGLM-GaussianSVR-opt': join('PGLM-GSVR', 'pglm_gsvr_opt_'),
+        'PolyGLM-PolyGAM': join('PGLM-PGAM', 'pglm_pgam_')
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
     prefix = prefixes['PolyGLM-GaussianSVR']
@@ -57,13 +57,13 @@ if __name__ == "__main__":
         gm_threshold=0.1,
         filter_nans=True,
         default_value=0.0,
-        x2=20,
-        y2=20,
-        z2=20,
-        origx=50,
-        origy=50,
-        origz=40,
-        mem_usage=128
+        # x1=40,
+        # x2=50,
+        # y1=82,
+        # y2=83,
+        # z1=39,
+        # z2=40,
+        mem_usage=512
     )
 
     print 'Saving inverted p-values to file'

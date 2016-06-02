@@ -194,12 +194,12 @@ def fstat(correction_fitter, prediction_fitter, observations, correctors, correc
     ## Now compare the variances of the errors
     
     # Residual Sum of Squares for restricted model
-    rss1 = ((correction_error - correction_error.mean(axis=0))**2).sum(axis=0)
+    rss1 = (np.square(correction_error - correction_error.mean(axis=0))).sum(axis=0)
     p1 = correction_fitter.df_correction(observations, correctors, correction_parameters)
     
     # Residual Sum of Squares for full model
-    rss2 = (prediction_error**2).sum(axis=0) # TODO: Check if this is correct or the following line should replace it
-    # rss2 = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
+    # rss2 = (prediction_error**2).sum(axis=0) # TODO: Check if this is correct or the following line should replace it
+    rss2 = (np.square(prediction_error - prediction_error.mean(axis=0))).sum(axis=0)
     p2 = p1 + prediction_fitter.df_prediction(correction_error, predictors, prediction_parameters)
     
     # Degrees of freedom
