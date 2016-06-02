@@ -25,7 +25,7 @@ if __name__ == "__main__":
     gs = GridSearch(fitter=gam)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=200, score=score_f.mse,
+    gs.fit(grid_parameters=grid_params, N=1, m=100, score=score_f.mse,
            saveAllScores=True, filename="gam_scores_hyperparams")
 
     # Plot error

@@ -173,17 +173,19 @@ class GAM(AdditiveCurveFitter):
 
     def __df_prediction__(self, observations, predictors, prediction_parameters):
         df, df_partial = [], []
-        for reg_param in prediction_parameters.T:
-            y_pred = np.zeros((predictors.shape[0],))
-            if reg_param[0] == 0:
-                y_pred += reg_param[2]
-                indx_smthr = 3
-            else:
-                indx_smthr = 0
-            for pred in predictors.T:
-                smoother = self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](pred)
-                df_partial.append(smoother.df_mo)
-        df.append(df_partial)
+        for obs in observations.T:
+            for pred_param in prediction_parameters.T:
+                y_pred = np.zeros((predictors.shape[0],))
+                if pred_param[0] == 0:
+                    y_pred += pred_param[2]
+                    indx_smthr = 3
+                else:
+                    indx_smthr = 0
+                for pred in predictors.T:
+                    smoother = self.TYPE_SMOOTHER[int(pred_param[indx_smthr])](pred)
+                    n_params = int(pred_param[indx_smthr + 1])
+                    df_partial.append(smoother.df_model(obs,pred_param[indx_smthr + 2:indx_smthr + 2 + n_params]))
+            df.append(df_partial)
         return np.asarray(df)
 
 
@@ -259,17 +261,16 @@ class SplinesSmoother(Smoother):
             name = 'SplinesSmoother'
         self._name = name
 
-    def df_model(self, ydata, smoothing_factor=None, order = None):
+    def df_model(self, ydata, parameters = None):
         """
         Degrees of freedom used in the fit.
         """
 
-        if smoothing_factor is None:
-            smoothing_factor = self.smoothing_factor
-        if order is None:
-            order = self.order
+        if parameters is not None:
+            self.set_parameters(parameters)
 
-        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=order, s=smoothing_factor,
+
+        spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
         return len(spline.get_coeffs())
 
@@ -350,7 +351,7 @@ class SplinesSmoother(Smoother):
 
     def set_parameters(self, parameters):
 
-        parameters = np.squeeze(parameters)
+        parameters = np.asarray(parameters).reshape((-1,))
         self.smoothing_factor = parameters[0]
         try:
             n_knots = int(parameters[1])
@@ -365,23 +366,27 @@ class SplinesSmoother(Smoother):
 
         found = False
         change = True
-        s=129
-        step=20
+        tol = 1e-6
+        s=129.0
+        step=20.0
         while not found:
-            df = self.df_model(ydata,smoothing_factor=s)
+            df = self.df_model(ydata,parameters=[s,self.order])
             if df == df_target:
                 found = True
             elif df < df_target:
                 if change is True:
                     change = False
-                    step = step/2
-
+                    step = step - step/2
                 s = s - step
             else:
                 if change is False:
                     change = True
-                    step = step/2
+                    step = step - step/2
                 s = s + step
+            if step < tol:
+                warn("WARNING: Couldn't find a curve with the desired number of degrees of freedom. (Df - 1) has been chosen")
+                s = self.compute_smoothing_factor(ydata, df_target-1, xdata=xdata)
+                found = True
 
         return s
 
@@ -460,17 +465,20 @@ class PolynomialSmoother(Smoother):
     def name(self):
         return self._name
 
-    def df_model(self):
+    def df_model(self, parameters=None):
         """
         Degrees of freedom used in the fit.
         """
+        if parameters is not None:
+            self.set_parameters(parameters)
+
         return self.order + 1
 
-    def df_resid(self):
+    def df_resid(self,parameters = None):
         """
         Residual degrees of freedom from last fit.
         """
-        return self._N - self.order - 1
+        return self._N - self.df_model(parameters=parameters)
 
 
 class InterceptSmoother(Smoother):
