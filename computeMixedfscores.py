@@ -17,10 +17,11 @@ if __name__ == "__main__":
         'PolyGLM-PolyGLM': join('PGLM-PGLM', 'pglm_pglm_'),
         'PolyGLM-GaussianSVR': join('PGLM-GSVR', 'pglm_gsvr_'),
         'PolyGLM-GaussianSVR-opt': join('PGLM-GSVR', 'pglm_gsvr_opt_'),
+        'PolyGLM-PolySVR': join('PGLM-PSVR', 'pglm_psvr_'),
         'PolyGLM-PolyGAM': join('PGLM-PGAM', 'pglm_pgam_')
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    prefix = prefixes['PolyGLM-GaussianSVR']
+    prefix = prefixes['PolyGLM-PolySVR']
 
     """ PROCESSING """
     # Get affine matrix

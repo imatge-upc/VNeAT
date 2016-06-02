@@ -24,6 +24,10 @@ if __name__ == "__main__":
             (1, [0, 0, 2, 1], 4, [2, 3, 3.162, 0.08916, 0.3]),  # correctors: age^2, sex; predictors: adcsf
             join('PGLM-GSVR', 'pglm_gsvr_opt_')
         ],
+        'PolyGLM-PolySVR': [
+            (1, [1, 0, 2, 1], 3, [2, 3, 3.162, 0.11, 3]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
+            join('PGLM-PSVR', 'pglm_psvr_')
+        ],
         'PolyGLM-PolyGAM': [
             (1, [1, 0, 2, 1], 2, [9, [1, 1, 3]]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
             join('PGLM-PGAM', 'pglm_pgam_')
@@ -34,7 +38,7 @@ if __name__ == "__main__":
         ]
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    udp = user_def_params['PolyGLM-GaussianSVR']
+    udp = user_def_params['PolyGLM-PolySVR']
 
     """ PROCESSING """
 
@@ -52,7 +56,7 @@ if __name__ == "__main__":
     )
 
     print 'Processing...'
-    results = processor.process(mem_usage=512)
+    results = processor.process(x1=90, y1=90, z1=90, mem_usage=512)
 
     # User defined parameters
     print 'Storing user defined parameters...'
