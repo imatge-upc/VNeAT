@@ -3,7 +3,7 @@ from abc import ABCMeta
 import numpy as np
 
 from Utils.Documentation import docstring_inheritor
-
+from FitScores.FitEvaluation_v2 import evaluation_function
 
 
 class abstractstatic(staticmethod):
@@ -1182,6 +1182,38 @@ class CurveFitter(object):
 
         # Restore original dimensions (except for the first axis)
         return df_prediction.reshape(-1, *dims[1:])
+
+evaluation_function[CurveFitter].bind(
+    'corrected_data',
+    lambda self: self.target.correct(
+        observations = self.fitting_results.observations,
+        correctors = self.fitting_results.correctors,
+        correction_parameters = self.fitting_results.correction_parameters
+    )
+)
+evaluation_function[CurveFitter].bind(
+    'predicted_data',
+    lambda self: self.target.predict(
+        predictors = self.fitting_results.predictors,
+        prediction_parameters = self.fitting_results.prediction_parameters
+    )
+)
+evaluation_function[CurveFitter].bind(
+    'df_correction',
+    lambda self: self.target.df_correction(
+        observations = self.fitting_results.observations,
+        correctors = self.fitting_results.correctors,
+        correction_parameters = self.fitting_results.correction_parameters
+    )
+)
+evaluation_function[CurveFitter].bind(
+    'df_prediction',
+    lambda self: self.target.df_prediction(
+        observations = self.fitting_results.observations,
+        predictors = self.fitting_results.predictors,
+        prediction_parameters = self.fitting_results.prediction_parameters
+    )
+)
 
 
 class AdditiveCurveFitter(CurveFitter):
