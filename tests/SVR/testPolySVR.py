@@ -50,13 +50,22 @@ if __name__ == "__main__":
     features = np.zeros((aet_regressors.shape[0], num_regs + num_correc))
     features[:, :num_regs] = aet_regressors
     features[:, num_regs:] = aet_correctors
+    # Parameters
+    degrees = [3]
+    intercept = CurveFitter.PredictionIntercept
+    predictors_index = range(num_regs)
+    # PSVR to fit data
+    poly_svr = PSVR(features=aet_regressors, predictors=predictors_index, degrees=degrees,
+                    intercept=intercept)
     # PSVR to predict data
-    poly_svr = PSVR(features=aet_regressors, predictors=range(num_regs), degrees=[3], intercept=CurveFitter.PredictionIntercept)
-
+    reg = aet_regressors[:, 0]
+    x = np.atleast_2d(np.linspace(min(reg), max(reg), 100)).T
+    poly_svr_predicter = PSVR(features=x, predictors=predictors_index, degrees=degrees,
+                              intercept=intercept)
 
     # Exploratory Grid Search
-    C_vals = [3.16, 10, 100]
-    epsilon_vals = [0.078, 0.05]
+    C_vals = [2.11]
+    epsilon_vals = [0.18]
     n_jobs = 1
 
     for C in C_vals:
@@ -96,14 +105,11 @@ if __name__ == "__main__":
             r_params = poly_svr.prediction_parameters
             end_time = time.clock()
 
-            # Generate x data for first fitted voxel [:, 0]
-            reg = aet_regressors[:, 0]
-            x = np.atleast_2d(np.linspace(min(reg), max(reg), 100)).T
-            poly_svr_predicter = PSVR(x, 0, [3], CurveFitter.PredictionIntercept)
-
             # Plot fitting curves
             print("Plotting curves...")
             plt.scatter(reg, reshaped_obs[:, 0], c='k', label='Original Data')
+            # corrected = poly_svr.correct(reshaped_obs)
+            # plt.scatter(reg, corrected, c='g', label='Corrected Data')
             predicted = poly_svr_predicter.predict(prediction_parameters=r_params)
             plt.plot(x, predicted, c='y', label='Poly SVR prediction')
             plt.xlabel('data')
@@ -121,4 +127,5 @@ if __name__ == "__main__":
             print("\tC: " + str(C))
             print("\tepsilon: " + str(epsilon))
             print("\t# processes: " + str(n_jobs))
+            print "\tdegrees of freedom: ", poly_svr.df_prediction(reshaped_obs)
             print("\t# voxels fitted: " + str(num_voxels))

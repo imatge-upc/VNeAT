@@ -6,7 +6,8 @@
 import numpy as np
 from joblib import Parallel, delayed
 
-from sklearn.svm import LinearSVR, SVR
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
 
 from Utils.Transforms import polynomial
 from Fitters.CurveFitting import CurveFitter
@@ -19,7 +20,10 @@ class LinSVR(AdditiveCurveFitter):
     Class that implements linear Support Vector Regression
     """
 
-    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
+    def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept,
+                 C=100, epsilon=0.1):
+        self._svr_C = C
+        self._svr_epsilon = epsilon
         self._svr_intercept = intercept
         # Don't allow a intercept feature to be created, use instead the intercept term from the fitter
         super(LinSVR, self).__init__(predictors, correctors, CurveFitter.NoIntercept)
@@ -27,15 +31,19 @@ class LinSVR(AdditiveCurveFitter):
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
 
         # Parameters for linear SVR
-        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
-        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
-        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else 2000
-        tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
+        self._svr_C = kwargs['C'] if 'C' in kwargs else self._svr_C
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else self._svr_epsilon
+        max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
+        tol = kwargs['tol'] if 'tol' in kwargs else 1e-5
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
-        svr_fitter = LinearSVR(epsilon=self._svr_epsilon, tol=tol, C=self._svr_C, fit_intercept=self._svr_intercept,
-                               intercept_scaling=self._svr_C, max_iter=max_iter)
+        svr_fitter = SVR(kernel="linear", epsilon=self._svr_epsilon, C=self._svr_C,
+                         tol=tol, max_iter=max_iter)
+
+        # Initialize standard scaler
+        self._correctors_scaler = StandardScaler()
+        self._predictors_scaler = StandardScaler()
 
         num_variables = observations.shape[1]
 
@@ -48,26 +56,35 @@ class LinSVR(AdditiveCurveFitter):
         p_size = predictors.size
 
         if p_size == 0 and predictor_intercept:
-            predictors = np.array([[]])
+            scaled_predictors = np.array([[]])
         elif p_size == 0:
             fit_predictors = False
             pparams = np.array([[]])
+        else:
+            scaled_predictors = self._predictors_scaler.fit_transform(predictors)
 
         # Correctors preprocessing
         fit_correctors = True
         c_size = correctors.size
 
         if c_size == 0 and corrector_intercept:
-            correctors = np.array([[]])
+            scaled_correctors = np.array([[]])
         elif c_size == 0:
             fit_correctors = False
             cparams = np.array([[]])
+        else:
+            scaled_correctors = self._correctors_scaler.fit_transform(correctors)
 
         # Fit correctors
         if fit_correctors:
-            params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                        (svr_fitter, correctors, observations[:, i], corrector_intercept)
-                                         for i in range(num_variables))
+            params = Parallel(n_jobs=n_jobs)(
+                delayed(__fit_features__)(
+                    svr_fitter,
+                    scaled_correctors,
+                    observations[:, i],
+                    corrector_intercept
+                ) for i in range(num_variables)
+            )
 
             cparams = np.array(params).T
 
@@ -76,90 +93,70 @@ class LinSVR(AdditiveCurveFitter):
 
         # Fit predictors
         if fit_predictors:
-            params = Parallel(n_jobs=n_jobs)(delayed(__fit_features__) \
-                                            (svr_fitter, predictors, observations[:, i], predictor_intercept)
-                                             for i in range(num_variables))
+            params = Parallel(n_jobs=n_jobs)(
+                delayed(__fit_features__)(
+                    svr_fitter,
+                    scaled_predictors,
+                    observations[:, i],
+                    predictor_intercept
+                ) for i in range(num_variables)
+            )
+
             pparams = np.array(params).T
 
         # Get correction and regression coefficients
         return cparams, pparams
 
     def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
-        # Compute prediction
-        pred_params = prediction_parameters
+        # Compute prediction (first remove df from the end of the params vector)
+        pred_params = prediction_parameters[:-1, :]
         intercept = 0
         if self._svr_intercept == self.PredictionIntercept:
-            intercept = prediction_parameters[0, :]
-            pred_params = prediction_parameters[1:, :]
-        return predictors.dot(pred_params) + intercept
+            intercept = pred_params[0, :]
+            pred_params = pred_params[1:, :]
+
+        # Scale predictors to match the scaling used in fitting
+        try:
+            scaled_predictors = self._predictors_scaler.transform(predictors)
+        except AttributeError:
+            # Assume that the data used to predict has the similar statistics than the used
+            # in learning and therefore the scaling can be learned from this data to be
+            # predicted
+            scaled_predictors = StandardScaler().fit_transform(predictors)
+
+        # Return prediction
+        return scaled_predictors.dot(pred_params) + intercept
 
     def __correct__(self, observations, correctors, correction_parameters, *args, **kwargs):
-        # Compute correction
-        corr_params = correction_parameters
+        # Compute correction (first remove df from the end of the params vector)
+        corr_params = correction_parameters[:-1, :]
         intercept = 0
         if self._svr_intercept == self.CorrectionIntercept:
-            intercept = correction_parameters[0, :]
-            corr_params = correction_parameters[1:, :]
-        correction = correctors.dot(corr_params) + intercept
+            intercept = corr_params[0, :]
+            corr_params = corr_params[1:, :]
+
+        # Scale correctors to match the scaling used in fitting
+        try:
+            scaled_correctors = self._correctors_scaler.transform(correctors)
+        except AttributeError:
+            # Assume that the data used to predict has the similar statistics than the used
+            # in learning and therefore the scaling can be learned from this data to be
+            # predicted
+            scaled_correctors = StandardScaler().fit_transform(correctors)
+        correction = scaled_correctors.dot(corr_params) + intercept
 
         # Return observations corrected by correction
         return observations - correction
 
     def __df_correction__(self, observations, correctors, correction_parameters):
-        # Compute correction (as a prediction using the correctors)
-        corrrection = self.__predict__(correctors, correction_parameters)
-        # Delete intercept term, if any
-        if self._svr_intercept == self.CorrectionIntercept:
-            pred_params = correction_parameters[1:, :]
-        else:
-            pred_params = correction_parameters[:, :]
-        # Create kernel diagonal for each variable to explain: K(x_i, x_i) = <x_i, x_i>
-        kernel_diag = np.diag(correctors.dot(correctors.T))  # Column vector
-        kernel_diag_expanded = np.atleast_2d(kernel_diag).T.dot(np.ones(1, observations.shape[1]))
-
-        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
-        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
-        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
-        pseudoresiduals = observations - corrrection + pred_params * kernel_diag_expanded
-
-        # Compute effective degrees of freedom from pseudoresiduals
-        _C = self._svr_C
-        _epsilon = self._svr_epsilon
-
-        # Logical operations
-        min_value = _epsilon * np.ones(pseudoresiduals.shape)
-        max_value = min_value + _C * kernel_diag
-        comp_min = min_value <= np.abs(pseudoresiduals)
-        comp_max = np.abs(pseudoresiduals) <= max_value
-        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
+        # Get the df from the correction parameters
+        df = correction_parameters[-1, :]
+        return df
 
     def __df_prediction__(self, observations, predictors, prediction_parameters):
-        # Compute prediction
-        prediction = self.__predict__(predictors, prediction_parameters)
-        # Delete intercept term, if any
-        if self._svr_intercept == self.PredictionIntercept:
-            pred_params = prediction_parameters[1:, :]
-        else:
-            pred_params = prediction_parameters
-        # Create kernel diagonal for each variable to explain: K(x_i, x_i) = <x_i, x_i>
-        kernel_diag = np.diag(predictors.dot(predictors.T)) # Column vector
-        kernel_diag_expanded = np.atleast_2d(kernel_diag).T.dot(np.ones((1, observations.shape[1])))
-
-        # Compute pseudoresiduals (refer to F. Dinuzzo et al.
-        # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
-        # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
-        pseudoresiduals = observations - prediction + pred_params * kernel_diag_expanded
-
-        # Compute effective degrees of freedom from pseudoresiduals
-        _C = self._svr_C
-        _epsilon = self._svr_epsilon
-
-        # Logical operations
-        min_value = _epsilon * np.ones(pseudoresiduals.shape)
-        max_value = min_value + _C * kernel_diag
-        comp_min = min_value <= np.abs(pseudoresiduals)
-        comp_max = np.abs(pseudoresiduals) <= max_value
-        return np.sum(np.logical_and(comp_min, comp_max), axis=0)
+        # Get the df from the prediction parameters
+        df = prediction_parameters[-1, :]
+        return df
 
 
 class PolySVR(LinSVR):
@@ -255,9 +252,9 @@ class GaussianSVR(CurveFitter):
 
     def __fit__(self, correctors, predictors, observations, *args, **kwargs):
         # Parameters for SVR training
-        self._svr_C = kwargs['C'] if 'C' in kwargs else 100.0
-        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else 0.1
-        self._svr_gamma = kwargs['gamma'] if 'gamma' in kwargs else 0.5
+        self._svr_C = kwargs['C'] if 'C' in kwargs else self._svr_C
+        self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else self._svr_epsilon
+        self._svr_gamma = kwargs['gamma'] if 'gamma' in kwargs else self._svr_gamma
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
         tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         cache_size = kwargs['cache_size'] if 'cache_size' in kwargs else 1000
@@ -318,7 +315,7 @@ class GaussianSVR(CurveFitter):
         if self._svr_intercept == self.PredictionIntercept:
             # Get intercept term as the last coefficient in pparams
             intercept = prediction_parameters[-1, :]
-            prediction_parameters = prediction_parameters[:-1,:]
+            prediction_parameters = prediction_parameters[:-1, :]
         else:
             intercept = 0
 
@@ -332,7 +329,7 @@ class GaussianSVR(CurveFitter):
         if self._svr_intercept == self.CorrectionIntercept:
             # Get intercept term as the last coefficient in pparams
             intercept = correction_parameters[-1, :]
-            correction_parameters = correction_parameters[:-1,:]
+            correction_parameters = correction_parameters[:-1, :]
         else:
             intercept = 0
 
@@ -444,89 +441,152 @@ class GaussianSVR(CurveFitter):
 
 """ HELPER FUNCTIONS """
 
+
 def __fit_features__(fitter, X, y, intercept):
-        """
-        Fits the features from X to the observation y given the linear fitter
-        Parameters
-        ----------
-        fitter : sklearn.svm.LinearSVR
-            Linear fitter that must have the fit method and the coef_ and intercept_ attributes
-        X : numpy.array(NxF)
-            Features array where N is the number of observations and F the number of features
-        y : numpy.array(Nx1)
-            The variable that we want to explain with the features
-        intercept : Boolean
-            Whether the intercept term must be computed or not
+    """
+    Fits the features from X to the observation y given the linear fitter, and computes
+    the degrees of freedom for this fit
+    Parameters
+    ----------
+    fitter : sklearn.svm.SVR
+        Linear fitter that must have the fit method and the coef_ and intercept_ attributes
+    X : numpy.array(NxF)
+        Features array where N is the number of observations and F the number of features
+    y : numpy.array(Nx1)
+        The variable that we want to explain with the features
+    intercept : Boolean
+        Whether the intercept term must be computed or not
 
-        Returns
-        -------
-        numpy.array(F,) or numpy.array(F+1,)
-            Array with the fitting coefficients plus the intercept term if intercept=True
-        """
-        num_features = X.shape[1]
-        if num_features <= 0:
-            if intercept:
-                # If the features array is empty and we need to compute the intercept term,
-                # create dummy features to fit and then get only the intercept term
-                X = np.ones((y.shape[0], 1))
-            else:
-                raise Exception("Features array X is not a NxF array")
-        fitter.fit(X, y)
-
+    Returns
+    -------
+    numpy.array(F+1,) or numpy.array(F+2,)
+        Array with the fitting coefficients, the degrees of freedom
+         and, if intercept=True, the intercept term. The order is the following:
+         [(intercept) param1 param2 ... paramF degrees_of_freedom]
+    """
+    num_features = X.shape[1]
+    if num_features <= 0:
         if intercept:
-            if num_features > 0:
-                params = np.zeros((num_features + 1, 1))
-                coefficients = np.atleast_2d(fitter.coef_)
-                params[1:, :] = coefficients.T
-            else:
-                params = np.zeros((1, 1)) # Only the intercept term
-            params[0, :] = float(fitter.intercept_)
+            # If the features array is empty and we need to compute the intercept term,
+            # create dummy features to fit and then get only the intercept term
+            X = np.ones((y.shape[0] + 1, 1))
         else:
-            params = fitter.coef_.T
-        return np.ravel(params)
+            raise Exception("Features array X is not a NxF array")
+    fitter.fit(X, y)
+
+    if intercept:
+        if num_features > 0:
+            params = np.zeros((num_features + 2, 1))
+            coefficients = np.atleast_2d(fitter.coef_)
+            params[1:-1, :] = coefficients.T
+        else:
+            params = np.zeros((2, 1)) # Only the intercept term and df=1
+            params[-1, :] = 1    # Hardcoded degrees_of_freedom, as we can't compute them
+        params[0, :] = float(fitter.intercept_)
+    else:
+        params = np.zeros((num_features + 1, 1))
+        params[:-1, :] = fitter.coef_.T
+
+    # Get the variables needed to compute the df (only if needed, that is, df is 0)
+    if params[-1] == 0:
+        prediction = fitter.predict(X)
+        dual_coeff = np.zeros((X.shape[0],))
+        dual_coeff[fitter.support_] = np.ravel(fitter.dual_coef_)
+
+        # Compute degrees of freedom for this fitting
+        df = __compute_df_linSVR__(np.ravel(y), np.ravel(prediction), X, dual_coeff,
+                                   fitter.C, fitter.epsilon)
+
+        # Append df into params
+        params[-1, :] = df
+
+    # Return params
+    return np.ravel(params)
 
 
 def __fit_SVR_features__(fitter, X, y, intercept):
-        """
-        Fits the features from X to the observation y given the Support Vector Regression
-        fitter
-        Parameters
-        ----------
-        fitter : sklearn.svm.SVR
-            SVR fitter that must have the fit method and the support_, support_vectors_,
-            dual_coef_ and intercept_ attributes
-        X : numpy.array(NxF)
-            Features array where N is the number of observations and F the number of features
-        y : numpy.array(Nx1)
-            The variable that we want to explain with the features
-        intercept : Boolean
-            Whether the intercept term must be computed or not
+    """
+    Fits the features from X to the observation y given the Support Vector Regression
+    fitter
+    Parameters
+    ----------
+    fitter : sklearn.svm.SVR
+        SVR fitter that must have the fit method and the support_, support_vectors_,
+        dual_coef_ and intercept_ attributes
+    X : numpy.array(NxF)
+        Features array where N is the number of observations and F the number of features
+    y : numpy.array(Nx1)
+        The variable that we want to explain with the features
+    intercept : Boolean
+        Whether the intercept term must be computed or not
 
-        Returns
-        -------
-        numpy.array(N,) or numpy.array(N+1,)
-            Array with the dual coefficients for all feature vectors (the ones that are
-            not support vectors have a zero dual coefficient) plus the intercept term
-            if intercept=True
-        """
-        N, num_features = X.shape
-        if num_features <= 0:
-            if intercept:
-                # If the features array is empty and we need to compute the intercept term,
-                # create dummy features to fit and then get only the intercept term
-                X = np.ones((N,1))
-            else:
-                raise Exception("Features array X is not a NxF array")
-        fitter.fit(X, y)
-
+    Returns
+    -------
+    numpy.array(N,) or numpy.array(N+1,)
+        Array with the dual coefficients for all feature vectors (the ones that are
+        not support vectors have a zero dual coefficient) plus the intercept term
+        if intercept=True
+    """
+    N, num_features = X.shape
+    if num_features <= 0:
         if intercept:
-            if num_features > 0:
-                params = np.zeros(N+1)
-                params[fitter.support_] = np.ravel(fitter.dual_coef_)
-            else:
-                params = np.zeros(1) # Only the intercept term
-            params[-1] = fitter.intercept_
+            # If the features array is empty and we need to compute the intercept term,
+            # create dummy features to fit and then get only the intercept term
+            X = np.ones((N,1))
         else:
-            params = np.zeros(N)
+            raise Exception("Features array X is not a NxF array")
+    fitter.fit(X, y)
+
+    if intercept:
+        if num_features > 0:
+            params = np.zeros(N+1)
             params[fitter.support_] = np.ravel(fitter.dual_coef_)
-        return params
+        else:
+            params = np.zeros(1) # Only the intercept term
+        params[-1] = fitter.intercept_
+    else:
+        params = np.zeros(N)
+        params[fitter.support_] = np.ravel(fitter.dual_coef_)
+    return params
+
+
+def __compute_df_linSVR__(observations, predicted_observations, features,
+                          dual_coefficients, C, epsilon):
+    """
+    Computes the degrees of freedom for a linear SVR ( i.e. K(x_i, x_j) = <x_i, x_j> )
+
+    Parameters
+    ----------
+    observations : numpy.array (N)
+        Observations used to fit the data
+    predicted_observations : numpy.array (N)
+        Predicted observations from the features used to fit the real observations
+    features : numpy.array (N x F)
+        Features used to fit the observations
+    dual_coefficients : numpy.array (N)
+        Dual coefficients found after solving the SVR optimization problem
+    C : float
+        C regularization parameter used in SVR
+    epsilon : float
+        Amplitude of the epsilon-insensitive tube loss function used in SVR
+
+    Returns
+    -------
+    int
+        The degrees of freedom for this explained variable given the predicted
+    """
+
+    # Create kernel diagonal: K(x_i, x_i) = <x_i, x_i>
+    kernel_diag = np.diag(features.dot(features.T))  # Column vector
+
+    # Compute pseudoresiduals (refer to F. Dinuzzo et al.
+    # On the Representer Theorem and Equivalent Degrees of Freedom of SVR
+    # [http://www.jmlr.org/papers/volume8/dinuzzo07a/dinuzzo07a.pdf]
+    pseudoresiduals = observations - predicted_observations + dual_coefficients * kernel_diag
+
+    # Compute effective degrees of freedom from pseudoresiduals
+    min_value = epsilon * np.ones(pseudoresiduals.shape)
+    max_value = min_value + C * kernel_diag
+    comp_min = min_value <= np.abs(pseudoresiduals)
+    comp_max = np.abs(pseudoresiduals) <= max_value
+    return np.sum(np.logical_and(comp_min, comp_max), axis=0)

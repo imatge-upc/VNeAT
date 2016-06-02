@@ -8,7 +8,7 @@ from Utils.Subject import Subject
 from Utils.DataLoader import getSubjects, getMNIAffine
 
 from user_paths import RESULTS_DIR
-filename_prefix = join(RESULTS_DIR, 'PGLM', 'pglm_')
+filename_prefix = join(RESULTS_DIR, 'PGLM', 'pglm_curve_')
 
 
 niiFile = nib.Nifti1Image

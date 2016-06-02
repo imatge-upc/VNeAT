@@ -19,6 +19,7 @@ These functions must have the following prototype:
 
 import numpy as np
 
+
 def mse(y_true, y_predicted, df):
     """
     Calculates the Mean Squared Error for the N data points
@@ -26,6 +27,7 @@ def mse(y_true, y_predicted, df):
     N = y_true.shape[0]
     sum_SE = np.sum(np.square(y_predicted - y_true), axis=0)
     return sum_SE / N
+
 
 def statisticC_p(y_true, y_predicted, df):
     """
@@ -39,7 +41,7 @@ def statisticC_p(y_true, y_predicted, df):
     # Estimate the error variance
     eps = y_true - y_predicted
     eps_mean = np.mean(eps, axis=0)
-    eps_var = mse(eps, eps_mean, 0) * N / (N - 1)
+    eps_var = (1.0 / (N - 1)) * np.sum(np.square(eps - eps_mean))
 
     # Compute Cp statistic
     return err + (2.0 / N)*df*eps_var

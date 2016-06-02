@@ -24,12 +24,12 @@ from user_paths import RESULTS_DIR
 
 # Info
 fitters = [
-    # NAME              PROCESSOR   PATH
-    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                                               'm',        'd'   ],
-    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                                           'y',        'd'   ],
-    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_'),                                        'g',        'd'   ],
-    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C3.16227766017_eps0.16_'),                        'b',        'd'   ],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C3.16227766017_eps0.0891666666667_gamma0.25_'),   'r',        'd'   ]
+    # NAME              PROCESSOR   PATH                                                            COLOR       MARKER
+    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                       'm',        'd'],
+    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                         'y',        'd'],
+    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_'),                      'g',        'd'],
+    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1.6_eps0.077_'),               'b',        'd'],
+    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.11_eps0.0867_gamma0.3_'),    'r',        'd']
 ]
 
 print 'Obtaining data from Excel file...'
@@ -53,8 +53,8 @@ for fitter, user_params in zip(fitters, user_defined_parameters):
     processors.append(
         fitter[1](
             subjects,
-            predictors = [Subject.ADCSFIndex],
-            user_defined_parameters = user_params
+            predictors=[Subject.ADCSFIndex],
+            user_defined_parameters=user_params
         )
     )
 
@@ -140,6 +140,22 @@ while True:
                     str(mm_coordinates_prima[1]) + ', ' + \
                     str(mm_coordinates_prima[2]) + ' mm'
         plot.title(plt_title, size="xx-large")
+
+        # Show in full screen mode
+        backend = plot.get_backend()
+        print backend
+        if backend == "Qt4Agg":
+            mng = plot.get_current_fig_manager()
+            mng.window.showMaximized()
+        elif backend == 'TkAgg':
+            mng = plot.get_current_fig_manager()
+            mng.window.state('zoomed')
+        elif backend == 'wxAgg':
+            mng = plot.get_current_fig_manager()
+            mng.frame.Maximize(True)
+
+        # Show all curves (tight mode)
+        plot.tight_layout()
         plot.show()
         print
     except Exception as e:

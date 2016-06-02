@@ -5,6 +5,7 @@ import nibabel as nib
 from scipy.stats import f, norm
 
 from user_paths import RESULTS_DIR
+RESULTS_DIR = join(RESULTS_DIR, 'PGLM_vs_SPM')
 
 p_inv_thresholds = [0.99, 0.995, 0.999]
 
