@@ -64,8 +64,8 @@ if __name__ == "__main__":
                               intercept=intercept)
 
     # Exploratory Grid Search
-    C_vals = [2.11]
-    epsilon_vals = [0.18]
+    C_vals = [1, 5]
+    epsilon_vals = [0.07, 0.1]
     n_jobs = 1
 
     for C in C_vals:

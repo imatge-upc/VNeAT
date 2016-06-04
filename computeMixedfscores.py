@@ -1,8 +1,8 @@
-from os.path import join
-
 import nibabel as nib
-from Utils.Subject import Subject
 import Utils.DataLoader as DataLoader
+import time
+from os.path import join
+from Utils.Subject import Subject
 from FitScores.FitEvaluation import ftest
 from Processors.MixedProcessor import MixedProcessor
 from scipy.stats import norm
@@ -16,12 +16,12 @@ if __name__ == "__main__":
     prefixes = {
         'PolyGLM-PolyGLM': join('PGLM-PGLM', 'pglm_pglm_'),
         'PolyGLM-GaussianSVR': join('PGLM-GSVR', 'pglm_gsvr_'),
-        'PolyGLM-GaussianSVR-opt': join('PGLM-GSVR', 'pglm_gsvr_opt_'),
+        'PolyGLM-GaussianSVR-overfit': join('PGLM-GSVR', 'pglm_gsvr_overfit_'),
         'PolyGLM-PolySVR': join('PGLM-PSVR', 'pglm_psvr_'),
         'PolyGLM-PolyGAM': join('PGLM-PGAM', 'pglm_pgam_')
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    prefix = prefixes['PolyGLM-PolySVR']
+    prefix = prefixes['PolyGLM-GaussianSVR-overfit']
 
     """ PROCESSING """
     # Get affine matrix
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     )
 
     print 'Computing F-scores'
+    time_start = time.clock()
     fitting_scores = MixedProcessor.evaluate_fit(
         evaluation_function=ftest,
         correction_processor=processor,
@@ -64,8 +65,10 @@ if __name__ == "__main__":
         # y2=83,
         # z1=39,
         # z2=40,
-        mem_usage=512
+        mem_usage=256
     )
+    time_end = time.clock()
+    print "Fit evaluation done in ", time_end - time_start, " seconds"
 
     print 'Saving inverted p-values to file'
     nib.save(niiFile(fitting_scores, affine), join(RESULTS_DIR, prefix + 'fitscores.nii'))

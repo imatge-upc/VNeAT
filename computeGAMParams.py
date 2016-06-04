@@ -1,9 +1,9 @@
-from os.path import join
-
 import nibabel as nib
+import Utils.DataLoader as DataLoader
+import time
+from os.path import join
 from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
-import Utils.DataLoader as DataLoader
 from user_paths import RESULTS_DIR
 RESULTS_DIR = join(RESULTS_DIR, 'SGAM')
 
@@ -14,7 +14,7 @@ print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=True)
 
 user_defined_parameters = [
-    (9, [2, 2, 80, 3])
+    (9, [2, 2, 97, 3])
 ]
 #
 # user_defined_parameters = [
@@ -27,13 +27,15 @@ filename_prefix = [
 for udp, fn in zip(user_defined_parameters, filename_prefix):
 
     print 'Initializing GAM Polynomial Processor...'
-    gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex])
+    gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
     print 'Processing data...'
-    results = gamp.process(mem_usage=64)
+    time_start = time.clock()
+    results = gamp.process(mem_usage=128)
+    time_end = time.clock()
+    print 'Processing done in ', time_end - time_start, ' seconds'
 
     print 'Saving results to files...'
-
     nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR, fn + 'cparams.nii'))
     nib.save(niiFile(results.prediction_parameters, affine), join(RESULTS_DIR, fn + 'pparams.nii'))
 

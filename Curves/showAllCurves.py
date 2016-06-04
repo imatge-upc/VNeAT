@@ -24,12 +24,12 @@ from user_paths import RESULTS_DIR
 
 # Info
 fitters = [
-    # NAME              PROCESSOR   PATH                                                            COLOR       MARKER
-    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                       'm',        'd'],
-    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                         'y',        'd'],
-    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_'),                      'g',        'd'],
-    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1.6_eps0.077_'),               'b',        'd'],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.11_eps0.0867_gamma0.3_'),    'r',        'd']
+    # NAME              PROCESSOR   PATH                                                      COLOR       MARKER
+    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                 'm',        'd'],
+    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                   'y',        'd'],
+    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_s105_'),              'g',        'd'],
+    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1_eps0.1_'),             'b',        'd'],
+    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1_eps0.12_gamma0.3_'),   'r',        'd']
 ]
 
 print 'Obtaining data from Excel file...'
@@ -143,7 +143,6 @@ while True:
 
         # Show in full screen mode
         backend = plot.get_backend()
-        print backend
         if backend == "Qt4Agg":
             mng = plot.get_current_fig_manager()
             mng.window.showMaximized()
