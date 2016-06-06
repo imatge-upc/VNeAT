@@ -4,6 +4,7 @@
         - Splines GAM
         - Poly SVR
         - Gaussian SVR
+    Show local regression smoothing method (LOWESS/LOESS) to compare
 """
 from os.path import join
 
@@ -112,7 +113,7 @@ while True:
         y = voxel_coordinates[1]
         z = voxel_coordinates[2]
 
-        print 'This is voxel', x, y, z
+        print 'This is voxel ', x, y, z
 
         # Get (corrected) grey matter data
         corrected_data = processors[0].gm_values(
@@ -125,6 +126,19 @@ while True:
                 x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
             plot.plot(axis, curve[:, 0, 0, 0],
                       lw=2, label=fitters[i][0], color=fitters[i][3], marker=fitters[i][4])
+
+        # Embed lowess curve
+        try:
+            from tests.local_regression_smoothing import localRegressionSmoothing as LRS
+            smoothed = LRS.smooth(axis, adcsf, np.ravel(corrected_data),
+                                  80, option="LOESS")
+            plot.plot(axis, smoothed, lw=3, ls="--",
+                      label="Local Regression Smoothing",
+                      color="#000000")
+        except ImportError:
+            print "LOWESS curve is not drawn because " \
+                  "tests.local_regression_smoothing.localRegressionSmoothing " \
+                  "does not exist."
 
         color = ['co', 'bo', 'mo', 'ko']
         for i in xrange(len(diag)):
@@ -165,11 +179,11 @@ while True:
 """
 INTERESTING COORDINATES:
 
-    - Right Precuneus: 2, -54, 26
+    - Right Precuneus: 2, -54, 26 (voxel: 59, 48, 65)
 
-    - Left Hippocampus: -16, -8, -14
+    - Left Hippocampus: -16, -8, -14 (voxel: 71, 79, 39)
 
-    - Right ParaHippocampal: 24, -28, -12
+    - Right ParaHippocampal: 24, -28, -12 (voxel: 44, 65, 40)
 
 """
 

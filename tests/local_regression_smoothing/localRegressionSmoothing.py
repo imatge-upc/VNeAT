@@ -37,7 +37,13 @@ def compute_span(data, x, span_percentage):
     return max_positive_dist if max_positive_dist > max_negative_dist else max_negative_dist
 
 
-def smooth(X, y, span_percentage, option='LOWESS'):
+def smooth(predictors, X, y, span_percentage, intercept=True, option='LOWESS'):
+    """
+    Computes the smoothed scatter plot for the predictors given the X and y values
+    (training data), the percentage of span, and the weighted fitting method (LOWESS
+    or LOESS)
+    """
+
     lowess_option = 'LOWESS'
     loess_option = 'LOESS'
     if option != lowess_option and option != loess_option:
@@ -46,23 +52,36 @@ def smooth(X, y, span_percentage, option='LOWESS'):
                         "     'LOWESS': first-order regression"
                         "     'LOESS: second-order regression'")
 
-    predictions = np.zeros(X.shape[0])
+    # Prepare variables
+    training_data = np.atleast_2d(X).T
+    if option == loess_option:
+        training_data = np.concatenate((training_data, training_data ** 2), axis=1)
+
+    y = np.atleast_2d(y).T
+
+    if intercept:
+        training_data = np.concatenate((np.ones((X.shape[0], 1)), training_data), axis=1)
+
+    predictions = np.zeros(predictors.shape[0])
     counter = 0
-    for predictor_value in X:
+    for predictor_value in predictors:
         span = compute_span(X, predictor_value, span_percentage)
         weights = regression_weights(X, predictor_value, span)
         # Weighted Least Squares
-        if option == loess_option:
-            training_data = np.concatenate((X, X ** 2), axis=1)
-        else:
-            training_data = X
         wls = sm.WLS(y, training_data, weights)
         res_wls = wls.fit()
-        params = res_wls.params
-        if option == loess_option:
-            prediction = np.asarray([predictor_value, predictor_value ** 2]).T.dot(params)
+        if intercept:
+            intercept_term = res_wls.params[0]
+            params = res_wls.params[1:]
         else:
-            prediction = predictor_value * params
+            intercept_term = 0
+            params = res_wls.params
+        if option == loess_option:
+            prediction = np.asarray(
+                [predictor_value, predictor_value ** 2]
+            ).T.dot(params) + intercept_term
+        else:
+            prediction = predictor_value * params + intercept_term
         predictions[counter] = prediction
         counter += 1
 
@@ -101,12 +120,13 @@ if __name__ == "__main__":
     real_obs = np.ravel(observations[:, x1:x2, y1:y2, z1:z2])
     del observations
 
-    # Order data
-    reg, obs = [np.asarray(list(t)) for t in zip(*sorted(zip(aet_regressors, real_obs)))]
+    # Predictors
+    aet_regressors = np.ravel(aet_regressors)
+    pred = np.linspace(aet_regressors.min(), aet_regressors.max(), 100)
 
     # Options
-    smoothing_methods = ['LOWESS', 'LOESS']
-    span_percentages = [5, 10, 20, 40]
+    smoothing_methods = ['LOESS', 'LOWESS']
+    span_percentages = [35]
 
     for smoothing_method in smoothing_methods:
         for span_percentage in span_percentages:
@@ -115,7 +135,7 @@ if __name__ == "__main__":
             if show_artificial == 'Y':
                 # Fit data
                 print("Smoothing artificial data...")
-                smoothed = smooth(X, y, span_percentage, option=smoothing_method)
+                smoothed = smooth(X, X, y, span_percentage, option=smoothing_method)
                 # Plot prediction
                 print("Plotting curves...")
                 plt.scatter(X, y, c='r', label='Original data')
@@ -131,7 +151,8 @@ if __name__ == "__main__":
             print("Fitting Aetionomy data...")
             start_time = time.clock()
             # Scatter smoothing
-            smoothed = smooth(reg, obs, span_percentage, option=smoothing_method)
+            smoothed = smooth(pred, aet_regressors, real_obs, span_percentage,
+                              option=smoothing_method)
             end_time = time.clock()
 
             # Print execution info
@@ -143,8 +164,8 @@ if __name__ == "__main__":
 
             # Plot fitting curves
             print("Plotting curves...")
-            plt.scatter(reg, obs, c='k', label='Original Data')
-            plt.plot(reg, smoothed, c='y', lw=2, marker="D", label='Local Regression Smoothing')
+            plt.scatter(aet_regressors, real_obs, c='k', label='Original Data')
+            plt.plot(pred, smoothed, c='g', lw=2, label='Local Regression Smoothing')
             plt.xlabel('data')
             plt.ylabel('target')
             # Title for figure
@@ -152,3 +173,4 @@ if __name__ == "__main__":
             plt.title(title)
             plt.legend()
             plt.show()
+
