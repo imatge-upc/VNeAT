@@ -25,11 +25,11 @@ from user_paths import RESULTS_DIR
 # Info
 fitters = [
     # NAME              PROCESSOR   PATH                                                      COLOR       MARKER
-    ['GLM',             PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                 'm',        'd'],
+    ['Polynomial GLM',  PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                 'm',        'd'],
     ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                   'y',        'd'],
     ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_s105_'),              'g',        'd'],
-    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1_eps0.1_'),             'b',        'd'],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1_eps0.12_gamma0.3_'),   'r',        'd']
+    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1.65_eps0.078_'),             'b',        'd'],
+    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.61_eps0.063_gamma0.3_'),   'r',        'd']
 ]
 
 print 'Obtaining data from Excel file...'
@@ -123,7 +123,6 @@ while True:
             axis, curve = processors[i].curve(
                 prediction_parameters[i],
                 x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
-            random_color = np.random.rand(3,1)
             plot.plot(axis, curve[:, 0, 0, 0],
                       lw=2, label=fitters[i][0], color=fitters[i][3], marker=fitters[i][4])
 

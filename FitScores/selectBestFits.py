@@ -30,7 +30,7 @@ GAUSSIANSVR_DIR = join(RESULTS_DIR, 'MIXED', 'PGLM-GSVR')
 fitting_scores.append(join(GAUSSIANSVR_DIR, 'pglm_gsvr_fitscores.nii'))
 
 # Path and prefix for the output files
-filename_prefix = join(RESULTS_DIR, 'BESTFIT', 'MAX_FSCORE', 'all_fitters_')
+filename_prefix = join(RESULTS_DIR, 'BESTFIT', 'MAX_FSCORE', 'pglm_psvr_gsvr_')
 
 print 'Reading data...'
 

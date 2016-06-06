@@ -18,15 +18,11 @@ if __name__ == "__main__":
             join('PGLM-PGLM', 'pglm_pglm_')
         ],
         'PolyGLM-GaussianSVR': [
-            (1, [1, 0, 2, 1], 4, [2, 3, 1, 0.12, 0.3]),  # correctors: intercept, age^2, sex; predictors: adcsf
+            (1, [1, 0, 2, 1], 4, [2, 3, 1.6, 0.06, 0.3]),  # correctors: intercept, age^2, sex; predictors: adcsf
             join('PGLM-GSVR', 'pglm_gsvr_')
         ],
-        'PolyGLM-GaussianSVR_overfit': [
-            (1, [1, 0, 2, 1], 4, [2, 3, 5, 0.08, 0.4]),  # correctors: intercept, age^2, sex; predictors: adcsf
-            join('PGLM-GSVR', 'pglm_gsvr_overfit_')
-        ],
         'PolyGLM-PolySVR': [
-            (1, [1, 0, 2, 1], 3, [2, 3, 1, 0.1, 3]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
+            (1, [1, 0, 2, 1], 3, [2, 3, 1.65, 0.078, 3]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
             join('PGLM-PSVR', 'pglm_psvr_')
         ],
         'PolyGLM-PolyGAM': [
@@ -39,7 +35,7 @@ if __name__ == "__main__":
         ]
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    udp = user_def_params['PolyGLM-GaussianSVR_overfit']
+    udp = user_def_params['PolyGLM-PolySVR']
 
     """ PROCESSING """
 
@@ -58,7 +54,7 @@ if __name__ == "__main__":
 
     print 'Processing...'
     time_start = time.clock()
-    results = processor.process(mem_usage=128, n_jobs=8)
+    results = processor.process(mem_usage=128, n_jobs=7, cache_size=2048)
     time_end = time.clock()
     print 'Processing done in ', time_end - time_start, " seconds"
 

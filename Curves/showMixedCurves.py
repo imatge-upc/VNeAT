@@ -26,7 +26,6 @@ fitters = [
     ['PolyGLM - PolyGAM',                   join('PGLM-PGAM', 'pglm_pgam_')],
     ['PolyGLM - PolySVR',                   join('PGLM-PSVR', 'pglm_psvr_')],
     ['PolyGLM - GaussianSVR',               join('PGLM-GSVR', 'pglm_gsvr_')],
-    ['PolyGLM - GaussianSVR overfit',       join('PGLM-GSVR', 'pglm_gsvr_overfit_')],
 ]
 
 print 'Obtaining data from Excel file...'
