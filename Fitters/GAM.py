@@ -261,7 +261,7 @@ class SplinesSmoother(Smoother):
             name = 'SplinesSmoother'
         self._name = name
 
-    def df_model(self, ydata, parameters = None):
+    def df_model(self,ydata, parameters = None):
         """
         Degrees of freedom used in the fit.
         """
@@ -275,17 +275,17 @@ class SplinesSmoother(Smoother):
         return len(spline.get_coeffs())
 
 
-    def df_resid(self, parameters=None):
+    def df_resid(self, ydata, parameters=None):
         """
         Residual degrees of freedom from last fit.
         """
-        return self.N - self.df_model(parameters=parameters)
+        return self.N - self.df_model(ydata,parameters=parameters)
 
 
     def fit(self, ydata, *args, **kwargs):
 
         self.df = kwargs['df'] if 'df' in kwargs else self.df
-
+        self.smoothing_factor = kwargs['smoothing_factor'] if 'smoothing_factor' in kwargs else self.smoothing_factor
         if self.df is not None:
             self.smoothing_factor = self.compute_smoothing_factor(ydata, self.df)
         elif 's' in kwargs:
@@ -465,7 +465,7 @@ class PolynomialSmoother(Smoother):
     def name(self):
         return self._name
 
-    def df_model(self, parameters=None):
+    def df_model(self, ydata, parameters=None):
         """
         Degrees of freedom used in the fit.
         """
@@ -474,7 +474,7 @@ class PolynomialSmoother(Smoother):
 
         return self.order + 1
 
-    def df_resid(self,parameters = None):
+    def df_resid(self,ydata, parameters = None):
         """
         Residual degrees of freedom from last fit.
         """

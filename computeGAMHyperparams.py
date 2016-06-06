@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # Create grid of hyperparams using linear and logscale
     grid_params = {
-        'df': np.arange(9,15),
+        'df': np.arange(3,10),
     }
 
     # Create GridSearch instance
