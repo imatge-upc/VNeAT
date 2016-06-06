@@ -230,6 +230,13 @@ class GridSearch(object):
             raise Exception("There is no errors vector for this instace of GridSearch. "
                             "Please use the 'fit' method before using the 'plot_error' one")
 
+        # Convert it to numpy array
+        self._errors_vector = np.asarray(self._errors_vector)
+
+        # Filter nans
+        without_nans = self._errors_vector[np.isfinite(self._errors_vector)]
+        self._errors_vector[~np.isfinite(self._errors_vector)] = without_nans.max()
+
         # Get the mean of the N iterations
         self._errors_vector = np.mean(self._errors_vector, axis=0)
 

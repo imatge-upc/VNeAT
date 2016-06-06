@@ -43,11 +43,11 @@ if __name__ == "__main__":
 
     # LinSVR fitter
     print("Creating SVR fitter for Aetionomy data...")
-    aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.NoIntercept)
+    aet_svr = GSVR(predictors=aet_regressors, intercept=CurveFitter.PredictionIntercept)
 
     # Exploratory Grid Search
-    C_vals = [3.162]
-    epsilon_vals = [0.08916]
+    C_vals = [1.6, 2.33]
+    epsilon_vals = [0.06, 0.07]
     gamma_vals = [0.3]
     n_jobs = 1
 

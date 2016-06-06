@@ -47,7 +47,7 @@ class GLM(AdditiveCurveFitter):
     '''
 
     @staticmethod
-    def __predict__(predictors, prediction_parameters):
+    def __predict__(predictors, prediction_parameters, *args, **kwargs):
         '''Computes a prediction applying the prediction function used in GLM.
 
             Parameters:
@@ -70,7 +70,7 @@ class GLM(AdditiveCurveFitter):
         return predictors.dot(prediction_parameters)
 
     @staticmethod
-    def __fit__(correctors, predictors, observations, sample_weight = None, num_threads = -1):
+    def __fit__(correctors, predictors, observations, sample_weight=None, n_jobs=-1, *args, **kwargs):
         '''Computes the correction and prediction parameters that best fit the observations according to the
             General Linear Model.
 
@@ -113,7 +113,7 @@ class GLM(AdditiveCurveFitter):
         '''
         # All-at-once approach
         
-        curve = LR(fit_intercept = False, normalize = False, copy_X = False, n_jobs = num_threads)
+        curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=n_jobs)
         
         ncols = correctors.shape[1]
         dims = (correctors.shape[0], ncols + predictors.shape[1])

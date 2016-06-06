@@ -1,5 +1,6 @@
 import nibabel as nib
 import Utils.DataLoader as DataLoader
+import time
 from os.path import join
 from Processors.MixedProcessor import MixedProcessor
 from Utils.Subject import Subject
@@ -13,16 +14,16 @@ if __name__ == "__main__":
     # Pre-defined user_defined_params for MixedProcessor
     user_def_params = {
         'PolyGLM-PolyGLM': [
-            (1, [1, 0, 2, 1], 1, [0, 0, 3]),  # correctors: intercept, age^2, sex; predictors: adcsf^3
+            (1, [1, 0, 2, 1], 1, [2, 0, 3]),  # correctors: intercept, age^2, sex; predictors: adcsf^3
             join('PGLM-PGLM', 'pglm_pglm_')
         ],
         'PolyGLM-GaussianSVR': [
-            (1, [1, 0, 2, 1], 4, [2, 3, 3.162, 0.08916, 0.3]),  # correctors: intercept, age^2, sex; predictors: adcsf
+            (1, [1, 0, 2, 1], 4, [2, 3, 1.6, 0.06, 0.3]),  # correctors: intercept, age^2, sex; predictors: adcsf
             join('PGLM-GSVR', 'pglm_gsvr_')
         ],
-        'PolyGLM-GaussianSVR-opt': [
-            (1, [0, 0, 2, 1], 4, [2, 3, 3.162, 0.08916, 0.3]),  # correctors: age^2, sex; predictors: adcsf
-            join('PGLM-GSVR', 'pglm_gsvr_opt_')
+        'PolyGLM-PolySVR': [
+            (1, [1, 0, 2, 1], 3, [2, 3, 1.65, 0.078, 3]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
+            join('PGLM-PSVR', 'pglm_psvr_')
         ],
         'PolyGLM-PolyGAM': [
             (1, [1, 0, 2, 1], 2, [9, [1, 1, 3]]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
@@ -34,7 +35,7 @@ if __name__ == "__main__":
         ]
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    udp = user_def_params['PolyGLM-GaussianSVR']
+    udp = user_def_params['PolyGLM-PolySVR']
 
     """ PROCESSING """
 
@@ -52,7 +53,10 @@ if __name__ == "__main__":
     )
 
     print 'Processing...'
-    results = processor.process(mem_usage=512)
+    time_start = time.clock()
+    results = processor.process(mem_usage=128, n_jobs=7, cache_size=2048)
+    time_end = time.clock()
+    print 'Processing done in ', time_end - time_start, " seconds"
 
     # User defined parameters
     print 'Storing user defined parameters...'
