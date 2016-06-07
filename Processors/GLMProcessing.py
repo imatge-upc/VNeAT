@@ -1,7 +1,7 @@
 import numpy as np
-from Processors.Processing import Processor
 
 from Fitters.GLM import GLM, PolyGLM as PGLM
+from Processors.Processing import Processor
 
 
 class GLMProcessor(Processor):
@@ -117,10 +117,9 @@ class GLMProcessor(Processor):
                 continue
             dnBeta[j] /= Gamma[j, j]
             for i in xrange(j):
-                dnBeta[i] -= dnBeta[j]*Gamma[i, j]
+                dnBeta[i] -= dnBeta[j] * Gamma[i, j]
 
         return Beta
-
 
     def __fitter__(self, user_defined_parameters):
         '''Initializes the GLM fitter to be used to process the data.
@@ -130,12 +129,12 @@ class GLMProcessor(Processor):
 
         preds = self.predictors.T
         cors = self.correctors.T
-        num_features = preds.shape[0] + cors.shape[0] # R + C
+        num_features = preds.shape[0] + cors.shape[0]  # R + C
 
         self._glmprocessor_intercept = user_defined_parameters[0]
         self._glmprocessor_perp_norm_option = user_defined_parameters[1]
         self._glmprocessor_degrees = user_defined_parameters[2:(2 + num_features)]
-        self._glmprocessor_submodels = user_defined_parameters[(2+num_features):]
+        self._glmprocessor_submodels = user_defined_parameters[(2 + num_features):]
 
         treat_data = GLMProcessor._glmprocessor_perp_norm_options_list[self._glmprocessor_perp_norm_option]
         intercept = GLMProcessor._glmprocessor_intercept_options_list[self._glmprocessor_intercept]
@@ -162,7 +161,7 @@ class GLMProcessor(Processor):
         if 0 in correctors.shape:
             correctors = None
 
-        self._glmprocessor_glm = GLM(predictors = np.array(predictors).T, correctors = correctors, intercept = intercept)
+        self._glmprocessor_glm = GLM(predictors=np.array(predictors).T, correctors=correctors, intercept=intercept)
         self._glmprocessor_deorthonormalization_matrix = treat_data(self._glmprocessor_glm)
         return self._glmprocessor_glm
 
@@ -224,50 +223,60 @@ class GLMProcessor(Processor):
         return pparams, correction_parameters
 
     def __user_defined_parameters__(self, fitter):
-        return (self._glmprocessor_intercept, self._glmprocessor_perp_norm_option) + tuple(self._glmprocessor_degrees) + tuple(self._glmprocessor_submodels)
+        return (self._glmprocessor_intercept, self._glmprocessor_perp_norm_option) + tuple(
+            self._glmprocessor_degrees) + tuple(self._glmprocessor_submodels)
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
         intercept = GLMProcessor._glmprocessor_intercept_options[super(GLMProcessor, self).__getoneof__(
             GLMProcessor._glmprocessor_intercept_options_names,
-            default_value = GLMProcessor._glmprocessor_intercept_options_names[2],
-            show_text = 'GLM Processor: How do you want to include the intercept term? (default: ' + GLMProcessor._glmprocessor_intercept_options_names[2] + ')'
+            default_value=GLMProcessor._glmprocessor_intercept_options_names[2],
+            show_text='GLM Processor: How do you want to include the intercept term? (default: ' +
+                      GLMProcessor._glmprocessor_intercept_options_names[2] + ')'
         )]
 
         perp_norm_option = GLMProcessor._glmprocessor_perp_norm_options[super(GLMProcessor, self).__getoneof__(
             GLMProcessor._glmprocessor_perp_norm_options_names,
-            default_value = GLMProcessor._glmprocessor_perp_norm_options_names[0],
-            show_text = 'GLM Processor: How do you want to treat the features? (default: ' + GLMProcessor._glmprocessor_perp_norm_options_names[0] + ')'
+            default_value=GLMProcessor._glmprocessor_perp_norm_options_names[0],
+            show_text='GLM Processor: How do you want to treat the features? (default: ' +
+                      GLMProcessor._glmprocessor_perp_norm_options_names[0] + ')'
         )]
 
         degrees = []
         for reg in predictor_names:
             degrees.append(super(GLMProcessor, self).__getint__(
-                default_value = 1,
-                lower_limit = 1,
-                try_ntimes = 3,
-                show_text = 'GLM Processor: Please, enter the degree of the feature (predictor) \'' + str(reg) + '\' (or leave blank to set to 1): '
+                default_value=1,
+                lower_limit=1,
+                try_ntimes=3,
+                show_text='GLM Processor: Please, enter the degree of the feature (predictor) \'' + str(
+                    reg) + '\' (or leave blank to set to 1): '
             ))
         for cor in corrector_names:
             degrees.append(super(GLMProcessor, self).__getint__(
-                default_value = 1,
-                try_ntimes = 3,
-                show_text = 'GLM Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
+                default_value=1,
+                try_ntimes=3,
+                show_text='GLM Processor: Please, enter the degree of the feature (corrector) \'' + str(
+                    cor) + '\' (or leave blank to set to 1): '
             ))
 
         submodels = []
         for i in xrange(len(predictor_names)):
             reg = predictor_names[i]
-            if super(GLMProcessor, self).__getyesorno__(default_value = False, show_text = 'GLM Processor: Would you like to analyze a submodel of ' + str(reg) + ' instead of the full model? (Y/N, default N): '):
+            if super(GLMProcessor, self).__getyesorno__(default_value=False,
+                                                        show_text='GLM Processor: Would you like to analyze a submodel of ' + str(
+                                                                reg) + ' instead of the full model? (Y/N, default N): '):
                 # TODO: create a __getmultipleyesorno__ method that allows to check that at least 1 has been selected
                 # TODO: create a __getmultipleoneof__ method that allows to check for arbitrary restrictions
                 for j in xrange(degrees[i]):
-                    submodels.append(GLMProcessor._glmprocessor_submodels_options[super(GLMProcessor, self).__getoneof__(
-                        GLMProcessor._glmprocessor_submodels_options_names,
-                        default_value = GLMProcessor._glmprocessor_submodels_options_names[2],
-                        show_text = 'How should the power ' + str(j+1) + ' term be included in the system? (default: ' + GLMProcessor._glmprocessor_submodels_options_names[2] + ')'
-                    )])
+                    submodels.append(
+                        GLMProcessor._glmprocessor_submodels_options[super(GLMProcessor, self).__getoneof__(
+                            GLMProcessor._glmprocessor_submodels_options_names,
+                            default_value=GLMProcessor._glmprocessor_submodels_options_names[2],
+                            show_text='How should the power ' + str(
+                                j + 1) + ' term be included in the system? (default: ' +
+                                      GLMProcessor._glmprocessor_submodels_options_names[2] + ')'
+                        )])
             else:
-                submodels += [2]*degrees[i]
+                submodels += [2] * degrees[i]
 
         return (intercept, perp_norm_option) + tuple(degrees) + tuple(submodels)
 
@@ -288,21 +297,26 @@ class GLMProcessor(Processor):
                 j += 1
 
         # Initialize the glm with such predictors
-        glm = GLM(predictors = np.array(predictors).T, intercept = GLMProcessor._glmprocessor_intercept_options_list[self._glmprocessor_intercept])
+        glm = GLM(predictors=np.array(predictors).T,
+                  intercept=GLMProcessor._glmprocessor_intercept_options_list[self._glmprocessor_intercept])
 
         # Get the prediction parameters for the original features matrix
         if self._glmprocessor_perp_norm_option < 6:
             Kx2 = prediction_parameters.shape[0]
-            pparams = prediction_parameters[(Kx2/2):]
+            pparams = prediction_parameters[(Kx2 / 2):]
         else:
             pparams = prediction_parameters
 
         # Call the normal function with such parameters
-        return glm.predict(prediction_parameters = pparams)
+        return glm.predict(prediction_parameters=pparams)
 
-GLMProcessor._glmprocessor_perp_norm_options = {GLMProcessor._glmprocessor_perp_norm_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_perp_norm_options_names))}
-GLMProcessor._glmprocessor_intercept_options = {GLMProcessor._glmprocessor_intercept_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_intercept_options_names))}
-GLMProcessor._glmprocessor_submodels_options = {GLMProcessor._glmprocessor_submodels_options_names[i] : i for i in xrange(len(GLMProcessor._glmprocessor_submodels_options_names))}
+
+GLMProcessor._glmprocessor_perp_norm_options = {GLMProcessor._glmprocessor_perp_norm_options_names[i]: i for i in
+                                                xrange(len(GLMProcessor._glmprocessor_perp_norm_options_names))}
+GLMProcessor._glmprocessor_intercept_options = {GLMProcessor._glmprocessor_intercept_options_names[i]: i for i in
+                                                xrange(len(GLMProcessor._glmprocessor_intercept_options_names))}
+GLMProcessor._glmprocessor_submodels_options = {GLMProcessor._glmprocessor_submodels_options_names[i]: i for i in
+                                                xrange(len(GLMProcessor._glmprocessor_submodels_options_names))}
 
 
 class PolyGLMProcessor(Processor):
@@ -412,7 +426,7 @@ class PolyGLMProcessor(Processor):
                 continue
             dnBeta[j] /= Gamma[j, j]
             for i in xrange(j):
-                dnBeta[i] -= dnBeta[j]*Gamma[i, j]
+                dnBeta[i] -= dnBeta[j] * Gamma[i, j]
 
         return Beta
 
@@ -433,7 +447,8 @@ class PolyGLMProcessor(Processor):
         features[:, :num_preds] = self.predictors
         features[:, num_preds:] = self.correctors
 
-        self._pglmprocessor_pglm = PGLM(features = features, predictors = xrange(num_preds), degrees = self._pglmprocessor_degrees, intercept = intercept)
+        self._pglmprocessor_pglm = PGLM(features=features, predictors=xrange(num_preds),
+                                        degrees=self._pglmprocessor_degrees, intercept=intercept)
         self._pglmprocessor_deorthonormalization_matrix = treat_data(self._pglmprocessor_pglm)
         return self._pglmprocessor_pglm
 
@@ -443,32 +458,32 @@ class PolyGLMProcessor(Processor):
 
         if self._pglmprocessor_perp_norm_option >= 6:
             return results
-        
+
         pglm = self._pglmprocessor_pglm
-        
+
         ZC = pglm.correctors
         ZR = pglm.predictors
-        
+
         if 0 in ZR.shape:
             return results
-        
+
         Z = np.concatenate((ZC, ZR), axis=1)
-        
+
         Beta2R = prediction_parameters.reshape(ZR.shape[1], -1)
-        
+
         GammaR = self._pglmprocessor_deorthonormalization_matrix[:, -(ZR.shape[1]):]
         ZGR = Z.dot(GammaR)
-        
+
         glmInv = GLM(predictors=ZGR.T, intercept=GLM.NoIntercept)
         glmInv.fit(np.identity(ZGR.shape[1]))
-        
+
         ZGRInv = glmInv.prediction_parameters.T
-        
+
         BetaR_denorm = ZGRInv.dot(ZR).dot(Beta2R)
-        
+
         BetaR_denorm = BetaR_denorm.reshape(prediction_parameters.shape)
         pparams = np.concatenate((prediction_parameters, BetaR_denorm), axis=0)
-        
+
         #        allparams = np.concatenate((results.correction_parameters, results.prediction_parameters), axis = 0)
         #        allparams = allparams.reshape(allparams.shape[0], -1)
         #
@@ -476,7 +491,7 @@ class PolyGLMProcessor(Processor):
         #        pparams = allparams_denorm[-(results.prediction_parameters.shape[0]):]
         #        pparams = pparams.reshape(results.prediction_parameters.shape)
         #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
-        
+
         #        R = results.prediction_parameters.shape[0]
         #        pparams = results.prediction_parameters.reshape(R, -1)
         #
@@ -484,7 +499,7 @@ class PolyGLMProcessor(Processor):
         #
         #        pparams = pparams.reshape(results.prediction_parameters.shape)
         #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
-        
+
         return Processor.Results(pparams, results.correction_parameters)
 
     def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
@@ -497,19 +512,22 @@ class PolyGLMProcessor(Processor):
         return pparams, correction_parameters
 
     def __user_defined_parameters__(self, fitter):
-        return (self._pglmprocessor_intercept, self._pglmprocessor_perp_norm_option) + tuple(self._pglmprocessor_degrees)
+        return (self._pglmprocessor_intercept, self._pglmprocessor_perp_norm_option) + tuple(
+            self._pglmprocessor_degrees)
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
         intercept = PolyGLMProcessor._pglmprocessor_intercept_options[super(PolyGLMProcessor, self).__getoneof__(
             PolyGLMProcessor._pglmprocessor_intercept_options_names,
-            default_value = PolyGLMProcessor._pglmprocessor_intercept_options_names[2],
-            show_text = 'PolyGLM Processor: How do you want to include the intercept term? (default: ' + PolyGLMProcessor._pglmprocessor_intercept_options_names[2] + ')'
+            default_value=PolyGLMProcessor._pglmprocessor_intercept_options_names[2],
+            show_text='PolyGLM Processor: How do you want to include the intercept term? (default: ' +
+                      PolyGLMProcessor._pglmprocessor_intercept_options_names[2] + ')'
         )]
 
         perp_norm_option = PolyGLMProcessor._pglmprocessor_perp_norm_options[super(PolyGLMProcessor, self).__getoneof__(
             PolyGLMProcessor._pglmprocessor_perp_norm_options_names,
-            default_value = PolyGLMProcessor._pglmprocessor_perp_norm_options_names[0],
-            show_text = 'PolyGLM Processor: How do you want to treat the features? (default: ' + PolyGLMProcessor._pglmprocessor_perp_norm_options_names[0] + ')'
+            default_value=PolyGLMProcessor._pglmprocessor_perp_norm_options_names[0],
+            show_text='PolyGLM Processor: How do you want to treat the features? (default: ' +
+                      PolyGLMProcessor._pglmprocessor_perp_norm_options_names[0] + ')'
         )]
 
         degrees = []
@@ -518,19 +536,22 @@ class PolyGLMProcessor(Processor):
                 default_value=1,
                 lower_limit=1,
                 try_ntimes=3,
-                show_text='PolyGLM Processor: Please, enter the degree of the feature (predictor) \'' + str(reg) + '\' (or leave blank to set to 1): '
+                show_text='PolyGLM Processor: Please, enter the degree of the feature (predictor) \'' + str(
+                    reg) + '\' (or leave blank to set to 1): '
             ))
         for cor in corrector_names:
             degrees.append(super(PolyGLMProcessor, self).__getint__(
                 default_value=1,
                 try_ntimes=3,
-                show_text='PolyGLM Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
+                show_text='PolyGLM Processor: Please, enter the degree of the feature (corrector) \'' + str(
+                    cor) + '\' (or leave blank to set to 1): '
             ))
 
         return (intercept, perp_norm_option) + tuple(degrees)
 
     def __curve__(self, fitter, predictor, prediction_parameters):
-        pglm = PGLM(predictor, degrees=self._pglmprocessor_degrees[:1], intercept=PolyGLMProcessor._pglmprocessor_intercept_options_list[self._pglmprocessor_intercept])
+        pglm = PGLM(predictor, degrees=self._pglmprocessor_degrees[:1],
+                    intercept=PolyGLMProcessor._pglmprocessor_intercept_options_list[self._pglmprocessor_intercept])
         # PolyGLMProcessor._pglmprocessor_perp_norm_options_list[self._pglmprocessor_perp_norm_option](pglm)
 
         # Get the prediction parameters for the original features matrix
@@ -543,5 +564,10 @@ class PolyGLMProcessor(Processor):
         # Call the normal function with such parameters
         return pglm.predict(prediction_parameters=pparams)
 
-PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i] : i for i in xrange(len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))}
-PolyGLMProcessor._pglmprocessor_intercept_options = {PolyGLMProcessor._pglmprocessor_intercept_options_names[i] : i for i in xrange(len(PolyGLMProcessor._pglmprocessor_intercept_options_names))}
+
+PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i]: i for i
+                                                     in xrange(
+    len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))}
+PolyGLMProcessor._pglmprocessor_intercept_options = {PolyGLMProcessor._pglmprocessor_intercept_options_names[i]: i for i
+                                                     in xrange(
+    len(PolyGLMProcessor._pglmprocessor_intercept_options_names))}

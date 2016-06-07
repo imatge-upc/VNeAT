@@ -5,13 +5,12 @@
 """
 import numpy as np
 from joblib import Parallel, delayed
-
-from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
 
-from Utils.Transforms import polynomial
-from Fitters.CurveFitting import CurveFitter
 from Fitters.CurveFitting import AdditiveCurveFitter
+from Fitters.CurveFitting import CurveFitter
+from Utils.Transforms import polynomial
 
 
 class LinSVR(AdditiveCurveFitter):
@@ -172,10 +171,10 @@ class PolySVR(LinSVR):
 
         # Check predictors indexes
         if predictors is None:
-            self._svr_is_predictor = [True]*len(self._svr_features)
+            self._svr_is_predictor = [True] * len(self._svr_features)
             predictors = []
         else:
-            self._svr_is_predictor = [False]*len(self._svr_features)
+            self._svr_is_predictor = [False] * len(self._svr_features)
             if isinstance(predictors, int):
                 predictors = [predictors]
         try:
@@ -191,7 +190,7 @@ class PolySVR(LinSVR):
 
         # Check degrees indexes
         if degrees is None:
-            self._svr_degrees = [1]*len(self._svr_features)
+            self._svr_degrees = [1] * len(self._svr_features)
         else:
             degrees = list(degrees)
             if len(degrees) != len(self._svr_features):
@@ -293,8 +292,8 @@ class GaussianSVR(CurveFitter):
         # Fit correctors and correct (if necessary)
         if fit_correctors:
             params = Parallel(n_jobs=n_jobs)(delayed(__fit_SVR_features__) \
-                                        (svr_fitter, correctors, observations[:, i], corrector_intercept)
-                                         for i in range(num_variables))
+                                                 (svr_fitter, correctors, observations[:, i], corrector_intercept)
+                                             for i in range(num_variables))
 
             cparams = np.array(params).T
 
@@ -304,7 +303,7 @@ class GaussianSVR(CurveFitter):
         # Fit predictors
         if fit_predictors:
             params = Parallel(n_jobs=n_jobs)(delayed(__fit_SVR_features__) \
-                                            (svr_fitter, predictors, observations[:, i], predictor_intercept)
+                                                 (svr_fitter, predictors, observations[:, i], predictor_intercept)
                                              for i in range(num_variables))
             pparams = np.array(params).T
 
@@ -432,9 +431,9 @@ class GaussianSVR(CurveFitter):
         prediction = np.zeros((num_predictors, num_variables))
         for i in range(num_predictors):
             x = np.atleast_2d(test_data[i])
-            X_p = np.ones( (N, 1) ).dot(x)
-            x_norm = np.sum((X_p - training_data)**2, axis=1)
-            exponential = np.exp(-self._svr_gamma*x_norm)
+            X_p = np.ones((N, 1)).dot(x)
+            x_norm = np.sum((X_p - training_data) ** 2, axis=1)
+            exponential = np.exp(-self._svr_gamma * x_norm)
             prediction[i, :] = params.T.dot(exponential)
 
         return prediction + intercept
@@ -481,8 +480,8 @@ def __fit_features__(fitter, X, y, intercept):
             coefficients = np.atleast_2d(fitter.coef_)
             params[1:-1, :] = coefficients.T
         else:
-            params = np.zeros((2, 1)) # Only the intercept term and df=1
-            params[-1, :] = 1    # Hardcoded degrees_of_freedom, as we can't compute them
+            params = np.zeros((2, 1))  # Only the intercept term and df=1
+            params[-1, :] = 1  # Hardcoded degrees_of_freedom, as we can't compute them
         params[0, :] = float(fitter.intercept_)
     else:
         params = np.zeros((num_features + 1, 1))
@@ -533,17 +532,17 @@ def __fit_SVR_features__(fitter, X, y, intercept):
         if intercept:
             # If the features array is empty and we need to compute the intercept term,
             # create dummy features to fit and then get only the intercept term
-            X = np.ones((N,1))
+            X = np.ones((N, 1))
         else:
             raise Exception("Features array X is not a NxF array")
     fitter.fit(X, y)
 
     if intercept:
         if num_features > 0:
-            params = np.zeros(N+1)
+            params = np.zeros(N + 1)
             params[fitter.support_] = np.ravel(fitter.dual_coef_)
         else:
-            params = np.zeros(1) # Only the intercept term
+            params = np.zeros(1)  # Only the intercept term
         params[-1] = fitter.intercept_
     else:
         params = np.zeros(N)

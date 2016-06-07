@@ -2,14 +2,13 @@ import csv
 import itertools as it
 from os.path import join
 
-import numpy as np
 import matplotlib.pyplot as plot
+import numpy as np
 from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
-from user_paths import RESULTS_DIR
 import Utils.DataLoader as DataLoader
 import score_functions
+from user_paths import RESULTS_DIR
 
 
 class GridSearch(object):
@@ -31,21 +30,21 @@ class GridSearch(object):
         # Init
         self._fitter = fitter
         self._results_dir = results_directory
-        self._n_jobs = n_jobs                               # number of parallel jobs used to fit
-        self._total_error = 1000000000                      # total error initialization
-        self._param_names = []                              # names of parameters
-        self._param_values = []                             # values of parameters
-        self._total_computations = 1                        # total computations per iteration
-        self._optimal_params = {}                           # optimal parameters
-        self._N = 1                                         # number of iterations
-        self._m = 1                                         # number of randomly selected voxels
-        self._num_params = 0                                # number of parameters to use for
-                                                            # plotting the error
-        self._errors_vector = []                            # vector into which the errors
-                                                            # are stored
+        self._n_jobs = n_jobs  # number of parallel jobs used to fit
+        self._total_error = 1000000000  # total error initialization
+        self._param_names = []  # names of parameters
+        self._param_values = []  # values of parameters
+        self._total_computations = 1  # total computations per iteration
+        self._optimal_params = {}  # optimal parameters
+        self._N = 1  # number of iterations
+        self._m = 1  # number of randomly selected voxels
+        self._num_params = 0  # number of parameters to use for
+        # plotting the error
+        self._errors_vector = []  # vector into which the errors
+        # are stored
 
         # Init gm threshold
-        self._gm_threshold = 0.01                           # grey matter threshold
+        self._gm_threshold = 0.01  # grey matter threshold
 
         # Get data from Excel and nii files
         self._observations = DataLoader.getGMData(corrected_data=True)
@@ -112,7 +111,7 @@ class GridSearch(object):
             print
             print
             print "-------------------------"
-            print "Iteration ", iteration+1, "of ", N
+            print "Iteration ", iteration + 1, "of ", N
             print "-------------------------"
 
             # Select m voxels randomly
@@ -130,7 +129,7 @@ class GridSearch(object):
                 obs = self._observations[:, x, y, z]
                 # Voxel variance
                 mean = np.sum(obs) / self._num_subjects
-                var = np.sum( (obs - mean) ** 2) / (self._num_subjects - 1)
+                var = np.sum((obs - mean) ** 2) / (self._num_subjects - 1)
                 # Filter out voxels with low data variance
                 if (var > self._gm_threshold) and (voxel not in selected_voxels):
                     # Select this voxel
@@ -139,8 +138,8 @@ class GridSearch(object):
                     m_counter += 1
 
             # Get gm from selected voxels
-            current_observations = np.asarray([ self._observations[:, voxel[0], voxel[1], voxel[2]] \
-                               for voxel in selected_voxels ]).T
+            current_observations = np.asarray([self._observations[:, voxel[0], voxel[1], voxel[2]] \
+                                               for voxel in selected_voxels]).T
 
             # Initialize progress for this iteration
             progress_counter = 0
@@ -150,7 +149,7 @@ class GridSearch(object):
                 tmp_params = {self._param_names[i]: params[i] for i in range(len(params))}
                 # Show progress
                 print "\r",
-                print (float(progress_counter) / self._total_computations)*100, "%",
+                print (float(progress_counter) / self._total_computations) * 100, "%",
                 # Fit data
                 self._fitter.fit(current_observations, n_jobs=self._n_jobs, **tmp_params)
                 # Predict data
@@ -175,7 +174,7 @@ class GridSearch(object):
                 # Save score if required
                 if save_all_scores:
                     l_params = map(lambda x: round(x, 2), list(params))
-                    errors.append([iteration+1] + l_params + [round(tmp_error, 2)])
+                    errors.append([iteration + 1] + l_params + [round(tmp_error, 2)])
 
                 # Update progress
                 progress_counter += 1
@@ -204,8 +203,8 @@ class GridSearch(object):
         """
         # Create string to store
         string = "m=" + str(self._m) + " randomly selected voxels, " + \
-            "N=" + str(self._N) + " iterations, " + \
-            "and total_error=" + str(self._total_error) + ":\n\n"
+                 "N=" + str(self._N) + " iterations, " + \
+                 "and total_error=" + str(self._total_error) + ":\n\n"
         for key, value in self._optimal_params.iteritems():
             string += str(key) + " --> " + str(value) + "\n"
 
@@ -263,7 +262,7 @@ class GridSearch(object):
             fig = plot.figure()
             ax = fig.gca(projection='3d')
             surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,
-                       linewidth=0, antialiased=False)
+                                   linewidth=0, antialiased=False)
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
             plot.show()

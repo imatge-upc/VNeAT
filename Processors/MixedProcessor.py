@@ -1,7 +1,7 @@
 from Fitters.CurveFitting import CombinedFitter
-from Processors.Processing import Processor
-from Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
 from Processors.GAMProcessing import GAMProcessor
+from Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
+from Processors.Processing import Processor
 from Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
 
 

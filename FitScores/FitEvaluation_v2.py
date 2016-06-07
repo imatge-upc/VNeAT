@@ -3,8 +3,10 @@ import types
 import numpy as np
 from scipy.stats import f as f_stat
 
+
 class UNBOUND(object):
     pass
+
 
 class dictlike(type):
     class _bound_generic_evaluation_function(object):
@@ -16,7 +18,7 @@ class dictlike(type):
         @property
         def target(self):
             return self._target
-        
+
         def bind(self, method_name, method):
             setattr(self, method_name, method)
             if not method_name in self._set:
@@ -27,14 +29,15 @@ class dictlike(type):
             for i in xrange(len(self._set)):
                 if self._set[i] == method_name:
                     del self._set[i]
-                    exec('del self.' + method_name)
+                    exec ('del self.' + method_name)
                     return self
 
-            raise AttributeError("Method '" + method_name + "' was not bound to this target and cannot be unbound from it.")
+            raise AttributeError(
+                "Method '" + method_name + "' was not bound to this target and cannot be unbound from it.")
 
         def clear(self):
             for name in self._set:
-                exec('del self.' + name)
+                exec ('del self.' + name)
             self._set = []
             return self
 
@@ -58,7 +61,6 @@ class dictlike(type):
         def __str__(self):
             return "{" + str(self._parent) + " x " + repr(self._target) + "} binding"
 
-
     def __init__(self, *args, **kwargs):
         super(dictlike, self).__init__(*args, **kwargs)
         self._bindings = {}
@@ -78,20 +80,20 @@ class dictlike(type):
     def __str__(self):
         return "<class 'evaluation_function'>"
 
-class evaluation_function(object):
 
+class evaluation_function(object):
     __metaclass__ = dictlike
 
     class RequirementDescriptor:
-        def __init__(self, name, description, default = UNBOUND):
+        def __init__(self, name, description, default=UNBOUND):
             self._name = name
             self._description = description
             self._value = default
-        
+
         @property
         def name(self):
             return self._name
-        
+
         @property
         def description(self):
             return self._description
@@ -100,14 +102,16 @@ class evaluation_function(object):
         def value(self):
             return self._value
 
-
     class _bound_evaluation_function(object):
         def __init__(self, parent, target):
             self._parent = parent
             self._target = target
             self._evaluate = self._parent._evaluate
-            self._requirements = [evaluation_function.RequirementDescriptor(name, desc, UNBOUND) for (name, desc) in self._parent._requirements.iteritems()]
-            self._implicit = map(lambda rd: evaluation_function.RequirementDescriptor(rd.name, rd.description, types.MethodType(rd.value, self)), self._parent._implicit.itervalues())
+            self._requirements = [evaluation_function.RequirementDescriptor(name, desc, UNBOUND) for (name, desc) in
+                                  self._parent._requirements.iteritems()]
+            self._implicit = map(lambda rd: evaluation_function.RequirementDescriptor(rd.name, rd.description,
+                                                                                      types.MethodType(rd.value, self)),
+                                 self._parent._implicit.itervalues())
             self._dependencies = self._parent._dependencies
 
             self._forced = []
@@ -117,24 +121,23 @@ class evaluation_function(object):
         @property
         def target(self):
             return self._target
-        
+
         @property
         def requirements(self):
             return self._requirements
-        
+
         @property
         def implicit(self):
             return self._implicit
 
         def _frost_and_inherit(self, status=False):
             try:
-                mro = self._target.mro()[1:] # the target is analyzed separately
+                mro = self._target.mro()[1:]  # the target is analyzed separately
             except AttributeError:
                 try:
                     mro = type(self._target).mro()
                 except AttributeError:
-                    mro = [] # [self._target] if isinstance(self._target, type) else [type(self._target)]
-
+                    mro = []  # [self._target] if isinstance(self._target, type) else [type(self._target)]
 
             frosted = []
             inherited = []
@@ -187,7 +190,7 @@ class evaluation_function(object):
                             # (set to UNBOUND in the worst case)
                             inherited_method = getattr(provider, ReqDescriptor.name)
                             if not (inherited_method is UNBOUND):
-                                inherited_method = inherited_method.im_func # Get the original, unbound method
+                                inherited_method = inherited_method.im_func  # Get the original, unbound method
                                 found = True
                         except KeyError:
                             pass
@@ -205,11 +208,12 @@ class evaluation_function(object):
                                 continue
 
                         # Yay, we found a method to inherit!
-                        setattr(self, ReqDescriptor.name, types.MethodType(inherited_method, self)) # Bind it to this instance
+                        setattr(self, ReqDescriptor.name,
+                                types.MethodType(inherited_method, self))  # Bind it to this instance
                         inherited.append((ReqDescriptor.name, provider))
                         break
-                    else: # bad news... :(
-                        if not status: # ...unless we are checking the status, in which case there's no problem
+                    else:  # bad news... :(
+                        if not status:  # ...unless we are checking the status, in which case there's no problem
                             # rollback
                             self._revert_inheritance_and_defrost(inherited, frosted)
 
@@ -220,7 +224,7 @@ class evaluation_function(object):
             return inherited, frosted
 
         def _copy(self):
-            retval = evaluation_function._bound_evaluation_function(parent = self._parent, target = self._target)
+            retval = evaluation_function._bound_evaluation_function(parent=self._parent, target=self._target)
 
             for rd in (self._requirements + self._implicit):
                 own_method = getattr(self, rd.name)
@@ -238,7 +242,7 @@ class evaluation_function(object):
             for (name, _) in inherited:
                 setattr(self, name, UNBOUND)
             for alias in frosted:
-                exec('del self.' + alias)
+                exec ('del self.' + alias)
 
             return self
 
@@ -248,8 +252,9 @@ class evaluation_function(object):
                 if force:
                     self._forced.append(method_name)
                 else:
-                    raise AttributeError("Method '" + method_name + "' was not defined as a requirement for this test and can not be bound to it.")
-            
+                    raise AttributeError(
+                        "Method '" + method_name + "' was not defined as a requirement for this test and can not be bound to it.")
+
             setattr(self, method_name, types.MethodType(method, self))
             return self
 
@@ -267,11 +272,12 @@ class evaluation_function(object):
                     return self
             for i in xrange(len(self._forced)):
                 if self._forced[i] == method_name:
-                    exec('del self.' + method_name)
+                    exec ('del self.' + method_name)
                     del self._forced[i]
                     return self
 
-            raise AttributeError("Method '" + method_name + "' was not bound for this test and can not be unbound from it.")
+            raise AttributeError(
+                "Method '" + method_name + "' was not bound for this test and can not be unbound from it.")
 
         def clear(self):
             for ReqDescriptor in (self._implicit + self._requirements):
@@ -280,14 +286,14 @@ class evaluation_function(object):
             self._frozen = []
 
             for name in self._forced:
-                exec('del self.' + name)
+                exec ('del self.' + name)
 
             self._forced = []
             self._frosted = []
 
             return self
 
-        def evaluate(self, fitting_results = None, *args, **kwargs):
+        def evaluate(self, fitting_results=None, *args, **kwargs):
             if not (fitting_results is None):
                 try:
                     previous_fitting_results = self.fitting_results
@@ -372,7 +378,8 @@ class evaluation_function(object):
             for rd in self._requirements:
                 s += desc[rd.name] + '\n'
             for name in self._forced:
-                s += '       [Forced]  ' + name + ': ' + ('None\n' if getattr(self, name).__doc__ is None else getattr(self, name).__doc__) + '\n'
+                s += '       [Forced]  ' + name + ': ' + (
+                'None\n' if getattr(self, name).__doc__ is None else getattr(self, name).__doc__) + '\n'
             s += '\n'
             s += 'Dependencies:'
             if len(self._dependencies) == 0:
@@ -380,7 +387,8 @@ class evaluation_function(object):
             s += '\n'
             for (alias, eval_func) in self._dependencies.iteritems():
                 salias = str(alias)
-                s += ' '*(13 - len(salias)) + '[' + salias + ']  ' + ('None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
+                s += ' ' * (13 - len(salias)) + '[' + salias + ']  ' + (
+                'None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
             s += '\n'
 
             return s
@@ -390,7 +398,6 @@ class evaluation_function(object):
 
         def __str__(self):
             return "< " + str(self._parent) + " x " + repr(self._target) + "> binding"
-
 
     def __init__(self, func):
         self._bindings = {}
@@ -403,14 +410,18 @@ class evaluation_function(object):
 
     def _check_integrity(self, method_name):
         if len(self._bindings) > 0:
-            raise RuntimeError('This function has already been bound at least once; it is not possible to specify more requirements nor dependencies at this point.')
-        
+            raise RuntimeError(
+                'This function has already been bound at least once; it is not possible to specify more requirements nor dependencies at this point.')
+
         if method_name in self._requirements:
-            raise ValueError('The method ' + str(method_name) + ' was already set as a requirement for this evaluation function.')
+            raise ValueError(
+                'The method ' + str(method_name) + ' was already set as a requirement for this evaluation function.')
         if method_name in self._implicit:
-            raise ValueError('The method ' + str(method_name) + ' was already set with an implicit value for this evaluation function.')
+            raise ValueError('The method ' + str(
+                method_name) + ' was already set with an implicit value for this evaluation function.')
         if method_name in self._dependencies:
-            raise ValueError('The method ' + str(method_name) + ' was already set as an alias for a dependency of this evaluation function.')
+            raise ValueError('The method ' + str(
+                method_name) + ' was already set as an alias for a dependency of this evaluation function.')
 
     def requires(self, method_name, description):
         """Specifies that a method whose name is contained in 'method_name' argument is necessary to evaluate this test.
@@ -468,7 +479,7 @@ class evaluation_function(object):
 
         # Look for cycles closed by this new dependency
         indirect_dependencies = [evaluation_method]
-        Next = 0 # BFS
+        Next = 0  # BFS
         # Next = -1 # DFS
         while indirect_dependencies:
             d = indirect_dependencies[Next]
@@ -477,7 +488,6 @@ class evaluation_function(object):
                 raise ValueError("Operation introduces cycle in dependency tree.")
             indirect_dependencies.extend(d._dependencies.values())
 
-
         self._dependencies[alias] = evaluation_method
         return self
 
@@ -485,7 +495,7 @@ class evaluation_function(object):
         try:
             return self._bindings[target]
         except KeyError:
-            retval = evaluation_function._bound_evaluation_function(parent = self, target = target)
+            retval = evaluation_function._bound_evaluation_function(parent=self, target=target)
             self._bindings[target] = retval
             return retval
 
@@ -506,10 +516,13 @@ def mse(self):
     # prediction_error = corrected_data - prediction
     prediction_error = self.corrected_data() - self.predicted_data()
 
-    return (prediction_error**2).sum(axis = 0)/np.float64(len(prediction_error))
+    return (prediction_error ** 2).sum(axis=0) / np.float64(len(prediction_error))
 
-mse.requires('corrected_data', 'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-mse.requires('predicted_data', 'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+
+mse.requires('corrected_data',
+             'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+mse.requires('predicted_data',
+             'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
 
 
 @evaluation_function
@@ -519,19 +532,22 @@ def r2(self):
         In this case, however, the larger the result, the better the fit.
     """
     corrected_data = self.corrected_data()
-    correction_variance = ((corrected_data - corrected_data.mean(axis = 0))**2).sum(axis = 0)
+    correction_variance = ((corrected_data - corrected_data.mean(axis=0)) ** 2).sum(axis=0)
     # We don't divide it by N-1 because the final ratio will eliminate this factor
 
     # prediction_error = corrected_data - prediction
     prediction_error = corrected_data - self.predicted_data()
 
-    error_variance = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
+    error_variance = ((prediction_error - prediction_error.mean(axis=0)) ** 2).sum(axis=0)
     # We don't divide it by N-1 because the final ratio will eliminate this factor
 
     return 1 - error_variance / correction_variance
 
-r2.requires('corrected_data', 'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-r2.requires('predicted_data', 'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+
+r2.requires('corrected_data',
+            'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+r2.requires('predicted_data',
+            'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
 
 
 @evaluation_function
@@ -555,10 +571,10 @@ def fstat(self):
     ## Now compare the variances of the errors
 
     # Residual Sum of Squares for restricted model
-    rss1 = ((corrected_data - corrected_data.mean(axis = 0))**2).sum(axis = 0)
+    rss1 = ((corrected_data - corrected_data.mean(axis=0)) ** 2).sum(axis=0)
 
     # Residual Sum of Squares for full model
-    rss2 = (prediction_error**2).sum(axis = 0) # TODO: Check if this is correct or the following line should replace it
+    rss2 = (prediction_error ** 2).sum(axis=0)  # TODO: Check if this is correct or the following line should replace it
     # rss2 = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
 
     # Degrees of freedom
@@ -566,13 +582,13 @@ def fstat(self):
     dfp = self.df_prediction()
 
     n = corrected_data.shape[0]
-    df1 = dfp # degrees of freedom of rss1 - rss2
-    df2 = n - dfc - dfp # degrees of freedom of rss2
+    df1 = dfp  # degrees of freedom of rss1 - rss2
+    df2 = n - dfc - dfp  # degrees of freedom of rss2
 
     # Compute f-scores
-    var1 = (rss1 - rss2)/df1
-    var2 = rss2/df2
-    f_score = var1/var2
+    var1 = (rss1 - rss2) / df1
+    var2 = rss2 / df2
+    f_score = var1 / var2
 
     # print rss1, rss2
     # print 'Df Residuals:', df2
@@ -582,10 +598,16 @@ def fstat(self):
 
     return f_score
 
-fstat.requires('corrected_data', 'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-fstat.requires('predicted_data', 'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-fstat.requires('df_correction', 'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
-fstat.requires('df_prediction', 'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+
+fstat.requires('corrected_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+fstat.requires('predicted_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+fstat.requires('df_correction',
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
+fstat.requires('df_prediction',
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+
 
 @evaluation_function
 def ftest(self):
@@ -606,10 +628,10 @@ def ftest(self):
     ## Now compare the variances of the errors
 
     # Residual Sum of Squares for restricted model
-    rss1 = ((corrected_data - corrected_data.mean(axis = 0))**2).sum(axis = 0)
+    rss1 = ((corrected_data - corrected_data.mean(axis=0)) ** 2).sum(axis=0)
 
     # Residual Sum of Squares for full model
-    rss2 = (prediction_error**2).sum(axis = 0) # TODO: Check if this is correct or the following line should replace it
+    rss2 = (prediction_error ** 2).sum(axis=0)  # TODO: Check if this is correct or the following line should replace it
     # rss2 = ((prediction_error - prediction_error.mean(axis = 0))**2).sum(axis = 0)
 
     # Degrees of freedom
@@ -617,21 +639,26 @@ def ftest(self):
     dfp = self.df_prediction()
 
     n = corrected_data.shape[0]
-    df1 = dfp # degrees of freedom of rss1 - rss2
-    df2 = n - dfc - dfp # degrees of freedom of rss2
+    df1 = dfp  # degrees of freedom of rss1 - rss2
+    df2 = n - dfc - dfp  # degrees of freedom of rss2
 
     # Compute f-scores
-    var1 = (rss1 - rss2)/df1
-    var2 = rss2/df2
-    f_score = var1/var2
+    var1 = (rss1 - rss2) / df1
+    var2 = rss2 / df2
+    f_score = var1 / var2
 
     # Compute p-values
     return f_stat.cdf(f_score, df1, df2)
 
-ftest.requires('corrected_data', 'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-ftest.requires('predicted_data', 'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
-ftest.requires('df_correction', 'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
-ftest.requires('df_prediction', 'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+
+ftest.requires('corrected_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+ftest.requires('predicted_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+ftest.requires('df_correction',
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
+ftest.requires('df_prediction',
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
 
 
 # TODO: Use alternative with 'uses' tool
@@ -676,9 +703,11 @@ def aic(self):
     k = self.num_estimated_parameters()
     L = self.max_likelihood_value()
 
-    return 2*k - 2*np.log(L)
+    return 2 * k - 2 * np.log(L)
 
-aic.requires('num_estimated_parameters', 'The number of estimated parameters by the model (in total), counting the residual error as being one of them.')
+
+aic.requires('num_estimated_parameters',
+             'The number of estimated parameters by the model (in total), counting the residual error as being one of them.')
 aic.requires('max_likelihood_value', 'The maximum value that the likelihood function for this model can take.')
 
 
@@ -710,20 +739,23 @@ def prss(self, gamma):
     except AttributeError:
         fitting_results = None
 
-    MSE = self.mse.evaluate(fitting_results = fitting_results)
+    MSE = self.mse.evaluate(fitting_results=fitting_results)
     curve = np.array(self.curve(), dtype=np.float64)
     dx = self.xdiff()
 
-    diff1 = np.diff(curve, axis = 0)/dx
-    diff2 = np.diff(diff1, axis = 0)/dx
-    abruptness = (diff2**2).sum(axis = 0)
+    diff1 = np.diff(curve, axis=0) / dx
+    diff2 = np.diff(diff1, axis=0) / dx
+    abruptness = (diff2 ** 2).sum(axis=0)
 
-    return MSE + gamma*abruptness
+    return MSE + gamma * abruptness
 
-prss.requires('curve', 'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable.')
+
+prss.requires('curve',
+              'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable.')
 prss.requires('xdiff', 'Float indicating the separation between any two contiguous points of the axis.')
 # prss.implicit('mse', "Result of evaluating the 'mse' test on the target", lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))
 prss.uses(mse, 'mse')
+
 
 # TODO: Test this
 @evaluation_function
@@ -737,12 +769,13 @@ def vnprss(self, gamma):
     except AttributeError:
         fitting_results = None
 
-    PRSS = self.prss.evaluate(fitting_results = fitting_results, gamma = gamma)
+    PRSS = self.prss.evaluate(fitting_results=fitting_results, gamma=gamma)
     curve = np.array(self.prss.curve(), dtype=np.float64)
 
-    VAR = curve.var(axis = 0)
+    VAR = curve.var(axis=0)
 
-    return PRSS/VAR
+    return PRSS / VAR
+
 
 vnprss.uses(prss, 'prss')
 
@@ -769,5 +802,3 @@ vnprss.uses(prss, 'prss')
 #   
 #   vnprss.requires('curve', 'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable')
 #   vnprss.implicit('mse', "Result of evaluating the 'mse' test on the target", lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))
-
-

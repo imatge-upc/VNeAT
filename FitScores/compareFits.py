@@ -1,19 +1,20 @@
+from os.path import join
+
 import nibabel as nib
 import numpy as np
-from os.path import join
-from scipy.stats import norm
+
 from user_paths import RESULTS_DIR
 
 # Append all files to be compared (must have same dimensions, maximum allowed is 3)
 fitscores = [
-    join(RESULTS_DIR, 'MIXED', 'PGLM-PGLM', 'pglm_pglm_zscores_0.999.nii'),
+    # join(RESULTS_DIR, 'MIXED', 'PGLM-PGLM', 'pglm_pglm_zscores_0.999.nii'),
     join(RESULTS_DIR, 'MIXED', 'PGLM-PSVR', 'pglm_psvr_zscores_0.999.nii'),
     join(RESULTS_DIR, 'MIXED', 'PGLM-GSVR', 'pglm_gsvr_zscores_0.999.nii'),
     # join(RESULTS_DIR, 'MIXED', 'PGLM-PGAM', 'pglm_pgam_zscores_0.999.nii')
 ]
 
 # Path and prefix for the output files
-filename_prefix = join(RESULTS_DIR, 'BESTFIT', 'RGB', 'pglm_vs_psvr_vs_gsvr_')
+filename_prefix = join(RESULTS_DIR, 'BESTFIT', 'RGB', 'psvr_vs_gsvr_')
 
 print 'Reading data...'
 fitscores = map(lambda fn: nib.load(fn), fitscores)
@@ -24,12 +25,16 @@ fitscores = map(lambda data_file: data_file.get_data(), fitscores)
 print 'Building RGB maps...'
 
 fits = np.zeros(fitscores[0].shape + (3,), dtype=np.float64)
+mask = np.zeros(fitscores[0].shape, dtype=np.float64)
 
 for model in xrange(len(fitscores)):
+    valid_voxels = fitscores[model] > 0
+    mask[valid_voxels] = 1
     fits[:, :, :, model] = fitscores[model]
 
 print 'Saving results...'
 nib.save(niiFile(fits, affine), filename_prefix + 'fit_comparison.nii')
+nib.save(niiFile(mask, affine), filename_prefix + 'fit_comparison_mask.nii')
 
 #    print 'Obtaining, filtering and saving z-scores and labels to display them...'
 #    for fit_threshold in [0.99, 0.995, 0.999]:

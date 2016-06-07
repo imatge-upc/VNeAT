@@ -1,6 +1,6 @@
 from numpy import array as nparray
-import numpy as np
 from scipy.optimize import curve_fit
+
 from Smoothers import Smoother
 
 
@@ -82,17 +82,18 @@ class GLM:
 
 import AdditiveModels as am
 
+
 class GAM:
-    def __init__(self, ydata, basisFunctions = None):
+    def __init__(self, ydata, basisFunctions=None):
 
         self.ydata = nparray(ydata, dtype=float)
         assert len(self.ydata.shape) == 1
 
-            # self.xdata = nparray(xdata, dtype=float)
-            # assert len(self.xdata.shape) == 2 and self.xdata.shape[1] != 0
-            # assert self.xdata.shape[0] == self.ydata.shape[0]
-            # orig_num_regressors = self.xdata.shape[0]
-            # self.num_regressors = orig_num_regressors
+        # self.xdata = nparray(xdata, dtype=float)
+        # assert len(self.xdata.shape) == 2 and self.xdata.shape[1] != 0
+        # assert self.xdata.shape[0] == self.ydata.shape[0]
+        # orig_num_regressors = self.xdata.shape[0]
+        # self.num_regressors = orig_num_regressors
 
         if basisFunctions is None:
             self.basisFunctions = Smoother()
@@ -103,21 +104,20 @@ class GAM:
     def set_smoother(self, smoother):
         self.basisFunctions = smoother
 
-
     def backfitting_algorithm(self):
-        self.AM = am.AdditiveModel(self.basisFunctions.xdata,smoothers=self.basisFunctions.smoother)
+        self.AM = am.AdditiveModel(self.basisFunctions.xdata, smoothers=self.basisFunctions.smoother)
         self.results = self.AM.fit(self.ydata)
-        self.basisFunctions.set_smoother=self.results.smoothers
+        self.basisFunctions.set_smoother = self.results.smoothers
 
     def local_scoring(self):
-        #TODO
+        # TODO
         self.AM = am.AdditiveModel(self.basisFunctions.xdata)
         self.results = self.AM.fit(self.ydata)
-        self.basisFunctions.set_smoother=self.results.smoothers
+        self.basisFunctions.set_smoother = self.results.smoothers
 
-    def pred_function(self,xdata=None):
-        #results.smoothed should be changed to just predict the function associated with xdata. Xdata can be all the covariates
-        #or just some of them.
+    def pred_function(self, xdata=None):
+        # results.smoothed should be changed to just predict the function associated with xdata. Xdata can be all the covariates
+        # or just some of them.
         return self.AM.results.smoothed(self.basisFunctions.xdata)
 
     def prediction(self):

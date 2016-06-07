@@ -1,21 +1,22 @@
-from Utils.ExcelIO import ExcelSheet as Excel
-from FitScores.FitEvaluation import ftest
-from Processors.GAMProcessing import GAMProcessor as GAMP
-from Utils.Subject import Subject
-from os.path import join, isfile, basename
 from os import listdir
+from os.path import join, isfile, basename
+
 import nibabel as nib
 import numpy as np
 from scipy.stats import norm
 
+from FitScores.FitEvaluation import ftest
+from Processors.GAMProcessing import GAMProcessor as GAMP
+from Utils.ExcelIO import ExcelSheet as Excel
+from Utils.Subject import Subject
 
 print 'Obtaining data from Excel file...'
 
-from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DATA_DIR, RESULTS_DIR
+from user_paths import EXCEL_FILE, CORRECTED_DATA_DIR, RESULTS_DIR
+
 RESULTS_DIR = join(RESULTS_DIR, 'PGAM')
 
 filename_prefix = 'gam_poly_d3_'
-
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -26,7 +27,7 @@ affine = np.array(
 )
 
 filenames = filter(isfile, map(lambda elem: join(CORRECTED_DATA_DIR, elem), listdir(CORRECTED_DATA_DIR)))
-filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
+filenames_by_id = {basename(fn).split('_')[1][:-4]: fn for fn in filenames}
 
 exc = Excel(EXCEL_FILE)
 
@@ -76,7 +77,7 @@ fitting_scores = GAMP.evaluate_fit(
     # gm_threshold=0.1,
     filter_nans=True,
     default_value=0.0,
-    mem_usage = 128,
+    mem_usage=128,
     # *args, **kwargs
 )
 
@@ -100,7 +101,8 @@ for fit_threshold in [0.99, 0.995, 0.999]:
     clusterized_fitting_scores[valid_voxels] = norm.ppf(clusterized_fitting_scores[valid_voxels]) - lim_value + 0.2
 
     print '    Saving z-scores and labels to file...'
-    nib.save(niiFile(clusterized_fitting_scores, affine), join(RESULTS_DIR, filename_prefix + 'zscores_' + str(fit_threshold) + '.nii'))
+    nib.save(niiFile(clusterized_fitting_scores, affine),
+             join(RESULTS_DIR, filename_prefix + 'zscores_' + str(fit_threshold) + '.nii'))
     nib.save(niiFile(labels, affine), join(RESULTS_DIR, filename_prefix + 'labels_' + str(fit_threshold) + '.nii'))
 
 print 'Done.'

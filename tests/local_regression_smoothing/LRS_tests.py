@@ -1,6 +1,7 @@
-import numpy as np
-import localRegressionSmoothing as lrs
 import matplotlib.pyplot as plt
+import numpy as np
+
+import localRegressionSmoothing as lrs
 
 """ TEST SUITE """
 

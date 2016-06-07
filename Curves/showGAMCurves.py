@@ -2,11 +2,11 @@ from os.path import join
 
 import nibabel as nib
 from matplotlib.pyplot import plot, legend, show
+
 from Processors.GAMProcessing import GAMProcessor as GAMP
+from Utils.DataLoader import getSubjects
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
-
-from Utils.DataLoader import getSubjects
 
 # GAM prefix
 filename_prefix = join(RESULTS_DIR, 'PGAM', 'gam_poly_d3_')

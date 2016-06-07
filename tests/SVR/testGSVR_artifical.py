@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from Fitters.SVR import CurveFitter, GaussianSVR as GSVR
 
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     print("Getting artificial data...")
     X = np.sort(5 * (np.random.rand(100, 1) - 0.5), axis=0)
     y1 = X + np.exp(X * np.sin(X))
-    y2 = X ** 3 - X**2 + 0.5*X
+    y2 = X ** 3 - X ** 2 + 0.5 * X
     y1 += 1.5 * np.random.randn(100, 1)
     y2 += 2.5 * np.random.randn(100, 1)
     Y = np.zeros((y1.shape[0], y1.shape[1] + y2.shape[1]))
@@ -25,7 +25,6 @@ if __name__ == "__main__":
     for C in C_vals:
         for epsilon in epsilon_vals:
             for gamma in gamma_vals:
-
                 print "PARAMS: "
                 print "C --> ", C
                 print "epsilon --> ", epsilon

@@ -1,6 +1,7 @@
-from Fitters.SVR import GaussianSVR as GSVR
 import matplotlib.pyplot as plt
 import numpy as np
+
+from Fitters.SVR import GaussianSVR as GSVR
 
 """ FUNCTIONS """
 
@@ -69,7 +70,6 @@ if __name__ == "__main__":
     for C in C_vals:
         for epsilon in epsilon_vals:
             for gamma in gamma_vals:
-
                 print("PARAMS: ")
                 print("C --> " + str(C))
                 print("epsilon --> " + str(epsilon))
@@ -102,7 +102,3 @@ if __name__ == "__main__":
                 plt.title('Polynomial Support Vector Regression')
                 plt.legend()
                 plt.show()
-
-
-
-

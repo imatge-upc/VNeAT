@@ -22,10 +22,10 @@ RESULTS_DIR = join(RESULTS_DIR, 'MIXED')
 # Info
 fitters = [
     # NAME                                  # PREFIX
-    ['PolyGLM - PolyGLM',                   join('PGLM-PGLM', 'pglm_pglm_')],
-    ['PolyGLM - PolyGAM',                   join('PGLM-PGAM', 'pglm_pgam_')],
-    ['PolyGLM - PolySVR',                   join('PGLM-PSVR', 'pglm_psvr_')],
-    ['PolyGLM - GaussianSVR',               join('PGLM-GSVR', 'pglm_gsvr_')],
+    ['PolyGLM - PolyGLM', join('PGLM-PGLM', 'pglm_pglm_')],
+    ['PolyGLM - PolyGAM', join('PGLM-PGAM', 'pglm_pgam_')],
+    ['PolyGLM - PolySVR', join('PGLM-PSVR', 'pglm_psvr_')],
+    ['PolyGLM - GaussianSVR', join('PGLM-GSVR', 'pglm_gsvr_')],
 ]
 
 print 'Obtaining data from Excel file...'
@@ -157,5 +157,3 @@ INTERESTING COORDINATES:
     - Right ParaHippocampal: 24, -28, -12 (voxel: 44, 65, 40)
 
 """
-
-

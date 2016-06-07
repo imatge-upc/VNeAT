@@ -1,7 +1,9 @@
+from os.path import join
+
 import nibabel as nib
 import numpy as np
-from os.path import join
 from scipy.stats import norm
+
 from user_paths import RESULTS_DIR
 
 fitting_scores = []
@@ -54,12 +56,10 @@ print 'Saving results...'
 nib.save(niiFile(best_fit, affine), filename_prefix + 'best_fit.nii')
 nib.save(niiFile(best_fit_model, affine), filename_prefix + 'best_fit_model.nii')
 
-
 print 'Obtaining, filtering and saving z-scores and labels to display them...'
 for fit_threshold in [0.99, 0.995, 0.999]:
-
     print '    Fitting-threshold set to', fit_threshold, \
-          '; Computing z-scores and labels...'
+        '; Computing z-scores and labels...'
     z_scores = best_fit.copy()
     labels = best_fit_model.copy()
 

@@ -2,7 +2,6 @@ import numpy as np
 from nonlinear2.Utils.Subject import Subject
 
 if __name__ == "__main__":
-
     # Voxel
     voxel = (82, 74, 39)
 
@@ -30,4 +29,3 @@ if __name__ == "__main__":
     cov = np.trace((y - y_mean).T.dot(y_hat - y_hat_mean))
     df = cov / error_var
     print df
-

@@ -1,10 +1,10 @@
 """
 Processor for Support Vector Regression fitters
 """
-from Processors.Processing import Processor
 from numpy import zeros
 
 from Fitters.SVR import PolySVR, GaussianSVR
+from Processors.Processing import Processor
 
 
 class PolySVRProcessor(Processor):
@@ -70,7 +70,8 @@ class PolySVRProcessor(Processor):
         features[:, num_regs:] = self.correctors
 
         # Instantiate a PolySVR
-        psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees, intercept=intercept)
+        psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees,
+                       intercept=intercept)
         treat_data(psvr)
         return psvr
 
@@ -84,15 +85,16 @@ class PolySVRProcessor(Processor):
         # Intercept term
         intercept = PolySVRProcessor._psvrprocessor_intercept_options[super(PolySVRProcessor, self).__getoneof__(
             PolySVRProcessor._psvrprocessor_intercept_options_names,
-            default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[2],
-            show_text = 'PolySVR Processor: How do you want to include the intercept term? (default: ' + PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
+            default_value=PolySVRProcessor._psvrprocessor_intercept_options_names[2],
+            show_text='PolySVR Processor: How do you want to include the intercept term? (default: ' +
+                      PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
         )]
 
         # Treat data option
         perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
             PolySVRProcessor._psvrprocessor_perp_norm_options_names,
-            default_value = 'Use correctors and predictor as they are',
-            show_text = 'PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
+            default_value='Use correctors and predictor as they are',
+            show_text='PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
         )]
 
         # C regularization parameter
@@ -118,13 +120,15 @@ class PolySVRProcessor(Processor):
                 default_value=1,
                 lower_limit=1,
                 try_ntimes=3,
-                show_text='PolySVR Processor: Please, enter the degree of the feature (predictor) \'' + str(reg) + '\' (or leave blank to set to 1): '
+                show_text='PolySVR Processor: Please, enter the degree of the feature (predictor) \'' + str(
+                    reg) + '\' (or leave blank to set to 1): '
             ))
         for cor in corrector_names:
             degrees.append(super(PolySVRProcessor, self).__getint__(
                 default_value=1,
                 try_ntimes=3,
-                show_text='PolySVR Processor: Please, enter the degree of the feature (corrector) \'' + str(cor) + '\' (or leave blank to set to 1): '
+                show_text='PolySVR Processor: Please, enter the degree of the feature (corrector) \'' + str(
+                    cor) + '\' (or leave blank to set to 1): '
             ))
 
         return (intercept, perp_norm_option, C, epsilon) + tuple(degrees)
@@ -215,18 +219,21 @@ class GaussianSVRProcessor(Processor):
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
         # Intercept term
-        intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options[super(GaussianSVRProcessor, self).__getoneof__(
-            GaussianSVRProcessor._gsvrprocessor_intercept_options_names,
-            default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2],
-            show_text = 'GaussianSVR Processor: How do you want to include the intercept term? (default: ' + GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2] + ')'
-        )]
+        intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options[
+            super(GaussianSVRProcessor, self).__getoneof__(
+                GaussianSVRProcessor._gsvrprocessor_intercept_options_names,
+                default_value=GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2],
+                show_text='GaussianSVR Processor: How do you want to include the intercept term? (default: ' +
+                          GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2] + ')'
+            )]
 
         # Treat data option
-        perp_norm_option = GaussianSVRProcessor._gsvrprocessor_perp_norm_options[super(GaussianSVRProcessor, self).__getoneof__(
-            GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
-            default_value = 'Use correctors and predictor as they are',
-            show_text = 'GaussianSVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
-        )]
+        perp_norm_option = GaussianSVRProcessor._gsvrprocessor_perp_norm_options[
+            super(GaussianSVRProcessor, self).__getoneof__(
+                GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
+                default_value='Use correctors and predictor as they are',
+                show_text='GaussianSVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
+            )]
 
         # C regularization parameter
         C = super(GaussianSVRProcessor, self).__getfloat__(
@@ -239,7 +246,7 @@ class GaussianSVRProcessor(Processor):
         # epsilon regularization parameter
         epsilon = super(GaussianSVRProcessor, self).__getfloat__(
             default_value=0.08916,
-            try_ntimes= 3,
+            try_ntimes=3,
             lower_limit=0.0,
             show_text='GaussianSVR Processor: Please, enter the epsilon-tube within which no penalty is associated in the training loss function (default: 0.08916)'
         )
@@ -264,5 +271,3 @@ class GaussianSVRProcessor(Processor):
             gamma=self._gsvrprocessor_gamma,
             *args, **kwargs
         )
-
-

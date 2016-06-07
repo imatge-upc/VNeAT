@@ -2,8 +2,8 @@ from abc import ABCMeta
 
 import numpy as np
 
-from Utils.Documentation import docstring_inheritor
 from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
+from Utils.Documentation import docstring_inheritor
 
 
 class abstractstatic(staticmethod):
@@ -24,7 +24,6 @@ class CurveFitter(object):
     NoIntercept = 0
     CorrectionIntercept = 1
     PredictionIntercept = 2
-
 
     def __init__(self, predictors=None, correctors=None, intercept=NoIntercept):
         '''[Constructor]
@@ -74,7 +73,8 @@ class CurveFitter(object):
                 else:
                     self._crvfitter_predictors = np.zeros((correctors.shape[0], 0))
                     if intercept == CurveFitter.CorrectionIntercept:
-                        self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
+                        self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors),
+                                                                    axis=1)
                     else:
                         self._crvfitter_correctors = correctors
 
@@ -86,18 +86,20 @@ class CurveFitter(object):
                 else:
                     self._crvfitter_correctors = np.zeros((predictors.shape[0], 0))
                     if intercept == CurveFitter.PredictionIntercept:
-                        self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
+                        self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors),
+                                                                    axis=1)
                     else:
                         self._crvfitter_predictors = predictors
             else:
                 if correctors.shape[0] != predictors.shape[0]:
-                    raise ValueError('Correctors and predictors must have the same number of samples (same length in the first dimension)')
+                    raise ValueError(
+                        'Correctors and predictors must have the same number of samples (same length in the first dimension)')
 
                 if intercept == CurveFitter.CorrectionIntercept:
-                    self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis = 1)
+                    self._crvfitter_correctors = np.concatenate((np.ones((correctors.shape[0], 1)), correctors), axis=1)
                     self._crvfitter_predictors = predictors
                 elif intercept == CurveFitter.PredictionIntercept:
-                    self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis = 1)
+                    self._crvfitter_predictors = np.concatenate((np.ones((predictors.shape[0], 1)), predictors), axis=1)
                     self._crvfitter_correctors = correctors
                 else:
                     self._crvfitter_correctors = correctors
@@ -959,7 +961,8 @@ class CurveFitter(object):
         # Restore original dimensions
         return corrected_data.reshape(dims)
 
-    def evaluate_fit(self, observations, evaluation_function, correctors = None, correction_parameters = None, predictors = None, prediction_parameters = None, *args, **kwargs):
+    def evaluate_fit(self, observations, evaluation_function, correctors=None, correction_parameters=None,
+                     predictors=None, prediction_parameters=None, *args, **kwargs):
         """Evaluates the degree to which the correctors and predictors get to explain the observational
             data passed in the 'observations' argument by using the evaluator at 'evaluation_function'.
     
@@ -1000,13 +1003,13 @@ class CurveFitter(object):
                     data, or equivalently, how well the model applied to the predictors explains the observed data.
         """
 
-        obs = np.array(observations, dtype = np.float64)
+        obs = np.array(observations, dtype=np.float64)
         dims = obs.shape
         obs = obs.reshape(dims[0], -1)
 
         if 0 in dims:
             raise ValueError('There are no elements in argument \'observations\'')
-    
+
         if correctors is None:
             cors = self._crvfitter_correctors
             if 0 in cors.shape:
@@ -1014,33 +1017,33 @@ class CurveFitter(object):
             else:
                 correctors_present = True
         else:
-            cors = np.array(correctors, dtype = np.float64)
+            cors = np.array(correctors, dtype=np.float64)
             if len(cors.shape) != 2:
                 raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
-            
+
             if 0 in cors.shape:
                 raise ValueError('There are no elements in argument \'correctors\'')
-    
+
             correctors_present = True
-    
+
         if correctors_present:
             if obs.shape[0] != cors.shape[0]:
                 raise ValueError('The dimensions of the observations and the correctors are incompatible')
-    
+
             if correction_parameters is None:
                 cparams = self._crvfitter_correction_parameters
                 if 0 in cparams.shape:
                     raise AttributeError('There are no correction parameters in this instance')
             else:
-                cparams = np.array(correction_parameters, dtype = np.float64)
+                cparams = np.array(correction_parameters, dtype=np.float64)
                 cparams = cparams.reshape(cparams.shape[0], -1)
-    
+
                 if 0 in cparams.shape:
                     raise ValueError('There are no elements in argument \'correction_parameters\'')
-    
+
             if obs.shape[1] != cparams.shape[1]:
                 raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
-    
+
         else:
             cparams = np.zeros((0, 0))
 
@@ -1049,36 +1052,37 @@ class CurveFitter(object):
             if 0 in preds.shape:
                 raise AttributeError('There are no predictors in this instance')
         else:
-            preds = np.array(predictors, dtype = np.float64)
-    
+            preds = np.array(predictors, dtype=np.float64)
+
             if len(preds.shape) != 2:
                 raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
-    
+
             if 0 in preds.shape:
                 raise ValueError('There are no elements in argument \'predictors\'')
-    
+
         if obs.shape[0] != preds.shape[0]:
-                raise ValueError('The dimensions of the observations and the predictors are incompatible')
-    
+            raise ValueError('The dimensions of the observations and the predictors are incompatible')
+
         if prediction_parameters is None:
             pparams = self._crvfitter_prediction_parameters
             if 0 in pparams.shape:
                 raise AttributeError('There are no prediction parameters in this instance')
         else:
-            pparams = np.array(prediction_parameters, dtype = np.float64)
+            pparams = np.array(prediction_parameters, dtype=np.float64)
             # Make matrix 2-dimensional
             pparams = pparams.reshape(pparams.shape[0], -1)
-    
+
             if 0 in pparams.shape:
                 raise ValueError('There are no elements in argument \'prediction_parameters\'')
-    
+
         if obs.shape[1] != pparams.shape[1]:
             raise ValueError('The dimensions of the observations and the prediction parameters are incompatible')
-    
-        class FittingResults (object):
+
+        class FittingResults(object):
             pass
+
         fitres = FittingResults()
-        
+
         fitres.observations = obs
         fitres.correctors = cors
         fitres.correction_parameters = cparams
@@ -1086,10 +1090,8 @@ class CurveFitter(object):
         fitres.prediction_parameters = pparams
 
         fitting_scores = evaluation_function[self].evaluate(fitres, *args, **kwargs)
-    
+
         return fitting_scores.reshape(dims[1:])
-
-
 
     def __df_correction__(self, observations, correctors, correction_parameters):
         '''
@@ -1315,35 +1317,36 @@ class CurveFitter(object):
         # Restore original dimensions (except for the first axis)
         return df_prediction.reshape(-1, *dims[1:])
 
+
 eval_func[CurveFitter].bind(
     'corrected_data',
     lambda self: self.target.correct(
-        observations = self.fitting_results.observations,
-        correctors = self.fitting_results.correctors,
-        correction_parameters = self.fitting_results.correction_parameters
+        observations=self.fitting_results.observations,
+        correctors=self.fitting_results.correctors,
+        correction_parameters=self.fitting_results.correction_parameters
     )
 )
 eval_func[CurveFitter].bind(
     'predicted_data',
     lambda self: self.target.predict(
-        predictors = self.fitting_results.predictors,
-        prediction_parameters = self.fitting_results.prediction_parameters
+        predictors=self.fitting_results.predictors,
+        prediction_parameters=self.fitting_results.prediction_parameters
     )
 )
 eval_func[CurveFitter].bind(
     'df_correction',
     lambda self: self.target.df_correction(
-        observations = self.fitting_results.observations,
-        correctors = self.fitting_results.correctors,
-        correction_parameters = self.fitting_results.correction_parameters
+        observations=self.fitting_results.observations,
+        correctors=self.fitting_results.correctors,
+        correction_parameters=self.fitting_results.correction_parameters
     )
 )
 eval_func[CurveFitter].bind(
     'df_prediction',
     lambda self: self.target.df_prediction(
-        observations = self.fitting_results.observations,
-        predictors = self.fitting_results.predictors,
-        prediction_parameters = self.fitting_results.prediction_parameters
+        observations=self.fitting_results.observations,
+        predictors=self.fitting_results.predictors,
+        prediction_parameters=self.fitting_results.prediction_parameters
     )
 )
 
@@ -1367,20 +1370,21 @@ class AdditiveCurveFitter(CurveFitter):
         return observations - self.__predict__(correctors, correction_parameters, *args, **kwargs)
 
 
-#TODO: use metaclass instead of method
+# TODO: use metaclass instead of method
 
 def MixedFitter(correction_fitter_type, prediction_fitter_type):
-
     class MixedFitter(CurveFitter):
 
-        def __init__(self, predictors = None, correctors = None, intercept = CurveFitter.NoIntercept):
-            self._mixedfitter_correction_fitter = correction_fitter_type(predictors = None, correctors = correctors, intercept = intercept)
-            self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors = predictors, correctors = None, intercept = intercept)
+        def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept):
+            self._mixedfitter_correction_fitter = correction_fitter_type(predictors=None, correctors=correctors,
+                                                                         intercept=intercept)
+            self._mixedfitter_prediction_fitter = prediction_fitter_type(predictors=predictors, correctors=None,
+                                                                         intercept=intercept)
             self._crvfitter_correctors = self._mixedfitter_correction_fitter._crvfitter_correctors
             self._crvfitter_predictors = self._mixedfitter_prediction_fitter._crvfitter_predictors
             self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
             self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
-            self._mixedfitter_current_call = 0 # 0 for corrector, 1 for predictor
+            self._mixedfitter_current_call = 0  # 0 for corrector, 1 for predictor
 
         def fit(self, observations, **kwargs):
             kwargs_correction = {}
@@ -1396,21 +1400,25 @@ def MixedFitter(correction_fitter_type, prediction_fitter_type):
                     kwargs_prediction[arg] = value
 
             self._mixedfitter_current_call = 0
-            self._mixedfitter_correction_fitter.fit(observations = observations, **kwargs_correction)
+            self._mixedfitter_correction_fitter.fit(observations=observations, **kwargs_correction)
             self._crvfitter_correction_parameters = self._mixedfitter_correction_fitter._crvfitter_correction_parameters
             obs = self.correct(observations)
-            
+
             self._mixedfitter_current_call = 1
-            self._mixedfitter_prediction_fitter.fit(observations = obs, **kwargs_prediction)
+            self._mixedfitter_prediction_fitter.fit(observations=obs, **kwargs_prediction)
             self._crvfitter_prediction_parameters = self._mixedfitter_prediction_fitter._crvfitter_prediction_parameters
 
-        def correct(self, observations, correctors = None, correction_parameters = None, *args, **kwargs):
+        def correct(self, observations, correctors=None, correction_parameters=None, *args, **kwargs):
             self._mixedfitter_current_call = 0
-            return self._mixedfitter_correction_fitter.correct(observations = observations, correctors = correctors, correction_parameters = correction_parameters, *args, **kwargs)
+            return self._mixedfitter_correction_fitter.correct(observations=observations, correctors=correctors,
+                                                               correction_parameters=correction_parameters, *args,
+                                                               **kwargs)
 
-        def predict(self, predictors = None, prediction_parameters = None, *args, **kwargs):
+        def predict(self, predictors=None, prediction_parameters=None, *args, **kwargs):
             self._mixedfitter_current_call = 1
-            return self._mixedfitter_prediction_fitter.predict(predictors = predictors, prediction_parameters = prediction_parameters, *args, **kwargs)
+            return self._mixedfitter_prediction_fitter.predict(predictors=predictors,
+                                                               prediction_parameters=prediction_parameters, *args,
+                                                               **kwargs)
 
         def getattr(self, attr_name):
             if self._mixedfitter_current_call == 0:
@@ -1458,8 +1466,8 @@ def CombinedFitter(correction_fitter, prediction_fitter):
         A CombinedFitter that has the same prototype of CurveFitter. A dummy init method must be called
         to initialize it (i.e CombinedFitter() )
     """
-    class CombinedFitter(object):
 
+    class CombinedFitter(object):
         def __init__(self):
             # Do nothing
             pass

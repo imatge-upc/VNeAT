@@ -1,20 +1,14 @@
-
-
-from statsmodels.compat.python import next, range
-import numpy as np
-
-from statsmodels.genmod import families
-from statsmodels.sandbox.nonparametric.smoothers import PolySmoother
-from statsmodels.genmod.generalized_linear_model import GLM
-from statsmodels.tools.sm_exceptions import IterationLimitWarning, iteration_limit_doc
-
 import warnings
+
+import numpy as np
+from statsmodels.compat.python import next, range
+from statsmodels.sandbox.nonparametric.smoothers import PolySmoother
+from statsmodels.tools.sm_exceptions import iteration_limit_doc
 
 DEBUG = False
 
 
 class Results(object):
-
     def __init__(self, Y, alpha, exog, smoothers, family, offset):
 
         self.nobs = Y.shape[0]
@@ -28,7 +22,7 @@ class Results(object):
         self.offset = offset
         self.mu = self.linkinversepredict(exog)
 
-    def linkinversepredict(self, exog):  #For GAM (link function)
+    def linkinversepredict(self, exog):  # For GAM (link function)
         '''expected value ? check new GLM, same as mu for given exog
         '''
         return self.family.link.inverse(self.predict(exog))
@@ -37,15 +31,15 @@ class Results(object):
         '''predict response, sum of smoothed components
         TODO: What's this in the case of GLM, corresponds to X*beta ?
         '''
-        #note: sum is here over axis=0,
-        #TODO: transpose in smoothed and sum over axis=1
+        # note: sum is here over axis=0,
+        # TODO: transpose in smoothed and sum over axis=1
 
-        #BUG: there is some inconsistent orientation somewhere
-        #temporary hack, won't work for 1d
-        #print dir(self)
-        #print 'self.nobs, self.k_vars', self.nobs, self.k_vars
+        # BUG: there is some inconsistent orientation somewhere
+        # temporary hack, won't work for 1d
+        # print dir(self)
+        # print 'self.nobs, self.k_vars', self.nobs, self.k_vars
         exog_smoothed = self.smoothed(exog)
-        #print 'exog_smoothed.shape', exog_smoothed.shape
+        # print 'exog_smoothed.shape', exog_smoothed.shape
         if exog_smoothed.shape[0] == self.k_vars:
             import warnings
             warnings.warn("old orientation, colvars, will go away",
@@ -56,27 +50,27 @@ class Results(object):
         else:
             raise ValueError('shape mismatch in predict')
 
-    def smoothed(self, exog=None): #ADRIA changed this from exog -- exog==None
+    def smoothed(self, exog=None):  # ADRIA changed this from exog -- exog==None
         if exog is None:
-            exog=self.exog
+            exog = self.exog
         '''get smoothed prediction for each component
 
         '''
-        #bug: with exog in predict I get a shape error
-        #print 'smoothed', exog.shape, self.smoothers[0].predict(exog).shape
-        #there was a mistake exog didn't have column index i
+        # bug: with exog in predict I get a shape error
+        # print 'smoothed', exog.shape, self.smoothers[0].predict(exog).shape
+        # there was a mistake exog didn't have column index i
 
 
         if exog.ndim == 1:
             return np.array([self.smoothers[0].predict(exog) + self.offset])
         else:
-            return np.array([self.smoothers[i].predict(exog[:,i]) + self.offset[i]
-                            for i in range(self.smoothers.__len__())]).T
-        #ADRIA changed this: BEFORE: return np.array([self.smoothers[i].predict(exog[:,i]) + self.offset[i]
-            #shouldn't be a mistake because exog[:,i] is attached to smoother, but
-            #it is for different exog
-            #return np.array([self.smoothers[i].predict() + self.offset[i]
-                         # for i in range(self.smoothers.__len__())]).T
+            return np.array([self.smoothers[i].predict(exog[:, i]) + self.offset[i]
+                             for i in range(self.smoothers.__len__())]).T
+            # ADRIA changed this: BEFORE: return np.array([self.smoothers[i].predict(exog[:,i]) + self.offset[i]
+            # shouldn't be a mistake because exog[:,i] is attached to smoother, but
+            # it is for different exog
+            # return np.array([self.smoothers[i].predict() + self.offset[i]
+            # for i in range(self.smoothers.__len__())]).T
 
 
 class AdditiveModel(object):
@@ -106,7 +100,7 @@ class AdditiveModel(object):
             self.family = families.Gaussian()
         else:
             self.family = family
-        #self.family = families.Gaussian()
+            # self.family = families.Gaussian()
 
     def _iter__(self):
         self.iter = 0
@@ -114,13 +108,13 @@ class AdditiveModel(object):
         return self
 
     def cont(self):
-        self.iter += 1 #moved here to always count, not necessary
+        self.iter += 1  # moved here to always count, not necessary
         if DEBUG:
             print(self.iter, self.results.Y.shape)
             print(self.results.predict(self.exog).shape, self.weights.shape)
-        curdev = (((self.results.Y - self.results.predict(self.exog))**2) * self.weights).sum()
+        curdev = (((self.results.Y - self.results.predict(self.exog)) ** 2) * self.weights).sum()
 
-        if self.iter > self.maxiter: #kill it, no max iterationoption
+        if self.iter > self.maxiter:  # kill it, no max iterationoption
             return False
         if ((self.dev - curdev) / curdev) < self.rtol:
             self.dev = curdev
@@ -145,12 +139,12 @@ class AdditiveModel(object):
         offset = np.zeros(self.smoothers.__len__(), np.float64)
 
         for i in range(self.smoothers.__len__()):
-            r=Y - alpha - mu
+            r = Y - alpha - mu
             self.smoothers[i].smooth(Y - alpha - mu,
                                      weights=self.weights)
             f_i_pred = self.smoothers[i].predict()
             offset[i] = (f_i_pred * self.weights).sum() / self.weights.sum()
-            f_i_pred -= f_i_pred.sum()/Y.shape[0]
+            f_i_pred -= f_i_pred.sum() / Y.shape[0]
             mu += f_i_pred
 
         self.results = Results(Y, alpha, self.exog, self.smoothers, self.family, offset)
@@ -172,15 +166,15 @@ class AdditiveModel(object):
         for i in range(self.smoothers.__len__()):
             tmp = self.smoothers[i].predict()
             bad = np.isnan(Y - alpha - mu + tmp).any()
-            if bad: #temporary assert while debugging
+            if bad:  # temporary assert while debugging
                 print(Y, alpha, mu, tmp)
                 raise ValueError("nan encountered")
-            #self.smoothers[i].smooth(Y - alpha - mu + tmp,
+            # self.smoothers[i].smooth(Y - alpha - mu + tmp,
             self.smoothers[i].smooth(Y - mu + tmp,
                                      weights=self.weights)
-            f_i_pred = self.smoothers[i].predict() #fit the values of previous smooth/fit
-            self.results.offset[i] = (f_i_pred*self.weights).sum() / self.weights.sum()
-            f_i_pred -= f_i_pred.sum()/Y.shape[0]
+            f_i_pred = self.smoothers[i].predict()  # fit the values of previous smooth/fit
+            self.results.offset[i] = (f_i_pred * self.weights).sum() / self.weights.sum()
+            f_i_pred -= f_i_pred.sum() / Y.shape[0]
             if DEBUG:
                 print(self.smoothers[i].params)
             mu += f_i_pred - tmp

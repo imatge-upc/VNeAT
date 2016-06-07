@@ -1,4 +1,4 @@
-from abc import  abstractmethod
+from abc import abstractmethod
 
 import numpy as np
 from numpy import float64
@@ -16,7 +16,8 @@ class GAM(AdditiveCurveFitter):
     Additive model with non-parametric, smoothed components
     '''
 
-    def __init__(self, corrector_smoothers=None, predictor_smoothers=None, intercept = AdditiveCurveFitter.PredictionIntercept):
+    def __init__(self, corrector_smoothers=None, predictor_smoothers=None,
+                 intercept=AdditiveCurveFitter.PredictionIntercept):
 
         self.TYPE_SMOOTHER = [InterceptSmoother, PolynomialSmoother, SplinesSmoother]
 
@@ -42,16 +43,15 @@ class GAM(AdditiveCurveFitter):
         for smoother, corr in zip(self.corrector_smoothers, correctors.T[1:]):
             smoother.set_covariate(corr.reshape(dims[0], -1))
 
-
         for smoother, reg in zip(self.predictor_smoothers, predictors.T):
             smoother.set_covariate(reg.reshape(dims[0], -1))
-
 
         smoother_functions = SmootherSet(self.corrector_smoothers + self.predictor_smoothers)
         crv_reg = []
         crv_corr = []
         for obs in observations.T:
-            alpha, smoothers = self.__backfitting_algorithm(obs, smoother_functions, rtol=rtol, maxiter=maxiter, *args, **kwargs)
+            alpha, smoothers = self.__backfitting_algorithm(obs, smoother_functions, rtol=rtol, maxiter=maxiter, *args,
+                                                            **kwargs)
 
             self.intercept_smoother.set_parameters(alpha)
             self.corrector_smoothers = SmootherSet(smoothers[:self.corrector_smoothers.n_smoothers])
@@ -65,7 +65,6 @@ class GAM(AdditiveCurveFitter):
                 corr = self.__code_parameters(self.corrector_smoothers)
                 pred = np.concatenate((np.array([self.TYPE_SMOOTHER.index(InterceptSmoother), 1, self.alpha]),
                                        self.__code_parameters(self.predictor_smoothers)))
-
 
             crv_corr.append(corr)
             crv_reg.append(pred)
@@ -84,7 +83,7 @@ class GAM(AdditiveCurveFitter):
                     y_pred += pred_param[indx_smthr + 2]
                     indx_smthr += pred_param[1] + 2
                 else:
-                    pred = predictors[:,indx_pred]
+                    pred = predictors[:, indx_pred]
                     smoother = self.TYPE_SMOOTHER[int(pred_param[indx_smthr])](pred)
                     n_params = int(pred_param[indx_smthr + 1])
                     smoother.set_parameters(pred_param[indx_smthr + 2:indx_smthr + 2 + n_params])
@@ -145,7 +144,7 @@ class GAM(AdditiveCurveFitter):
                 f_i_prev = smoother.predict() - smoother.predict().sum() / N
                 mu = mu - f_i_prev
                 r = observation - alpha - mu
-                smoother.fit(r,*args, **kwargs)
+                smoother.fit(r, *args, **kwargs)
                 f_i_pred = smoother.predict()
                 offset = f_i_pred.sum() / N
                 f_i_pred -= offset
@@ -153,13 +152,11 @@ class GAM(AdditiveCurveFitter):
                 convergence_num = convergence_num + sum((f_i_prev - f_i_pred) ** 2)
             self.iter += 1
 
-        return (alpha,smoother_functions)
+        return (alpha, smoother_functions)
 
+    def __df_correction__(self, observations, correctors, correction_parameters):
 
-
-    def __df_correction__(self,observations, correctors, correction_parameters):
-
-        df,df_partial = [],[]
+        df, df_partial = [], []
         for reg_param in correction_parameters.T:
             y_pred = np.zeros((correctors.shape[0],))
             if reg_param[0] == 0:
@@ -173,21 +170,26 @@ class GAM(AdditiveCurveFitter):
         df.append(df_partial)
         return np.asarray(df)
 
-
     def __df_prediction__(self, observations, predictors, prediction_parameters):
-        df, df_partial = [], []
-        for obs in observations.T:
-            for pred_param in prediction_parameters.T:
-                y_pred = np.zeros((predictors.shape[0],))
-                if pred_param[0] == 0:
+        df = []
+        for obs, pred_param in zip(observations.T, prediction_parameters.T):
+            indx_smthr = 0
+            indx_pred = 0
+            df_partial = 0
+            y_pred = np.zeros((predictors.shape[0],))
+            while indx_smthr < len(pred_param):
+                if pred_param[indx_smthr] == 0:
                     y_pred += pred_param[2]
-                    indx_smthr = 3
+                    indx_smthr += pred_param[1] + 2
                 else:
                     indx_smthr = 0
                 for pred in predictors.T:
+                    pred = predictors[:, indx_pred]
                     smoother = self.TYPE_SMOOTHER[int(pred_param[indx_smthr])](pred)
                     n_params = int(pred_param[indx_smthr + 1])
-                    df_partial.append(smoother.df_model(obs,pred_param[indx_smthr + 2:indx_smthr + 2 + n_params]))
+                    df_partial += smoother.df_model(obs, pred_param[indx_smthr + 2:indx_smthr + 2 + n_params])
+                    indx_smthr += n_params + 2
+                    indx_pred += 1
             df.append(df_partial)
         return np.asarray(df)
 
@@ -240,7 +242,7 @@ class Smoother():
 
 
 class SplinesSmoother(Smoother):
-    def __init__(self, xdata, order=3, smoothing_factor=None, df = None, spline_parameters=None, name=None):
+    def __init__(self, xdata, order=3, smoothing_factor=None, df=None, spline_parameters=None, name=None):
         # Implements smoothing splines regression
         # xdata:
         # order:
@@ -264,7 +266,7 @@ class SplinesSmoother(Smoother):
             name = 'SplinesSmoother'
         self._name = name
 
-    def df_model(self,ydata, parameters = None):
+    def df_model(self, ydata, parameters=None):
         """
         Degrees of freedom used in the fit.
         """
@@ -272,18 +274,15 @@ class SplinesSmoother(Smoother):
         if parameters is not None:
             self.set_parameters(parameters)
 
-
         spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
         return len(spline.get_coeffs())
-
 
     def df_resid(self, ydata, parameters=None):
         """
         Residual degrees of freedom from last fit.
         """
-        return self.N - self.df_model(ydata,parameters=parameters)
-
+        return self.N - self.df_model(ydata, parameters=parameters)
 
     def fit(self, ydata, *args, **kwargs):
 
@@ -296,7 +295,6 @@ class SplinesSmoother(Smoother):
 
         if ydata.ndim == 1:
             ydata = ydata[:, None]
-
 
         spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
                                   w=1 / np.std(ydata) * np.ones(len(ydata)))
@@ -331,7 +329,7 @@ class SplinesSmoother(Smoother):
 
     def get_parameters(self):
         shape_parameters = 2 * (self.xdata.shape[0] + self.order + 1) + 7
-        parameters = np.append(1,self.smoothing_factor)
+        parameters = np.append(1, self.smoothing_factor)
         for param in self.spline_parameters:
             try:
                 parameters = np.append(parameters, len(param))
@@ -360,44 +358,43 @@ class SplinesSmoother(Smoother):
         else:
             self.smoothing_factor = parameters[1]
 
-
         try:
             n_knots = int(parameters[2])
             n_coeff = int(parameters[3 + n_knots])
-            self.spline_parameters = tuple([parameters[3:3 + n_knots], parameters[4 + n_knots:4+n_knots+n_coeff],
-                                            int(parameters[5+n_knots+n_coeff])])
-            self.order = int(parameters[5+n_knots+n_coeff])
+            self.spline_parameters = tuple([parameters[3:3 + n_knots], parameters[4 + n_knots:4 + n_knots + n_coeff],
+                                            int(parameters[5 + n_knots + n_coeff])])
+            self.order = int(parameters[5 + n_knots + n_coeff])
         except:
             self.order = int(parameters[-1])
 
-    def compute_smoothing_factor(self, ydata, df_target, xdata = None):
+    def compute_smoothing_factor(self, ydata, df_target, xdata=None):
 
         found = False
         change = True
         tol = 1e-6
-        s=129.0
-        step=20.0
+        s = 129.0
+        step = 20.0
         while not found:
-            df = self.df_model(ydata,parameters=[1,s,self.order])
+            df = self.df_model(ydata, parameters=[1, s, self.order])
             if df == df_target:
                 found = True
             elif df < df_target:
                 if change is True:
                     change = False
-                    step = step - step/2
+                    step = step - step / 2
                 s = s - step
             else:
                 if change is False:
                     change = True
-                    step = step - step/2
+                    step = step - step / 2
                 s = s + step
             if step < tol:
-                warn("WARNING: Couldn't find a curve with the desired number of degrees of freedom. (Df - 1) has been chosen")
-                s = self.compute_smoothing_factor(ydata, df_target-1, xdata=xdata)
+                warn(
+                    "WARNING: Couldn't find a curve with the desired number of degrees of freedom. (Df - 1) has been chosen")
+                s = self.compute_smoothing_factor(ydata, df_target - 1, xdata=xdata)
                 found = True
 
         return s
-
 
     @property
     def name(self):
@@ -482,7 +479,7 @@ class PolynomialSmoother(Smoother):
 
         return self.order + 1
 
-    def df_resid(self,ydata, parameters = None):
+    def df_resid(self, ydata, parameters=None):
         """
         Residual degrees of freedom from last fit.
         """

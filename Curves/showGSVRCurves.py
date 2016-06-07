@@ -4,9 +4,10 @@ from os.path import join
 
 import nibabel as nib
 from matplotlib.pyplot import plot, legend, show
+
 from Processors.SVRProcessing import GaussianSVRProcessor as GSVRP
-from Utils.Subject import Subject
 from Utils.DataLoader import getSubjects
+from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
 RESULTS_DIR = join(RESULTS_DIR, 'GSVR')
@@ -32,12 +33,12 @@ gsvrp = GSVRP(
     user_defined_parameters=user_defined_parameters
 )
 
-diagnostics=map(lambda subject: subject.get([Subject.Diagnostic])[0], gsvrp.subjects)
-diag=[[], [], [], []]
+diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], gsvrp.subjects)
+diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
     diag[diagnostics[i]].append(i)
 
-adcsf=gsvrp.predictors.T[0]
+adcsf = gsvrp.predictors.T[0]
 
 print
 print 'Program initialized correctly.'
@@ -47,7 +48,7 @@ print
 
 while True:
     try:
-        entry=raw_input('Write a tuple of voxel coordinates to display its curve (or press Ctrl+D to exit): ')
+        entry = raw_input('Write a tuple of voxel coordinates to display its curve (or press Ctrl+D to exit): ')
     except EOFError:
         print
         print 'Thank you for using our service.'
@@ -59,7 +60,7 @@ while True:
         print
         continue
     try:
-        x, y, z=map(int, eval(entry))
+        x, y, z = map(int, eval(entry))
     except (NameError, TypeError, ValueError, EOFError):
         print '[ERROR] Input was not recognized'
         print 'To display the voxel with coordinates (x, y, z), please enter \'x, y, z\''
@@ -77,15 +78,15 @@ while True:
     try:
         # PolySVR Curve
         corrected_data = gsvrp.corrected_values(psvr_correction_parameters,
-                                                x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1)
+                                                x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
         axis, curve = gsvrp.curve(psvr_prediction_parameters,
-                                x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
+                                  x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1, tpoints=50)
 
         plot(axis, curve[:, 0, 0, 0], 'r', label='Fitted total curve')
 
-        color=['co', 'bo', 'mo', 'ko']
+        color = ['co', 'bo', 'mo', 'ko']
         for i in xrange(len(diag)):
-            l=diag[i]
+            l = diag[i]
             plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], label=Subject.Diagnostics[i])
         legend()
 
@@ -96,7 +97,3 @@ while True:
         print e
         print
         continue
-
-
-
-

@@ -1,22 +1,23 @@
-import nibabel as nib
 import time
-import Utils.DataLoader as DataLoader
 from os.path import join
+
+import nibabel as nib
+
+import Utils.DataLoader as DataLoader
 from Processors.SVRProcessing import PolySVRProcessor as PSVR
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
 if __name__ == "__main__":
-
     # Define filename prefix
     filename_prefix = join(RESULTS_DIR, 'PSVR')
 
     print 'Obtaining data from Excel file...'
-    subjects = DataLoader.getSubjects(corrected_data=True) # Used for prediction
+    subjects = DataLoader.getSubjects(corrected_data=True)  # Used for prediction
     # subjects = DataLoader.getSubjects(corrected_data=False) # Used for correction and prediction
 
     print 'Initializing PolySVR Processor...'
-    udp = (2, 3, 1, 0.1, 3)                       # Used for prediction
+    udp = (2, 3, 1, 0.1, 3)  # Used for prediction
     # udp = (1, 0, 3.0, 0.08, 3, 2, 1)            # Used for correction and prediction
     psvr = PSVR(subjects,
                 predictors=[Subject.ADCSFIndex],
@@ -41,4 +42,3 @@ if __name__ == "__main__":
         f.write(str(psvr.user_defined_parameters) + '\n')
 
     print 'Done'
-

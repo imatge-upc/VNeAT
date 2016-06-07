@@ -2,10 +2,10 @@ import time
 from os.path import join
 
 import nibabel as nib
-from scipy.stats import norm
+import numpy as np
 
 import Utils.DataLoader as DataLoader
-from FitScores.FitEvaluation import ftest
+from FitScores.FitEvaluation_v2 import vnprss
 from Processors.MixedProcessor import MixedProcessor
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
@@ -23,7 +23,8 @@ if __name__ == "__main__":
         'PolyGLM-PolyGAM': join('PGLM-PGAM', 'pglm_pgam_')
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    prefix = prefixes['PolyGLM-PolySVR']
+    prefix = prefixes['PolyGLM-PolyGAM']
+    gamma = 10
 
     """ PROCESSING """
     # Get affine matrix
@@ -50,49 +51,24 @@ if __name__ == "__main__":
         user_defined_parameters=user_defined_parameters
     )
 
-    print 'Computing F-scores'
+    print 'Computing variance normalized PRSS'
     time_start = time.clock()
-    fitting_scores = MixedProcessor.evaluate_fit(
-        evaluation_function=ftest,
-        correction_processor=processor,
+    fitting_scores = processor.evaluate_fit(
+        evaluation_function=vnprss,
+        gamma=gamma,
         correction_parameters=cparameters,
-        prediction_processor=processor,
         prediction_parameters=pparameters,
         gm_threshold=0.1,
         filter_nans=True,
-        default_value=0.0,
-        # x1=40,
-        # x2=50,
-        # y1=82,
-        # y2=83,
-        # z1=39,
-        # z2=40,
+        default_value=np.inf,
         mem_usage=256
     )
     time_end = time.clock()
     print "Fit evaluation done in ", time_end - time_start, " seconds"
 
-    print 'Saving inverted p-values to file'
-    nib.save(niiFile(fitting_scores, affine), join(RESULTS_DIR, prefix + 'fitscores.nii'))
-
-    print 'Obtaining, filtering and saving Z-scores and labels to display them...'
-    for fit_threshold in [0.99, 0.995, 0.999]:
-        print '    Fitting-threshold set to', fit_threshold, '; Computing z-scores and labels...'
-        clusterized_fitting_scores, labels = MixedProcessor.clusterize(
-            fitting_scores=fitting_scores,
-            default_value=0.0,
-            fit_lower_threshold=fit_threshold,
-            cluster_threshold=100,
-            produce_labels=True
-        )
-        # Compute Z-scores
-        lim_value = norm.ppf(fit_threshold)
-        valid_voxels = clusterized_fitting_scores != 0.0
-        clusterized_fitting_scores[valid_voxels] = norm.ppf(clusterized_fitting_scores[valid_voxels]) - lim_value + 0.2
-
-        print '    Saving z-scores and labels to file...'
-        nib.save(niiFile(clusterized_fitting_scores, affine),
-                 join(RESULTS_DIR, prefix + 'zscores_' + str(fit_threshold) + '.nii'))
-        nib.save(niiFile(labels, affine), join(RESULTS_DIR, prefix + 'labels_' + str(fit_threshold) + '.nii'))
+    print 'Saving VNPRSS-scores to file'
+    nib.save(niiFile(fitting_scores, affine), join(RESULTS_DIR, prefix + 'vnprss_' + str(gamma) + '.nii'))
+    nib.save(niiFile(-fitting_scores, affine), join(RESULTS_DIR, prefix + 'inv_vnprss_' + str(gamma) + '.nii'))
 
     print 'Done.'
+
