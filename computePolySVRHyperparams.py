@@ -8,7 +8,7 @@ from Utils.Subject import Subject
 from Fitters.SVR import PolySVR
 from user_paths import RESULTS_DIR
 
-RESULTS_DIR = join(RESULTS_DIR, 'PSVR')
+RESULTS_DIR = join(RESULTS_DIR, 'CROSS_VALIDATION')
 
 if __name__ == "__main__":
 
@@ -19,8 +19,8 @@ if __name__ == "__main__":
     psvr = PolySVR(predictors, [0], [3], AdditiveCurveFitter.PredictionIntercept)
 
     # Create grid of hyperparams using uniform random sampling
-    epsilon = np.sort(np.random.uniform(0.01, 0.15, 15))
-    C = np.sort([10 ** i for i in np.random.uniform(0.1, 1, 15)])
+    epsilon = np.sort(np.random.uniform(0.05, 0.08, 15))
+    C = np.sort([10 ** i for i in np.random.uniform(0.1, 0.6, 10)])
 
     # Create grid of hyperparams using linear and logscale
     # epsilon = np.linspace(0.01, 0.5, 15)
@@ -34,11 +34,11 @@ if __name__ == "__main__":
     gs = GridSearch(fitter=psvr, results_directory=RESULTS_DIR, n_jobs=6)
 
     # Compute hyperparameters
-    gs.fit(grid_parameters=grid_params, N=1, m=200, score=score_f.statisticC_p,
-           save_all_scores=True, filename="psvr_all_scores")
+    gs.fit(grid_parameters=grid_params, N=3, m=200, score=score_f.anova_error,
+           save_all_scores=True, filename="psvr_anova_fine_scores")
 
     # Save results
-    gs.store_results("psvr_optimal_params", verbose=True)
+    gs.store_results("psvr_anova_fine_optimal", verbose=True)
 
     # Plot error
     gs.plot_error()

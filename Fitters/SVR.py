@@ -34,12 +34,13 @@ class LinSVR(AdditiveCurveFitter):
         self._svr_C = kwargs['C'] if 'C' in kwargs else self._svr_C
         self._svr_epsilon = kwargs['epsilon'] if 'epsilon' in kwargs else self._svr_epsilon
         max_iter = kwargs['max_iter'] if 'max_iter' in kwargs else -1
-        tol = kwargs['tol'] if 'tol' in kwargs else 1e-5
+        cache_size = kwargs['cache_size'] if 'cache_size' in kwargs else 1000
+        tol = kwargs['tol'] if 'tol' in kwargs else 1e-4
         n_jobs = kwargs['n_jobs'] if 'n_jobs' in kwargs else 4
 
         # Initialize linear SVR from scikit-learn
         svr_fitter = SVR(kernel="linear", epsilon=self._svr_epsilon, C=self._svr_C,
-                         tol=tol, max_iter=max_iter)
+                         cache_size=cache_size, tol=tol, max_iter=max_iter)
 
         # Initialize standard scaler
         self._correctors_scaler = StandardScaler()

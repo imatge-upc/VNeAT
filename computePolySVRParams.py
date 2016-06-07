@@ -1,7 +1,7 @@
-from os.path import join
-
 import nibabel as nib
+import time
 import Utils.DataLoader as DataLoader
+from os.path import join
 from Processors.SVRProcessing import PolySVRProcessor as PSVR
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
@@ -16,16 +16,19 @@ if __name__ == "__main__":
     # subjects = DataLoader.getSubjects(corrected_data=False) # Used for correction and prediction
 
     print 'Initializing PolySVR Processor...'
-    udp = (2, 3, 3.16227766017, 0.16, 3)          # Used for prediction
-    # udp = (1, 0, 3.0, 0.08, 3, 2, 1)              # Used for correction and prediction
+    udp = (2, 3, 1, 0.1, 3)                       # Used for prediction
+    # udp = (1, 0, 3.0, 0.08, 3, 2, 1)            # Used for correction and prediction
     psvr = PSVR(subjects,
                 predictors=[Subject.ADCSFIndex],
                 user_defined_parameters=udp)
 
     print 'Processing data...'
-    results = psvr.process(n_jobs=3, mem_usage=1024)
+    time_start = time.clock()
+    results = psvr.process(n_jobs=6, mem_usage=512)
+    time_end = time.clock()
     C = psvr.user_defined_parameters[2]
     epsilon = psvr.user_defined_parameters[3]
+    print 'Processing done in ', time_end - time_start, " seconds"
 
     print 'Saving results to files...'
     affine = DataLoader.getMNIAffine()
@@ -37,5 +40,5 @@ if __name__ == "__main__":
     with open(join(filename_prefix, filename + 'userdefparams.txt'), 'wb') as f:
         f.write(str(psvr.user_defined_parameters) + '\n')
 
-    print 'Done.'
+    print 'Done'
 

@@ -1,4 +1,9 @@
-""" Shows curves for Mixed Processors
+"""
+Shows curves for Mixed Processors:
+    - PolyGLM corrected, PolyGLM predicted
+    - PolyGLM corrected, PolyGAM predicted
+    - PolyGLM corrected, PolySVR predicted
+    - PolyGLM corrected, GaussianSVR predicted
 """
 from os.path import join
 
@@ -16,11 +21,11 @@ RESULTS_DIR = join(RESULTS_DIR, 'MIXED')
 
 # Info
 fitters = [
-    # NAME                              # PREFIX
-    ['PolyGLM - PolyGLM',               join('PGLM-PGLM', 'pglm_pglm_')],
-    ['PolyGLM - GaussianSVR',           join('PGLM-GSVR', 'pglm_gsvr_')],
-    # ['PolyGLM - GaussianSVR_opt',       'pglm_gsvr_opt_'],
-    ['PolyGLM - PolyGAM',               join('PGLM-PGAM', 'pglm_pgam_')]
+    # NAME                                  # PREFIX
+    ['PolyGLM - PolyGLM',                   join('PGLM-PGLM', 'pglm_pglm_')],
+    ['PolyGLM - PolyGAM',                   join('PGLM-PGAM', 'pglm_pgam_')],
+    ['PolyGLM - PolySVR',                   join('PGLM-PSVR', 'pglm_psvr_')],
+    ['PolyGLM - GaussianSVR',               join('PGLM-GSVR', 'pglm_gsvr_')],
 ]
 
 print 'Obtaining data from Excel file...'
