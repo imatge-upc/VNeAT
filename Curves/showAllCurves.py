@@ -25,12 +25,12 @@ from user_paths import RESULTS_DIR
 
 # Info
 fitters = [
-    # NAME              PROCESSOR   PATH                                                      COLOR       MARKER
-    ['Polynomial GLM',  PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                 'm',        'd'],
-    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                   'y',        'd'],
-    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_s105_'),              'g',        'd'],
+    # NAME              PROCESSOR   PATH                                                           COLOR       MARKER
+    ['Polynomial GLM',  PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                      'm',        'd'],
+    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                        'y',        'd'],
+    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_s105_'),                'g',        'd'],
     ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1.65_eps0.078_'),             'b',        'd'],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.61_eps0.063_gamma0.3_'),   'r',        'd']
+    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.61_eps0.063_gamma0.3_'),    'r',        'd']
 ]
 
 print 'Obtaining data from Excel file...'

@@ -85,3 +85,5 @@ nib.save(niiFile(-fitting_scores, affine), filename_prefix + 'inv_vnprss_' + str
 
 print 'Done.'
 
+# No, not done. We still have to filter these results and make them suitable for visualization.
+

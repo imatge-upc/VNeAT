@@ -692,12 +692,16 @@ def prss(self, gamma):
 
     MSE = self.mse.evaluate(fitting_results = fitting_results)
     curve = np.array(self.curve(), dtype=np.float64)
+    dx = self.xdiff()
 
-    abruptness = np.diff(np.diff(curve, axis = 0), axis = 0).sum(axis = 0)
+    diff1 = np.diff(curve, axis = 0)/dx
+    diff2 = np.diff(diff1, axis = 0)/dx
+    abruptness = (diff2**2).sum(axis = 0)
 
     return MSE + gamma*abruptness
 
-prss.requires('curve', 'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable')
+prss.requires('curve', 'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable.')
+prss.requires('xdiff', 'Float indicating the separation between any two contiguous points of the axis.')
 # prss.implicit('mse', "Result of evaluating the 'mse' test on the target", lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))
 prss.uses(mse, 'mse')
 

@@ -523,12 +523,14 @@ class Processor(object):
                 predictors = self._processor_fitter.predictors,
                 prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
             )
-            fitres.curve = self.curve(
+            axis, curve = self.curve(
                 prediction_parameters = orig_pparams[:, x:(x+dx), y:(y+dy), z:(z+dz)],
                 tpoints = 128  # We set a high granularity to evaluate the curve more precisely
                 # Another option could be to set it to a value proportional to the number of subjects
                 # tpoints = 2*len(self.target.subjects)
-            )[0]
+            )
+            fitres.curve = curve
+            fitres.xdiff = axis[1]-axis[0]
 
             # Evaluate the fit for the voxels in this chunk and store them
             fitting_scores[x:x+dx, y:y+dy, z:z+dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)
@@ -762,6 +764,10 @@ class Processor(object):
 eval_func[Processor].bind(
     'curve',
     lambda self: self.fitting_results.curve
+)
+eval_func[Processor].bind(
+    'xdiff',
+    lambda self: self.fitting_results.xdiff
 )
 
 eval_func[Processor].bind(
