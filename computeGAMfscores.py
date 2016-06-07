@@ -1,7 +1,7 @@
-from nonlinear2.Utils.ExcelIO import ExcelSheet as Excel
-from nonlinear2.FitScores.FitEvaluation import ftest
-from nonlinear2.Processors.GAMProcessing import GAMProcessor as GAMP
-from nonlinear2.Utils.Subject import Subject
+from Utils.ExcelIO import ExcelSheet as Excel
+from FitScores.FitEvaluation import ftest
+from Processors.GAMProcessing import GAMProcessor as GAMP
+from Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
 import nibabel as nib
@@ -12,7 +12,7 @@ from scipy.stats import norm
 print 'Obtaining data from Excel file...'
 
 from user_paths import DATA_DIR, EXCEL_FILE, CORRECTED_DATA_DIR, RESULTS_DIR
-RESULTS_DIR = join(RESULTS_DIR, 'GAM')
+RESULTS_DIR = join(RESULTS_DIR, 'PGAM')
 
 filename_prefix = 'gam_poly_d3_'
 

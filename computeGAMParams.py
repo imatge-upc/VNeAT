@@ -13,15 +13,15 @@ affine = DataLoader.getMNIAffine()
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=True)
 
-user_defined_parameters = [
-    (9, [2, 2, 97, 3])
-]
-#
 # user_defined_parameters = [
-#     (9, [1, 1, 3])
+#     (9, [2, 2, 97, 3])
 # ]
+
+user_defined_parameters = [
+    (9, [1, 1, 3])
+]
 filename_prefix = [
-    'gam_splines_'
+    'gam_polyd3_'
 ]
 
 for udp, fn in zip(user_defined_parameters, filename_prefix):

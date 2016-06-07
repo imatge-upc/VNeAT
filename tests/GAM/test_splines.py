@@ -27,7 +27,7 @@ affine = DataLoader.getMNIAffine()
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=True)
 
-udp = (9,[2,2,accepted_maximum_error,polynomial_degree])
+udp = (9,[2,3,0,15,3])
 gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex],user_defined_parameters=udp)
 
 results = gamp.process(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
@@ -49,11 +49,11 @@ for i in xrange(len(diag)):
 	l = diag[i]
 	plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
 
-axis, curve = gamp.curve(prediction_parameters, tpoints=50)
+axis, curve = gamp.curve(prediction_parameters, tpoints=-1)
 plot.plot(axis, curve[:, 0, 0, 0], lw=2, color='g', marker='d')
 
 plot.show()
-
+a=1
 #	
 #	""" Shows curves for all fitters created:
 #			- Poly GLM

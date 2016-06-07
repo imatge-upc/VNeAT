@@ -75,19 +75,22 @@ class GAM(AdditiveCurveFitter):
     def __predict__(self, predictors, prediction_parameters, *args, **kwargs):
 
         y_predict = []
-        for reg_param in prediction_parameters.T:
-            y_pred = np.zeros((predictors.shape[0],))
-            if reg_param[0] == 0:
-                y_pred += reg_param[2]
-                indx_smthr = 3
-            else:
-                indx_smthr = 0
-            for reg in predictors.T:
-                smoother = self.TYPE_SMOOTHER[int(reg_param[indx_smthr])](reg)
-                n_params = int(reg_param[indx_smthr + 1])
-                smoother.set_parameters(reg_param[indx_smthr + 2:indx_smthr + 2 + n_params])
-                indx_smthr += n_params + 1
-                y_pred += smoother.predict()
+        for pred_param in prediction_parameters.T:
+            indx_pred = 0
+            indx_smthr = 0
+            while indx_smthr < len(pred_param):
+                y_pred = np.zeros((predictors.shape[0],))
+                if pred_param[indx_smthr] == 0:
+                    y_pred += pred_param[indx_smthr + 2]
+                    indx_smthr += pred_param[1] + 2
+                else:
+                    pred = predictors[:,indx_pred]
+                    smoother = self.TYPE_SMOOTHER[int(pred_param[indx_smthr])](pred)
+                    n_params = int(pred_param[indx_smthr + 1])
+                    smoother.set_parameters(pred_param[indx_smthr + 2:indx_smthr + 2 + n_params])
+                    indx_smthr += n_params + 2
+                    indx_pred += 1
+                    y_pred += smoother.predict()
             y_predict.append(y_pred)
 
         return np.asarray(y_predict).T
@@ -285,11 +288,11 @@ class SplinesSmoother(Smoother):
     def fit(self, ydata, *args, **kwargs):
 
         self.df = kwargs['df'] if 'df' in kwargs else self.df
-        self.smoothing_factor = kwargs['smoothing_factor'] if 'smoothing_factor' in kwargs else self.smoothing_factor
+
         if self.df is not None:
             self.smoothing_factor = self.compute_smoothing_factor(ydata, self.df)
         elif 's' in kwargs:
-            self.smoothing_factor = kwargs['s']
+            self.smoothing_factor = kwargs['smoothing_factor']
 
         if ydata.ndim == 1:
             ydata = ydata[:, None]
@@ -327,8 +330,8 @@ class SplinesSmoother(Smoother):
         return y_pred
 
     def get_parameters(self):
-        shape_parameters = 2 * (self.xdata.shape[0] + self.order + 1) + 6
-        parameters = np.array([self.smoothing_factor], dtype=float64)
+        shape_parameters = 2 * (self.xdata.shape[0] + self.order + 1) + 7
+        parameters = np.append(1,self.smoothing_factor)
         for param in self.spline_parameters:
             try:
                 parameters = np.append(parameters, len(param))
@@ -352,15 +355,20 @@ class SplinesSmoother(Smoother):
     def set_parameters(self, parameters):
 
         parameters = np.asarray(parameters).reshape((-1,))
-        self.smoothing_factor = parameters[0]
+        if parameters[0] == 0:
+            self.df = parameters[1]
+        else:
+            self.smoothing_factor = parameters[1]
+
+
         try:
-            n_knots = int(parameters[1])
-            n_coeff = int(parameters[2 + n_knots])
-            self.spline_parameters = tuple([parameters[2:2 + n_knots], parameters[3 + n_knots:3+n_knots+n_coeff],
-                                            int(parameters[4+n_knots+n_coeff])])
-            self.order = int(parameters[4+n_knots+n_coeff])
+            n_knots = int(parameters[2])
+            n_coeff = int(parameters[3 + n_knots])
+            self.spline_parameters = tuple([parameters[3:3 + n_knots], parameters[4 + n_knots:4+n_knots+n_coeff],
+                                            int(parameters[5+n_knots+n_coeff])])
+            self.order = int(parameters[5+n_knots+n_coeff])
         except:
-            self.order = int(parameters[1])
+            self.order = int(parameters[-1])
 
     def compute_smoothing_factor(self, ydata, df_target, xdata = None):
 
@@ -370,7 +378,7 @@ class SplinesSmoother(Smoother):
         s=129.0
         step=20.0
         while not found:
-            df = self.df_model(ydata,parameters=[s,self.order])
+            df = self.df_model(ydata,parameters=[1,s,self.order])
             if df == df_target:
                 found = True
             elif df < df_target:

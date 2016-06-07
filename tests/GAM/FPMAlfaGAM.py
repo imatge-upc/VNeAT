@@ -1,10 +1,10 @@
 import sys
 
-sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge\\nonlinear2')
-sys.path.insert(1, '/Users/acasamitjana/Repositories/neuroimatge/nonlinear2')
+sys.path.insert(1, 'C:\\Users\\upcnet\\Repositoris\\neuroimatge')
+sys.path.insert(1, '/Users/acasamitjana/Repositories/neuroimatge')
 sys.stdout.flush()
 from Utils.ExcelIO import ExcelSheet as Excel
-from Processors import GAMProcessor as GAMP
+from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
 from os.path import join, isfile, basename
 from os import listdir
@@ -42,16 +42,16 @@ for r in exc.get_rows(fieldstype={
     )
 print 'Initializing GAM Processor...'
 
-udp = (9, [1, 1, 3])
+udp = (9,[2,3,1,0,3])
 gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
 print 'Processing data...'
 x1 = 85  # 103#
-x2 = x1 + 2
+x2 = x1 + 1
 y1 = 101  # 45#
-y2 = y1 + 2
+y2 = y1 + 1
 z1 = 45  # 81#
-z2 = z1 + 2
+z2 = z1 + 1
 results = gamp.process(x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2)
 
 print 'Saving results to files...'
