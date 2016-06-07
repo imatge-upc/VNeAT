@@ -1,7 +1,9 @@
-from FitScores.FitEvaluation_v2 import mse, evaluation_function as evaf
+from FitScores.FitEvaluation_v2 import evaluation_function as evaf
 
 @evaf
 def my_eval(self):
+	"""This is the my_eval function.
+	"""
 	return self.three() + 5
 
 my_eval.requires('three', 'A method that returns three')
@@ -138,7 +140,7 @@ print my_new_eval[a].evaluate() # outputs 317.3016
 my_new_eval[a].bind('three', lambda self: self.target.three - 100*self.pi(), force=True)
 print my_new_eval[a].status()
 print my_new_eval[a].evaluate() # outputs 317.3016
-# why? becuase 'three' has not been defined in target (object 'a')
+# why? because 'three' has not been defined in target (object 'a')
 # therefore, evaluating self.target.three (a.three) raises an AttributeError, which is captured in the evaluation
 # function (my_new_eval), that returns 101*self.pi() instead of the original expression
 
@@ -168,5 +170,31 @@ r = R()
 r.result_three = 3
 
 print my_new_eval[a].evaluate(r) # outputs 3.0
+
+
+
+
+
+
+
+class C1(object):
+	pass
+
+class C2(C1):
+	pass
+
+@evaf
+def eval1(self):
+	return self.f()
+
+eval1.requires('f', 'Just any function')
+eval1.requires('x', 'Just another function')
+eval1.requires('y', 'Just another another function')
+
+eval1[C1].bind('f', lambda self: self.x()).bind('x', lambda self: 3, force=True).bind('y', lambda self: 10)
+
+eval1[C2].bind('x', lambda self: self.y(), force=True)
+
+print eval1[C2].evaluate() # prints 10, inheritance works correctly (although f was inherited from C1, x is evaluated in C2)
 
 

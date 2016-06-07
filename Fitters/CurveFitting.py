@@ -3,7 +3,7 @@ from abc import ABCMeta
 import numpy as np
 
 from Utils.Documentation import docstring_inheritor
-from FitScores.FitEvaluation_v2 import evaluation_function
+from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
 
 
 class abstractstatic(staticmethod):
@@ -959,6 +959,138 @@ class CurveFitter(object):
         # Restore original dimensions
         return corrected_data.reshape(dims)
 
+    def evaluate_fit(self, observations, evaluation_function, correctors = None, correction_parameters = None, predictors = None, prediction_parameters = None, *args, **kwargs):
+        """Evaluates the degree to which the correctors and predictors get to explain the observational
+            data passed in the 'observations' argument by using the evaluator at 'evaluation_function'.
+    
+            Parameters:
+    
+                - observations: array-like structure of shape (N, X1, ..., Xn), representing the observational data,
+                    i.e., values obtained by measuring the variables of interest, whose behaviour is wanted to be
+                    explained by the correctors and predictors in the system, where M = X1*...*Xn is the number of
+                    variables and N the number of observations for each variable.
+    
+                - correctors: NxC (2-dimensional) matrix (default None), representing the covariates, i.e., features
+                    that (may) explain a part of the observational data in which we are not interested, where C is
+                    the number of correctors and N the number of elements for each corrector. If set to None, the
+                    internal correctors will be used.
+    
+                - correction_parameters: array-like structure of shape (Kc, X1, ..., Xn) (default None), representing
+                    the parameters to fit the correctors to the observations for each variable, where M = X1*...*Xn
+                    is the number of variables and Kc the number of correction parameters for each variable. If set
+                    to None, the correction parameters obtained in the last call to 'fit' will be used.
+    
+                - predictors: NxR (2-dimensional) matrix (default None), representing the predictors, i.e., features
+                    to be used to try to explain/predict the observations (experimental data), where R is the number
+                    of predictors and N the number of elements for each predictor. If set to None, the internal re-
+                    gressors will be used.
+    
+                - prediction_parameters: array-like structure of shape (Kr, X1, ..., Xn) (default None), representing
+                    the parameters to fit the predictors to the corrected observations for each variable, where M =
+                    X1*...*Xn is the number of variables and Kr is the number of prediction parameters for each
+                    variable. If set to None, the prediction parameters obtained in the last call to 'fit' will be
+                    used.
+    
+                - any other arguments will be passed to the 'evaluation_function.evaluate' method.
+    
+            Returns:
+    
+                - Fitting scores: array-like structure of shape (X1, ..., Xn), containing floats that indicate the
+                    goodness of the fit, that is, how well the predicted curves represent the corrected observational
+                    data, or equivalently, how well the model applied to the predictors explains the observed data.
+        """
+
+        obs = np.array(observations, dtype = np.float64)
+        dims = obs.shape
+        obs = obs.reshape(dims[0], -1)
+
+        if 0 in dims:
+            raise ValueError('There are no elements in argument \'observations\'')
+    
+        if correctors is None:
+            cors = self._crvfitter_correctors
+            if 0 in cors.shape:
+                correctors_present = False
+            else:
+                correctors_present = True
+        else:
+            cors = np.array(correctors, dtype = np.float64)
+            if len(cors.shape) != 2:
+                raise TypeError('Argument \'correctors\' must be a 2-dimensional matrix')
+            
+            if 0 in cors.shape:
+                raise ValueError('There are no elements in argument \'correctors\'')
+    
+            correctors_present = True
+    
+        if correctors_present:
+            if obs.shape[0] != cors.shape[0]:
+                raise ValueError('The dimensions of the observations and the correctors are incompatible')
+    
+            if correction_parameters is None:
+                cparams = self._crvfitter_correction_parameters
+                if 0 in cparams.shape:
+                    raise AttributeError('There are no correction parameters in this instance')
+            else:
+                cparams = np.array(correction_parameters, dtype = np.float64)
+                cparams = cparams.reshape(cparams.shape[0], -1)
+    
+                if 0 in cparams.shape:
+                    raise ValueError('There are no elements in argument \'correction_parameters\'')
+    
+            if obs.shape[1] != cparams.shape[1]:
+                raise ValueError('The dimensions of the observations and the correction parameters are incompatible')
+    
+        else:
+            cparams = np.zeros((0, 0))
+
+        if predictors is None:
+            preds = self._crvfitter_predictors
+            if 0 in preds.shape:
+                raise AttributeError('There are no predictors in this instance')
+        else:
+            preds = np.array(predictors, dtype = np.float64)
+    
+            if len(preds.shape) != 2:
+                raise TypeError('Argument \'predictors\' must be a 2-dimensional matrix')
+    
+            if 0 in preds.shape:
+                raise ValueError('There are no elements in argument \'predictors\'')
+    
+        if obs.shape[0] != preds.shape[0]:
+                raise ValueError('The dimensions of the observations and the predictors are incompatible')
+    
+        if prediction_parameters is None:
+            pparams = self._crvfitter_prediction_parameters
+            if 0 in pparams.shape:
+                raise AttributeError('There are no prediction parameters in this instance')
+        else:
+            pparams = np.array(prediction_parameters, dtype = np.float64)
+            # Make matrix 2-dimensional
+            pparams = pparams.reshape(pparams.shape[0], -1)
+    
+            if 0 in pparams.shape:
+                raise ValueError('There are no elements in argument \'prediction_parameters\'')
+    
+        if obs.shape[1] != pparams.shape[1]:
+            raise ValueError('The dimensions of the observations and the prediction parameters are incompatible')
+    
+        class FittingResults (object):
+            pass
+        fitres = FittingResults()
+        
+        fitres.observations = obs
+        fitres.correctors = cors
+        fitres.correction_parameters = cparams
+        fitres.predictors = preds
+        fitres.prediction_parameters = pparams
+
+        fitting_scores = evaluation_function[self].evaluate(fitres, *args, **kwargs)
+    
+        return fitting_scores.reshape(dims[1:])
+
+
+
     def __df_correction__(self, observations, correctors, correction_parameters):
         '''
         Computes the (effective) degrees of freedom for the fitted correctors.
@@ -1183,7 +1315,7 @@ class CurveFitter(object):
         # Restore original dimensions (except for the first axis)
         return df_prediction.reshape(-1, *dims[1:])
 
-evaluation_function[CurveFitter].bind(
+eval_func[CurveFitter].bind(
     'corrected_data',
     lambda self: self.target.correct(
         observations = self.fitting_results.observations,
@@ -1191,14 +1323,14 @@ evaluation_function[CurveFitter].bind(
         correction_parameters = self.fitting_results.correction_parameters
     )
 )
-evaluation_function[CurveFitter].bind(
+eval_func[CurveFitter].bind(
     'predicted_data',
     lambda self: self.target.predict(
         predictors = self.fitting_results.predictors,
         prediction_parameters = self.fitting_results.prediction_parameters
     )
 )
-evaluation_function[CurveFitter].bind(
+eval_func[CurveFitter].bind(
     'df_correction',
     lambda self: self.target.df_correction(
         observations = self.fitting_results.observations,
@@ -1206,7 +1338,7 @@ evaluation_function[CurveFitter].bind(
         correction_parameters = self.fitting_results.correction_parameters
     )
 )
-evaluation_function[CurveFitter].bind(
+eval_func[CurveFitter].bind(
     'df_prediction',
     lambda self: self.target.df_prediction(
         observations = self.fitting_results.observations,

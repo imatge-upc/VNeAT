@@ -214,6 +214,15 @@ class GLMProcessor(Processor):
         #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
         return Processor.Results(pparams, correction_parameters)
 
+    def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
+        # Get the prediction parameters for the original features matrix
+        if self._glmprocessor_perp_norm_option < 6:
+            Kx2 = prediction_parameters.shape[0]
+            pparams = prediction_parameters[:(Kx2 / 2)]
+        else:
+            pparams = prediction_parameters
+        return pparams, correction_parameters
+
     def __user_defined_parameters__(self, fitter):
         return (self._glmprocessor_intercept, self._glmprocessor_perp_norm_option) + tuple(self._glmprocessor_degrees) + tuple(self._glmprocessor_submodels)
 
