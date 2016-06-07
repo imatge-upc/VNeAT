@@ -11,7 +11,7 @@ from Utils.Subject import Subject
 from user_paths import DATA_DIR, EXCEL_FILE
 
 filename_prefix = join('results', 'GLM', 'glm_all_')
-gamma = 1
+gamma = 1e3
 
 niiFile = nib.Nifti1Image
 affine = np.array(

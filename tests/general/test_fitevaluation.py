@@ -1,7 +1,9 @@
-from FitScores.FitEvaluation_v2 import mse, evaluation_function as evaf
+from FitScores.FitEvaluation_v2 import evaluation_function as evaf
 
 @evaf
 def my_eval(self):
+	"""This is the my_eval function.
+	"""
 	return self.three() + 5
 
 my_eval.requires('three', 'A method that returns three')
@@ -187,9 +189,12 @@ def eval1(self):
 
 eval1.requires('f', 'Just any function')
 eval1.requires('x', 'Just another function')
+eval1.requires('y', 'Just another another function')
 
-eval1[C1].bind('f', lambda self: self.x()).bind('x', lambda self: 3, force=True)
+eval1[C1].bind('f', lambda self: self.x()).bind('x', lambda self: 3, force=True).bind('y', lambda self: 10)
 
-eval1[C2].bind('x', lambda self: 5, force=True)
+eval1[C2].bind('x', lambda self: self.y(), force=True)
 
-print eval1[C2].evaluate() # prints 5, inheritance works correctly (although f was inherited from C1, x is evaluated in C2)
+print eval1[C2].evaluate() # prints 10, inheritance works correctly (although f was inherited from C1, x is evaluated in C2)
+
+

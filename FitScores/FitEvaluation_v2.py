@@ -41,7 +41,10 @@ class dictlike(type):
         def status(self):
             s = 'Target:\n    ' + str(self._target) + '\n\n'
             s += 'Description:\n    Test-generic requirement lookup set.\n\n'
-            s += 'Methods:\n'
+            s += 'Methods:'
+            if len(self._set) == 0:
+                s += ' None'
+            s += '\n'
 
             for name in self._set:
                 s += '        [Bound]  ' + name + '\n'
@@ -51,6 +54,9 @@ class dictlike(type):
 
         def __getitem__(self, target):
             return self._parent[target]
+
+        def __str__(self):
+            return "{" + str(self._parent) + " x " + repr(self._target) + "} binding"
 
 
     def __init__(self, *args, **kwargs):
@@ -68,6 +74,9 @@ class dictlike(type):
     def clear(self):
         self._bindings = {}
         return self
+
+    def __str__(self):
+        return "<class 'evaluation_function'>"
 
 class evaluation_function(object):
 
@@ -161,7 +170,7 @@ class evaluation_function(object):
 
                         # Bingo! Our current requirement IS generically specified for the target
                         setattr(self, ReqDescriptor.name, types.MethodType(inherited_method, self))
-                        inherited.append(ReqDescriptor.name)
+                        inherited.append((ReqDescriptor.name, provider))
                         continue
                     except (KeyError, AttributeError):
                         pass
@@ -197,7 +206,7 @@ class evaluation_function(object):
 
                         # Yay, we found a method to inherit!
                         setattr(self, ReqDescriptor.name, types.MethodType(inherited_method, self)) # Bind it to this instance
-                        inherited.append(ReqDescriptor.name)
+                        inherited.append((ReqDescriptor.name, provider))
                         break
                     else: # bad news... :(
                         if not status: # ...unless we are checking the status, in which case there's no problem
@@ -226,7 +235,7 @@ class evaluation_function(object):
             return retval
 
         def _revert_inheritance_and_defrost(self, inherited, frosted):
-            for name in inherited:
+            for (name, _) in inherited:
                 setattr(self, name, UNBOUND)
             for alias in frosted:
                 exec('del self.' + alias)
@@ -249,10 +258,11 @@ class evaluation_function(object):
             for rd in reqs:
                 if rd.name == method_name:
                     setattr(self, rd.name, rd.value)
-                    try:
-                        self._frozen.remove(rd.name)
-                    except ValueError:
-                        pass
+
+                    for i in xrange(len(self._frozen)):
+                        if self._frozen[i][0] == rd.name:
+                            del self._frozen[i]
+                            break
 
                     return self
             for i in xrange(len(self._forced)):
@@ -325,9 +335,6 @@ class evaluation_function(object):
 
             return self
 
-        def is_frozen(self):
-            return not self._frozen # same as: "not (self._frozen is empty)"
-
         def status(self):
             desc = {}
             for rd in self._implicit:
@@ -338,11 +345,11 @@ class evaluation_function(object):
             reqs = set(map(lambda r: r.name, self._requirements))
 
             inherited, frosted = self._frost_and_inherit(status=True)
-            for name in inherited:
-                desc[name] = '    [Inherited]  ' + desc[name]
+            for (name, origin) in inherited:
+                desc[name] = '    [Inherited]  ' + desc[name] + ' (inherited from ' + str(origin) + ')'
                 reqs.remove(name)
-            for name in self._frozen:
-                desc[name] = '       [Frozen]  ' + desc[name]
+            for (name, origin) in self._frozen:
+                desc[name] = '       [Frozen]  ' + desc[name] + ' (inherited from ' + str(origin) + ')'
                 reqs.remove(name)
 
             for name in reqs:
@@ -355,7 +362,11 @@ class evaluation_function(object):
 
             s = 'Target:\n    ' + str(self._target) + '\n\n'
             s += 'Description:\n    ' + ('None\n' if self._evaluate.__doc__ is None else self._evaluate.__doc__) + '\n'
-            s += 'Methods:\n'
+            s += 'Methods:'
+            if len(self._implicit) == 0 and len(self._requirements) == 0 and len(self._forced) == 0:
+                s += ' None'
+            s += '\n'
+
             for rd in self._implicit:
                 s += desc[rd.name] + '\n'
             for rd in self._requirements:
@@ -363,7 +374,10 @@ class evaluation_function(object):
             for name in self._forced:
                 s += '       [Forced]  ' + name + ': ' + ('None\n' if getattr(self, name).__doc__ is None else getattr(self, name).__doc__) + '\n'
             s += '\n'
-            s += 'Dependencies:\n'
+            s += 'Dependencies:'
+            if len(self._dependencies) == 0:
+                s += ' None'
+            s += '\n'
             for (alias, eval_func) in self._dependencies.iteritems():
                 salias = str(alias)
                 s += ' '*(13 - len(salias)) + '[' + salias + ']  ' + ('None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
@@ -373,6 +387,9 @@ class evaluation_function(object):
 
         def __getitem__(self, target):
             return self._parent[target]
+
+        def __str__(self):
+            return "< " + str(self._parent) + " x " + repr(self._target) + "> binding"
 
 
     def __init__(self, func):
@@ -475,6 +492,9 @@ class evaluation_function(object):
     def _clear(self):
         self._bindings = {}
         return self
+
+    def __str__(self):
+        return "<evaluation_function object '" + self._evaluate.func_name + "'>"
 
 
 @evaluation_function
