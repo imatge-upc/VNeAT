@@ -3,7 +3,7 @@ from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
-from FitScores.FitEvaluation_v2 import fstat
+from FitScores.FitEvaluation_v2 import vnprss
 from Processors.GLMProcessing import GLMProcessor as GLMP
 
 from Utils.ExcelIO import ExcelSheet as Excel
@@ -11,7 +11,7 @@ from Utils.Subject import Subject
 from user_paths import DATA_DIR, EXCEL_FILE
 
 filename_prefix = join('results', 'GLM', 'glm_all_')
-
+gamma = 1
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -63,23 +63,25 @@ with open(filename_prefix + 'userdefparams.txt', 'rb') as f:
 print 'Initializing PolyGLM Processor'
 glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters = user_defined_parameters, correctors = [Subject.Age, Subject.Sex])
 
-
-print 'Computing F-scores'
+print 'Computing VNPRSS-scores'
 fitting_scores = glmp.evaluate_fit (
-    evaluation_function = fstat,
+    evaluation_function = vnprss,
     correction_parameters = glm_correction_parameters,
     prediction_parameters = glm_prediction_parameters,
     # x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
     # origx = 0, origy = 0, origz = 0,
     gm_threshold = 0.1,
     filter_nans = True,
-    default_value = 0.0
+    default_value = np.inf,
     # mem_usage = None,
     # *args, **kwargs
+    gamma = gamma
 )
 
-print 'Saving F-scores to file'
-nib.save(niiFile(fitting_scores, affine), filename_prefix + 'fscores.nii')
+print 'Saving VNPRSS-scores to file'
+nib.save(niiFile(fitting_scores, affine), filename_prefix + 'vnprss_' + str(gamma) + '.nii')
+
+nib.save(niiFile(-fitting_scores, affine), filename_prefix + 'inv_vnprss_' + str(gamma) + '.nii')
 
 print 'Done.'
 

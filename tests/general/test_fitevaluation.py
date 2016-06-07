@@ -138,7 +138,7 @@ print my_new_eval[a].evaluate() # outputs 317.3016
 my_new_eval[a].bind('three', lambda self: self.target.three - 100*self.pi(), force=True)
 print my_new_eval[a].status()
 print my_new_eval[a].evaluate() # outputs 317.3016
-# why? becuase 'three' has not been defined in target (object 'a')
+# why? because 'three' has not been defined in target (object 'a')
 # therefore, evaluating self.target.three (a.three) raises an AttributeError, which is captured in the evaluation
 # function (my_new_eval), that returns 101*self.pi() instead of the original expression
 
@@ -170,3 +170,26 @@ r.result_three = 3
 print my_new_eval[a].evaluate(r) # outputs 3.0
 
 
+
+
+
+
+
+class C1(object):
+	pass
+
+class C2(C1):
+	pass
+
+@evaf
+def eval1(self):
+	return self.f()
+
+eval1.requires('f', 'Just any function')
+eval1.requires('x', 'Just another function')
+
+eval1[C1].bind('f', lambda self: self.x()).bind('x', lambda self: 3, force=True)
+
+eval1[C2].bind('x', lambda self: 5, force=True)
+
+print eval1[C2].evaluate() # prints 5, inheritance works correctly (although f was inherited from C1, x is evaluated in C2)

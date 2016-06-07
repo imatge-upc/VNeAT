@@ -3,14 +3,14 @@ from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
-from FitScores.FitEvaluation import ftest
+from FitScores.FitEvaluation_v2 import ftest
 from Processors.GLMProcessing import GLMProcessor as GLMP
 from scipy.stats import norm
 
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 
-filename_prefix = join('results', 'GLM', 'glm_cubic_alone_intercept_')
+filename_prefix = join('results', 'GLM', 'glm_all_')
 
 
 
@@ -68,11 +68,9 @@ glmp = GLMP(subjects, predictors = [Subject.ADCSFIndex], user_defined_parameters
 
 
 print 'Computing F-scores'
-fitting_scores = GLMP.evaluate_fit (
+fitting_scores = glmp.evaluate_fit (
 	evaluation_function = ftest,
-	correction_processor = glmp,
 	correction_parameters = glm_correction_parameters,
-	prediction_processor = glmp,
 	prediction_parameters = glm_prediction_parameters,
 	# x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None,
 	# origx = 0, origy = 0, origz = 0,

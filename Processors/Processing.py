@@ -7,6 +7,7 @@ from Utils.graphlib import NiftiGraph
 
 import Utils.Subject
 
+from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
 
 class Processor(object):
 
@@ -430,26 +431,19 @@ class Processor(object):
     # TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
     # since such values affect the values inside the region (if not considered, the clusters could potentially
     # seem smaller and thus be filtered accordingly)
-    @staticmethod
-    def evaluate_fit(evaluation_function, correction_processor, correction_parameters, prediction_processor, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
+    def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
         # Preprocess parameters
-        prediction_parameters, dummy = prediction_processor.__pre_process__(
+        orig_pparams = prediction_parameters
+        prediction_parameters, correction_parameters = self.__pre_process__(
             prediction_parameters,
             correction_parameters,
-            prediction_processor.predictors,
-            correction_processor.correctors
+            self.predictors,
+            self.correctors
         )
-        dummy, correction_parameters = correction_processor.__pre_process__(
-            prediction_parameters,
-            correction_parameters,
-            prediction_processor.predictors,
-            correction_processor.correctors
-        )
+
         # Evaluate fitting from pre-processed parameters
         if mem_usage is None:
-            mem_usage = correction_processor._processor_mem_usage
-            if mem_usage is None:
-                mem_usage = prediction_processor._processor_mem_usage
+            mem_usage = self._processor_mem_usage
 
         if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
             raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
@@ -461,6 +455,7 @@ class Processor(object):
         if z2 is None:
             z2 = z1 + correction_parameters.shape[-1]
 
+        orig_pparams = orig_pparams[:, x1:x2, y1:y2, z1:z2]
         correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
         prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
@@ -471,7 +466,7 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.chunks(correction_processor._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
+        chunks = Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
         dims = chunks.dims
 
         # Initialize solution matrix
@@ -482,8 +477,7 @@ class Processor(object):
             invalid_voxels = np.zeros(fitting_scores.shape, dtype = np.bool)
 
         # Initialize progress
-        correction_processor._processor_progress = 0.0
-        prediction_processor._processor_progress = 0.0
+        self._processor_progress = 0.0
         total_num_voxels = dims[-3]*dims[-2]*dims[-1]
         prog_inc = 10000./total_num_voxels
 
@@ -502,27 +496,49 @@ class Processor(object):
             if not gm_threshold is None:
                 invalid_voxels[x:(x+dx), y:(y+dy), z:(z+dz)] = np.sum(cdata, axis = 0) < gm_threshold
 
-            # Evaluate the fit for the voxels in this chunk and store them
-            fitting_scores[x:x+dx, y:y+dy, z:z+dz] = evaluation_function (
-                correction_fitter = correction_processor._processor_fitter,
-                prediction_fitter = prediction_processor._processor_fitter,
+
+            # Create auxiliar structure to access chunk data inside the evaluation function
+
+            class FittingResults (object):
+                pass
+            fitres = FittingResults()
+            
+            fitres.observations = cdata
+            fitres.corrected_data = self._processor_fitter.correct(
                 observations = cdata,
-                correctors = correction_processor._processor_fitter.correctors,
-                correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)],
-                predictors = prediction_processor._processor_fitter.predictors,
-                prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)],
-                *args, **kwargs
+                correctors = self._processor_fitter.correctors,
+                correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
             )
+            fitres.predicted_data = self._processor_fitter.predict(
+                predictors = self._processor_fitter.predictors,
+                prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+            )
+            fitres.df_correction = self._processor_fitter.df_correction(
+                observations = cdata,
+                correctors = self._processor_fitter.correctors,
+                correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+            )
+            fitres.df_prediction = self._processor_fitter.df_prediction(
+                observations = cdata,
+                predictors = self._processor_fitter.predictors,
+                prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+            )
+            fitres.curve = self.curve(
+                prediction_parameters = orig_pparams[:, x:(x+dx), y:(y+dy), z:(z+dz)],
+                tpoints = 128  # We set a high granularity to evaluate the curve more precisely
+                # Another option could be to set it to a value proportional to the number of subjects
+                # tpoints = 2*len(self.target.subjects)
+            )[0]
+
+            # Evaluate the fit for the voxels in this chunk and store them
+            fitting_scores[x:x+dx, y:y+dy, z:z+dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)
+
 
             # Update progress
-            correction_processor.__processor_update_progress(prog_inc*dx*dy*dz)
-            if not correction_processor is prediction_processor:
-                prediction_processor.__processor_update_progress(prog_inc*dx*dy*dz)
+            self.__processor_update_progress(prog_inc*dx*dy*dz)
 
-        if correction_processor.progress != 100.0:
-            correction_processor.__processor_update_progress(10000.0 - correction_processor._processor_progress)
-            if not correction_processor is prediction_processor:
-                prediction_processor.__processor_update_progress(10000.0 - prediction_processor._processor_progress)
+        if self.progress != 100.0:
+            self.__processor_update_progress(10000.0 - self._processor_progress)
 
         # Filter non-finite elements
         if filter_nans:
@@ -743,14 +759,24 @@ class Processor(object):
         )
 
 
-    class Pipeline:
-        #TODO: Define this
-        #         -------------- Fitting --------------
-        # INPUT -|-> Correction fit -> Prediction fit -|-> Correction -> Prediction ->
-        #         -------------------------------------
-        #
-        # -> Multiple Evaluation -> Best Fit Selection -> Clusterization and Filtering ->
-        #
-        # -> Visualization treatment -> OUTPUT
+eval_func[Processor].bind(
+    'curve',
+    lambda self: self.fitting_results.curve
+)
 
-        pass
+eval_func[Processor].bind(
+    'corrected_data',
+    lambda self: self.fitting_results.corrected_data
+)
+eval_func[Processor].bind(
+    'predicted_data',
+    lambda self: self.fitting_results.predicted_data
+)
+eval_func[Processor].bind(
+    'df_correction',
+    lambda self: self.fitting_results.df_correction
+)
+eval_func[Processor].bind(
+    'df_prediction',
+    lambda self: self.fitting_results.df_prediction
+)

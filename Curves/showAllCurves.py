@@ -149,7 +149,7 @@ while True:
             mng.window.showMaximized()
         elif backend == 'TkAgg':
             mng = plot.get_current_fig_manager()
-            mng.window.state('zoomed')
+            mng.window.state('withdrawn')
         elif backend == 'wxAgg':
             mng = plot.get_current_fig_manager()
             mng.frame.Maximize(True)
