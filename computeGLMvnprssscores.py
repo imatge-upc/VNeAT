@@ -5,13 +5,16 @@ import nibabel as nib
 import numpy as np
 from FitScores.FitEvaluation_v2 import vnprss
 from Processors.GLMProcessing import GLMProcessor as GLMP
+from scipy.stats import norm
 
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject
 from user_paths import DATA_DIR, EXCEL_FILE
 
 filename_prefix = join('results', 'GLM', 'glm_all_')
-gamma = 1e3
+gamma = 3e-4
+percentile = 5e-3 # over 1
+pvalue = 0.001 # threshold for visualization transformation
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -81,9 +84,24 @@ fitting_scores = glmp.evaluate_fit (
 print 'Saving VNPRSS-scores to file'
 nib.save(niiFile(fitting_scores, affine), filename_prefix + 'vnprss_' + str(gamma) + '.nii')
 
-nib.save(niiFile(-fitting_scores, affine), filename_prefix + 'inv_vnprss_' + str(gamma) + '.nii')
+print 'Filtering and transforming scores'
+valid_voxels = np.isfinite(fitting_scores)
+sorted_scores = np.sort(fitting_scores[valid_voxels].reshape(-1))
+num_elems = int(np.ceil(percentile*float(fitting_scores.size)))
+
+threshold = sorted_scores[:num_elems][-1]
+valid_voxels = fitting_scores <= threshold
+
+# Transform values
+fitting_scores[~valid_voxels] = 0.0
+fitting_scores[valid_voxels] = threshold - fitting_scores[valid_voxels] # invert values
+
+nib.save(niiFile(fitting_scores, affine), filename_prefix + 'vnprss_invfiltered_' + str(gamma) + '_' + str(percentile) + '.nii')
+
+# fitting_scores[valid_voxels] = norm.ppf(1 - pvalue + pvalue*fitting_scores[valid_voxels]/threshold) - norm.ppf(1 - pvalue) + 0.2
+
+# nib.save(niiFile(fitting_scores, affine), filename_prefix + 'vnprss_zscores_' + str(gamma) + '_' + str(percentile)  + '.nii')
+
 
 print 'Done.'
-
-# No, not done. We still have to filter these results and make them suitable for visualization.
 
