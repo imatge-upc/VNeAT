@@ -1,13 +1,13 @@
+import numpy as np
+
 import CrossValidation.score_functions as score_f
 import Utils.DataLoader as DataLoader
-import numpy as np
-from Fitters.CurveFitting import AdditiveCurveFitter
 from CrossValidation.GridSearch import GridSearch
-from Utils.Subject import Subject
+from Fitters.CurveFitting import AdditiveCurveFitter
 from Fitters.GAM import GAM, SmootherSet, SplinesSmoother
+from Utils.Subject import Subject
 
 if __name__ == "__main__":
-
     # Get features
     predictors = DataLoader.getFeatures([Subject.ADCSFIndex])
 
@@ -15,10 +15,9 @@ if __name__ == "__main__":
     predictor_smoother = SmootherSet(SplinesSmoother(predictors))
     gam = GAM(predictor_smoothers=predictor_smoother, intercept=AdditiveCurveFitter.PredictionIntercept)
 
-
     # Create grid of hyperparams using linear and logscale
     grid_params = {
-        'df': np.arange(3,10),
+        'df': np.arange(3, 10),
     }
 
     # Create GridSearch instance

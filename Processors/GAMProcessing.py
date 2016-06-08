@@ -1,7 +1,7 @@
 import numpy as np
-from Processors.Processing import Processor
 
 from Fitters.GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
+from Processors.Processing import Processor
 
 
 class GAMProcessor(Processor):
@@ -36,7 +36,6 @@ class GAMProcessor(Processor):
     def __fitter__(self, user_defined_parameters):
         '''Initializes the GAM fitter to be used to process the data.
         '''
-
 
         self._gamprocessor_perp_norm_option = user_defined_parameters[0]
         self._gamprocessor_smoother_parameters = user_defined_parameters[1]
@@ -109,7 +108,7 @@ class GAMProcessor(Processor):
                               'dom (0, by default) or smoothing factor (1): '
                 ))
                 if smoothing_functions[-1] == 0:
-                        smoothing_functions.append(super(GAMProcessor, self).__getint__(
+                    smoothing_functions.append(super(GAMProcessor, self).__getint__(
                         default_value=3,
                         try_ntimes=3,
                         show_text='GAM Processor: Please, enter the degree of freedom of the spline'
@@ -154,7 +153,7 @@ class GAMProcessor(Processor):
                               'dom (0, by default) or smoothing factor (1): '
                 ))
                 if smoothing_functions[-1] == 0:
-                        smoothing_functions.append(super(GAMProcessor, self).__getint__(
+                    smoothing_functions.append(super(GAMProcessor, self).__getint__(
                         default_value=3,
                         try_ntimes=3,
                         show_text='GAM Processor: Please, enter the degree of freedom of the spline '

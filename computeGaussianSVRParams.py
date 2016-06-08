@@ -1,22 +1,23 @@
-import nibabel as nib
-import Utils.DataLoader as DataLoader
 import time
 from os.path import join
+
+import nibabel as nib
+
+import Utils.DataLoader as DataLoader
 from Processors.SVRProcessing import GaussianSVRProcessor as GSVRP
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
 if __name__ == "__main__":
-
     # Define filename prefix
     filename_prefix = join(RESULTS_DIR, 'GSVR')
 
     print 'Obtaining data from Excel file...'
-    subjects = DataLoader.getSubjects(corrected_data=True) # Used for prediction
+    subjects = DataLoader.getSubjects(corrected_data=True)  # Used for prediction
     # subjects = DataLoader.getSubjects(corrected_data=False) # Used for correction and prediction
 
     print 'Initializing GaussianSVR Processor...'
-    udp = udp = (2, 3, 1, 0.12, 0.3) # Used for prediction
+    udp = udp = (2, 3, 1, 0.12, 0.3)  # Used for prediction
     # udp = (1, 0, 3.0, 0.08, 0.25) # Used for correction and prediction
     gsvrp = GSVRP(subjects,
                   predictors=[Subject.ADCSFIndex],
@@ -42,4 +43,3 @@ if __name__ == "__main__":
         f.write(str(gsvrp.user_defined_parameters) + '\n')
 
     print 'Done.'
-

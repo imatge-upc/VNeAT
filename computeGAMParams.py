@@ -1,10 +1,13 @@
-import nibabel as nib
-import Utils.DataLoader as DataLoader
 import time
 from os.path import join
+
+import nibabel as nib
+
+import Utils.DataLoader as DataLoader
 from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
+
 RESULTS_DIR = join(RESULTS_DIR, 'SGAM')
 
 niiFile = nib.Nifti1Image
@@ -18,20 +21,23 @@ subjects = DataLoader.getSubjects(corrected_data=True)
 # ]
 
 user_defined_parameters = [
-    (9, [1, 1, 3])
+    # (9, [1, 1, 3]),
+    (9, [2, 3, 1, 99, 3]),
+    # (9, [2, 3, 0, 15, 3])
 ]
 filename_prefix = [
-    'gam_polyd3_'
+    # 'gam_polyd3_',
+    'gam_splines_',
+    # 'gam_splines_df_'
 ]
 
 for udp, fn in zip(user_defined_parameters, filename_prefix):
-
     print 'Initializing GAM Polynomial Processor...'
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
     print 'Processing data...'
     time_start = time.clock()
-    results = gamp.process(mem_usage=128)
+    results = gamp.process(mem_usage=32)
     time_end = time.clock()
     print 'Processing done in ', time_end - time_start, ' seconds'
 

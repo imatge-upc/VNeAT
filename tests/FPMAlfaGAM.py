@@ -1,9 +1,9 @@
 import nibabel as nib
 import numpy as np
-from Processors.GAMProcessing import GAMProcessor as GAMP
-from Utils.Subject import Subject
 
+from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.DataLoader import getSubjects
+from Utils.Subject import Subject
 
 niiFile = nib.Nifti1Image
 affine = np.array(
@@ -15,7 +15,6 @@ affine = np.array(
 
 print 'Obtaining data from Excel file...'
 subjects = getSubjects(corrected_data=True)
-
 
 print 'Initializing GAM Splines Processor...'
 user_defined_parameters = [(9, [2, 2, 10, 1]),
@@ -36,12 +35,6 @@ for udf, filename in zip(user_defined_parameters, filenames):
     print 'Processing data...'
     results = gamp.process()
 
-
-
-
-
-
-
 print 'Initializing GAM Polynomial Processor...'
 user_defined_parameters = [
     (9, [1, 1, 3]),
@@ -55,4 +48,3 @@ filenames = [
 for udp, filename in zip(user_defined_parameters, filenames):
     gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
     results = gamp.process()
-

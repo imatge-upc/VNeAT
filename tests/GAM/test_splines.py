@@ -1,4 +1,3 @@
-
 polynomial_degree = 3
 accepted_maximum_error = 104
 
@@ -11,14 +10,15 @@ accepted_maximum_error = 104
 x, y, z = 59, 48, 66
 mm_coordinates = 2, -54, 26, 1
 
-
 from os.path import join
 
 import nibabel as nib
+
+import Utils.DataLoader as DataLoader
 from Processors.GAMProcessing import GAMProcessor as GAMP
 from Utils.Subject import Subject
-import Utils.DataLoader as DataLoader
 from user_paths import RESULTS_DIR
+
 RESULTS_DIR = join(RESULTS_DIR, 'SGAM')
 
 niiFile = nib.Nifti1Image
@@ -27,33 +27,35 @@ affine = DataLoader.getMNIAffine()
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=True)
 
-udp = (9,[2,3,0,15,3])
-gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex],user_defined_parameters=udp)
+udp = (9, [2, 3, 0, 15, 3])
+gamp = GAMP(subjects, predictors=[Subject.ADCSFIndex], user_defined_parameters=udp)
 
-results = gamp.process(x1 = x, x2 = x+1, y1 = y, y2 = y+1, z1 = z, z2 = z+1)
+results = gamp.process(x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
 
 prediction_parameters = results.prediction_parameters
 
-from Utils.DataLoader import getSubjects, getMNIAffine
+from Utils.DataLoader import getMNIAffine
+
 affine = getMNIAffine()
 adcsf = gamp.predictors.T[0]
 diagnostics = map(lambda subject: subject.get([Subject.Diagnostic])[0], subjects)
 diag = [[], [], [], []]
 for i in xrange(len(diagnostics)):
-	diag[diagnostics[i]].append(i)
+    diag[diagnostics[i]].append(i)
 
-corrected_data = gamp.gm_values(x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1)
+corrected_data = gamp.gm_values(x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
 from matplotlib import pyplot as plot
+
 color = ['co', 'bo', 'mo', 'ko']
 for i in xrange(len(diag)):
-	l = diag[i]
-	plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
+    l = diag[i]
+    plot.plot(adcsf[l], corrected_data[l, 0, 0, 0], color[i], lw=4, label=Subject.Diagnostics[i])
 
 axis, curve = gamp.curve(prediction_parameters, tpoints=-1)
 plot.plot(axis, curve[:, 0, 0, 0], lw=2, color='g', marker='d')
 
 plot.show()
-a=1
+a = 1
 #	
 #	""" Shows curves for all fitters created:
 #			- Poly GLM

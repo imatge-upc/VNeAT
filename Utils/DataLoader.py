@@ -3,10 +3,10 @@ from os.path import join, isfile, basename
 
 import nibabel as nib
 import numpy as np
-from Subject import Subject
-from user_paths import DATA_DIR, CORRECTED_DATA_DIR, EXCEL_FILE, MNI_TEMPLATE
 
+from Subject import Subject
 from Utils.ExcelIO import ExcelSheet as Excel
+from user_paths import DATA_DIR, CORRECTED_DATA_DIR, EXCEL_FILE, MNI_TEMPLATE
 
 
 def getSubjects(corrected_data=False):
@@ -24,24 +24,24 @@ def getSubjects(corrected_data=False):
     if corrected_data:
         filenames = filter(isfile, map(lambda elem: join(CORRECTED_DATA_DIR, elem),
                                        listdir(CORRECTED_DATA_DIR)))
-        filenames_by_id = {basename(fn).split('_')[1][:-4] : fn for fn in filenames}
+        filenames_by_id = {basename(fn).split('_')[1][:-4]: fn for fn in filenames}
     else:
         filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem),
                                        listdir(DATA_DIR)))
-        filenames_by_id = {basename(fn).split('_')[0][8:] : fn for fn in filenames}
+        filenames_by_id = {basename(fn).split('_')[0][8:]: fn for fn in filenames}
 
     exc = Excel(EXCEL_FILE)
 
     subjects = []
-    for r in exc.get_rows( fieldstype = {
-                    'id':(lambda s: str(s).strip().split('_')[0]),
-                    'diag':(lambda s: int(s) - 1),
-                    'age':int,
-                    'sex':(lambda s: 2*int(s) - 1),
-                    'apoe4_bin':(lambda s: 2*int(s) - 1),
-                    'escolaridad':int,
-                    'ad_csf_index_ttau':float
-                 } ):
+    for r in exc.get_rows(fieldstype={
+        'id': (lambda s: str(s).strip().split('_')[0]),
+        'diag': (lambda s: int(s) - 1),
+        'age': int,
+        'sex': (lambda s: 2 * int(s) - 1),
+        'apoe4_bin': (lambda s: 2 * int(s) - 1),
+        'escolaridad': int,
+        'ad_csf_index_ttau': float
+    }):
         subjects.append(
             Subject(
                 r['id'],
@@ -55,6 +55,7 @@ def getSubjects(corrected_data=False):
             )
         )
     return subjects
+
 
 def getGMData(corrected_data=False):
     """
@@ -71,6 +72,7 @@ def getGMData(corrected_data=False):
     tmp = np.array(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
     return tmp
 
+
 def getFeatures(features_array):
     """
     Gets a list of features from the Subjects
@@ -84,7 +86,8 @@ def getFeatures(features_array):
     [numpy.array] 2-dimensional array with the features
     """
     subjects = getSubjects(False)
-    return np.array(map(lambda subject: subject.get(features_array), subjects), dtype = np.float64)
+    return np.array(map(lambda subject: subject.get(features_array), subjects), dtype=np.float64)
+
 
 def getMNIAffine():
     return nib.load(MNI_TEMPLATE).affine

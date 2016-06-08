@@ -1,7 +1,9 @@
-import numpy as np
-import nibabel as nib
 from glob import glob
 from os.path import join
+
+import nibabel as nib
+import numpy as np
+
 from user_paths import DATA_DIR, CORRECTED_DATA_DIR
 
 DATA_1 = join(DATA_DIR, '*.nii')
@@ -28,5 +30,3 @@ print "Is the data similar (np.allclose criteria)? --> ", "yes" if all_close els
 
 max_abs_diff = np.max(np.abs(dataset_1 - dataset_2))
 print "Maximum absolute difference between 2 datasets: ", max_abs_diff
-
-

@@ -45,7 +45,7 @@ def statisticC_p(y_true, y_predicted, df):
     eps_var = (1.0 / (N - 1)) * np.sum(np.square(eps - eps_mean))
 
     # Compute Cp statistic
-    return err + (2.0 / N)*df*eps_var
+    return err + (2.0 / N) * df * eps_var
 
 
 def anova_error(y_true, y_predicted, df):
@@ -55,13 +55,13 @@ def anova_error(y_true, y_predicted, df):
     """
     N = y_true.shape[0]
     residual = y_true - y_predicted
-    SST = (np.square(y_true - y_true.mean(axis=0))).sum(axis=0)         # Total Sum of Squares
-    SSE = (np.square(residual - residual.mean(axis=0))).sum(axis=0)     # Error Sum of Squares
-    SSR = SST - SSE                                                     # Regression Sum of Squares
-    df_SST = N - 1                                                      # Total degrees of freedom
-    df_SSR = df                                                         # Regression degrees of freedom
-    df_SSE = df_SST - df_SSR                                            # Error degrees of freedom
-    num = (SSR/(df_SSR + 1e-12))
-    den = (SSE/df_SSE) + 1e-12
+    SST = (np.square(y_true - y_true.mean(axis=0))).sum(axis=0)  # Total Sum of Squares
+    SSE = (np.square(residual - residual.mean(axis=0))).sum(axis=0)  # Error Sum of Squares
+    SSR = SST - SSE  # Regression Sum of Squares
+    df_SST = N - 1  # Total degrees of freedom
+    df_SSR = df  # Regression degrees of freedom
+    df_SSE = df_SST - df_SSR  # Error degrees of freedom
+    num = (SSR / (df_SSR + 1e-12))
+    den = (SSE / df_SSE) + 1e-12
     F_score = num / den
     return stats.f.sf(F_score, df_SSR, df_SSE)

@@ -1,12 +1,11 @@
 import numpy as np
-from Utils.Transforms import polynomial
 from sklearn.linear_model import LinearRegression as LR
 
 from Fitters.CurveFitting import AdditiveCurveFitter
+from Utils.Transforms import polynomial
 
 
 class GLM(AdditiveCurveFitter):
-
     ''' Class that implements the General Linear Method.
 
         This method assumes the following situation:
@@ -112,33 +111,32 @@ class GLM(AdditiveCurveFitter):
                     parameters for each variable (same as the number of predictors).
         '''
         # All-at-once approach
-        
+
         curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=n_jobs)
-        
+
         ncols = correctors.shape[1]
         dims = (correctors.shape[0], ncols + predictors.shape[1])
         xdata = np.zeros(dims)
         xdata[:, :ncols] = correctors.view()
         xdata[:, ncols:] = predictors.view()
-        
+
         curve.fit(xdata, observations, sample_weight)
         params = curve.coef_.T
         return (params[:ncols], params[ncols:])
 
-
-#        # Divided-optimization approach
-#
-#        curve = LR(fit_intercept = False, normalize = False, copy_X = False, n_jobs = num_threads)
-#
-#        curve.fit(correctors, observations, sample_weight)
-#        cparams = curve.coef_.T
-#
-#        corrected_data = observations - correctors.dot(cparams)
-#
-#        curve.fit(predictors, corrected_data, sample_weight)
-#        pparams = curve.coef_.T
-#
-#        return (cparams, pparams)
+    #        # Divided-optimization approach
+    #
+    #        curve = LR(fit_intercept = False, normalize = False, copy_X = False, n_jobs = num_threads)
+    #
+    #        curve.fit(correctors, observations, sample_weight)
+    #        cparams = curve.coef_.T
+    #
+    #        corrected_data = observations - correctors.dot(cparams)
+    #
+    #        curve.fit(predictors, corrected_data, sample_weight)
+    #        pparams = curve.coef_.T
+    #
+    #        return (cparams, pparams)
 
     def __df_correction__(self, observations, correctors, correction_parameters):
         return np.ones((1, observations.shape[1])) * correctors.shape[1]
@@ -146,8 +144,9 @@ class GLM(AdditiveCurveFitter):
     def __df_prediction__(self, observations, predictors, prediction_parameters):
         return np.ones((1, observations.shape[1])) * predictors.shape[1]
 
+
 class PolyGLM(GLM):
-    def __init__(self, features, predictors = None, degrees = None, intercept = AdditiveCurveFitter.NoIntercept):
+    def __init__(self, features, predictors=None, degrees=None, intercept=AdditiveCurveFitter.NoIntercept):
         '''[Constructor]
 
             Parameters:
@@ -180,10 +179,10 @@ class PolyGLM(GLM):
         self._pglm_features = self._pglm_features.T
 
         if predictors is None:
-            self._pglm_is_predictor = [True]*len(self._pglm_features)
+            self._pglm_is_predictor = [True] * len(self._pglm_features)
             predictors = []
         else:
-            self._pglm_is_predictor = [False]*len(self._pglm_features)
+            self._pglm_is_predictor = [False] * len(self._pglm_features)
             if isinstance(predictors, int):
                 predictors = [predictors]
 
@@ -197,9 +196,9 @@ class PolyGLM(GLM):
                     raise IndexError('Index out of range in argument \'predictors\'')
         except TypeError:
             raise TypeError('Argument \'predictors\' must be iterable or int')
-        
+
         if degrees is None:
-            self._pglm_degrees = [1]*len(self._pglm_features)
+            self._pglm_degrees = [1] * len(self._pglm_features)
         else:
             degrees = list(degrees)
             if len(degrees) != len(self._pglm_features):
@@ -273,10 +272,10 @@ class PolyGLM(GLM):
                 - [deleted] Regression parameters
         '''
         if predictors is None:
-            pglm_is_predictor = [True]*len(self._pglm_features)
+            pglm_is_predictor = [True] * len(self._pglm_features)
             predictors = []
         else:
-            pglm_is_predictor = [False]*len(self._pglm_features)
+            pglm_is_predictor = [False] * len(self._pglm_features)
             if isinstance(predictors, int):
                 predictors = [predictors]
 
@@ -290,8 +289,7 @@ class PolyGLM(GLM):
                     raise IndexError('Index out of range in argument \'predictors\'')
         except TypeError:
             raise TypeError('Argument \'predictors\' must be iterable or int')
-        
+
         self._pglm_is_predictor = pglm_is_predictor
 
         self.__pglm_update_GLM()
-

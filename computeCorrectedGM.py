@@ -1,13 +1,13 @@
 from os.path import join
 
 import nibabel as nib
-from Processors.GLMProcessing import PolyGLMProcessor as PGLMP
-from Utils.Subject import Subject
 
 import Utils.DataLoader as DataLoader
+from Processors.GLMProcessing import PolyGLMProcessor as PGLMP
+from Utils.Subject import Subject
 from user_paths import CORRECTED_DATA_DIR
 
-gm_threshold = 0.1    # set to 0 if you don't want to filter by gray matter volume
+gm_threshold = 0.1  # set to 0 if you don't want to filter by gray matter volume
 
 print 'Obtaining data from Excel file...'
 subjects = DataLoader.getSubjects(corrected_data=False)
@@ -41,4 +41,3 @@ with open(join(CORRECTED_DATA_DIR, 'user_def_params.txt'), 'wb') as f:
     f.write(str(pglmp.user_defined_parameters) + '\n')
 
 print 'Done.'
-

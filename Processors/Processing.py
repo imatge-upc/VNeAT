@@ -2,15 +2,14 @@ from abc import ABCMeta, abstractmethod
 from sys import stdout
 
 import numpy as np
+
+import Utils.Subject
+from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
 from Utils.Documentation import docstring_inheritor
 from Utils.graphlib import NiftiGraph
 
-import Utils.Subject
-
-from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
 
 class Processor(object):
-
     __metaclass__ = docstring_inheritor(ABCMeta)
 
     class Results:
@@ -205,8 +204,8 @@ class Processor(object):
 
         # Initialize progress
         self._processor_progress = 0.0
-        total_num_voxels = dims[-3]*dims[-2]*dims[-1]
-        prog_inc = 10000./total_num_voxels
+        total_num_voxels = dims[-3] * dims[-2] * dims[-1]
+        prog_inc = 10000. / total_num_voxels
 
         # Get the results of the first chunk to initialize dimensions of the solution matrices
 
@@ -223,8 +222,8 @@ class Processor(object):
 
         # Initialize solution matrices
         # fitting_scores = np.zeros(dims, dtype = np.float64)
-        correction_parameters = np.zeros(cpdims, dtype = np.float64)
-        prediction_parameters = np.zeros(rpdims, dtype = np.float64)
+        correction_parameters = np.zeros(cpdims, dtype=np.float64)
+        prediction_parameters = np.zeros(rpdims, dtype=np.float64)
 
         # Assign first chunk's solutions to solution matrices
         dx, dy, dz = cparams.shape[-3:]
@@ -234,7 +233,7 @@ class Processor(object):
         # fitting_scores[:dx, :dy, :dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
         # Update progress
-        self.__processor_update_progress(prog_inc*dx*dy*dz)
+        self.__processor_update_progress(prog_inc * dx * dy * dz)
 
         # Now do the same for the rest of the chunks
         for chunk in chunks:
@@ -252,15 +251,15 @@ class Processor(object):
             self._processor_fitter.fit(cdata, *args, **kwargs)
 
             # Get the optimal parameters and insert them in the solution matrices
-            correction_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.correction_parameters
-            prediction_parameters[:, x:x+dx, y:y+dy, z:z+dz] = self._processor_fitter.prediction_parameters
+            correction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.correction_parameters
+            prediction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.prediction_parameters
 
             # Evaluate the fit for the voxels in this chunk and store them
             # unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
             # fitting_scores[x:x+dx, y:y+dy, z:z+dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
             # Update progress
-            self.__processor_update_progress(prog_inc*dx*dy*dz)
+            self.__processor_update_progress(prog_inc * dx * dy * dz)
 
         if self.progress != 100.0:
             self.__processor_update_progress(10000.0 - self._processor_progress)
@@ -290,7 +289,7 @@ class Processor(object):
 
     def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
         """
-        [Private and static method] Allows the pre-processing of the prediction and correction
+        [Private method] Allows the pre-processing of the prediction and correction
         parameters before other methods are called (e.g. curve(), evaluate_fit() ).
 
         Parameters
@@ -311,7 +310,7 @@ class Processor(object):
         """
         return prediction_parameters, correction_parameters
 
-    #TODO: Document properly
+    # TODO: Document properly
     def __curve__(self, fitter, predictor, prediction_parameters):
         '''Computes a prediction from the predictor and the prediction_parameters. If not overridden, this method
             calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
@@ -322,8 +321,8 @@ class Processor(object):
         '''
         return fitter.predict(predictor, prediction_parameters)
 
-    #TODO: Document properly
-    def curve(self, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, t1 = None, t2 = None, tpoints = 20):
+    # TODO: Document properly
+    def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None, tpoints=20):
         '''Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
             a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
             one predictor).
@@ -344,12 +343,11 @@ class Processor(object):
 
         pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
-
         if tpoints == -1:
-            preds = np.sort(np.squeeze(self._processor_predictors))[:,np.newaxis]
+            preds = np.sort(np.squeeze(self._processor_predictors))[:, np.newaxis]
         else:
-            preds = np.zeros((tpoints, 1), dtype = np.float64)
-            step = float(t2 - t1)/(tpoints-1)
+            preds = np.zeros((tpoints, 1), dtype=np.float64)
+            step = float(t2 - t1) / (tpoints - 1)
             t = t1
             for i in xrange(tpoints):
                 preds[i][0] = t
@@ -357,12 +355,13 @@ class Processor(object):
 
         return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
 
-    #TODO: Document properly
+    # TODO: Document properly
     def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
-        return fitter.correct(observations = observations, correction_parameters = correction_parameters)
+        return fitter.correct(observations=observations, correction_parameters=correction_parameters)
 
-    #TODO: Document properly
-    def corrected_values(self, correction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, mem_usage = None, *args, **kwargs):
+    # TODO: Document properly
+    def corrected_values(self, correction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, origx=0, origy=0,
+                         origz=0, mem_usage=None, *args, **kwargs):
         '''x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
             in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
             which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond.
@@ -387,10 +386,11 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = self._processor_mem_usage)
+        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                                      mem_usage=self._processor_mem_usage)
         dims = chunks.dims
 
-        corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype = np.float64)
+        corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
 
         for chunk in chunks:
             # Get relative (to the solution matrix) coordinates of the chunk
@@ -403,7 +403,12 @@ class Processor(object):
             cdata = chunk.data
             dx, dy, dz = cdata.shape[-3:]
 
-            corrected_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = self.__corrected_values__(self._processor_fitter, cdata, correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)], *args, **kwargs)
+            corrected_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = self.__corrected_values__(self._processor_fitter,
+                                                                                              cdata,
+                                                                                              correction_parameters[:,
+                                                                                              x:(x + dx), y:(y + dy),
+                                                                                              z:(z + dz)], *args,
+                                                                                              **kwargs)
 
         return corrected_data
 
@@ -412,7 +417,8 @@ class Processor(object):
         if not mem_usage is None:
             self._processor_mem_usage = float(mem_usage)
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2, mem_usage=self._processor_mem_usage)
+        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                                      mem_usage=self._processor_mem_usage)
         dims = chunks.dims
 
         gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
@@ -428,14 +434,16 @@ class Processor(object):
             cdata = chunk.data
             dx, dy, dz = cdata.shape[-3:]
 
-            gm_data[:, x:(x+dx), y:(y+dy), z:(z+dz)] = cdata
+            gm_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = cdata
 
         return gm_data
 
     # TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
     # since such values affect the values inside the region (if not considered, the clusters could potentially
     # seem smaller and thus be filtered accordingly)
-    def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1 = 0, x2 = None, y1 = 0, y2 = None, z1 = 0, z2 = None, origx = 0, origy = 0, origz = 0, gm_threshold = None, filter_nans = True, default_value = 0.0, mem_usage = None, *args, **kwargs):
+    def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0,
+                     y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
+                     default_value=0.0, mem_usage=None, *args, **kwargs):
         # Preprocess parameters
         orig_pparams = prediction_parameters
         prediction_parameters, correction_parameters = self.__pre_process__(
@@ -449,7 +457,8 @@ class Processor(object):
         if mem_usage is None:
             mem_usage = self._processor_mem_usage
 
-        if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
+        if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
+                prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
             raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
 
         if x2 is None:
@@ -470,20 +479,21 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1 = x1, y1 = y1, z1 = z1, x2 = x2, y2 = y2, z2 = z2, mem_usage = mem_usage)
+        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                                      mem_usage=mem_usage)
         dims = chunks.dims
 
         # Initialize solution matrix
-        fitting_scores = np.zeros(dims, dtype = np.float64)
+        fitting_scores = np.zeros(dims, dtype=np.float64)
 
         if not gm_threshold is None:
-            gm_threshold *= chunks.num_subjects # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
-            invalid_voxels = np.zeros(fitting_scores.shape, dtype = np.bool)
+            gm_threshold *= chunks.num_subjects  # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
+            invalid_voxels = np.zeros(fitting_scores.shape, dtype=np.bool)
 
         # Initialize progress
         self._processor_progress = 0.0
-        total_num_voxels = dims[-3]*dims[-2]*dims[-1]
-        prog_inc = 10000./total_num_voxels
+        total_num_voxels = dims[-3] * dims[-2] * dims[-1]
+        prog_inc = 10000. / total_num_voxels
 
         # Evaluate the fit for each chunk
         for chunk in chunks:
@@ -498,50 +508,48 @@ class Processor(object):
             dx, dy, dz = cdata.shape[-3:]
 
             if not gm_threshold is None:
-                invalid_voxels[x:(x+dx), y:(y+dy), z:(z+dz)] = np.sum(cdata, axis = 0) < gm_threshold
-
+                invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
 
             # Create auxiliar structure to access chunk data inside the evaluation function
-
-            class FittingResults (object):
+            class FittingResults(object):
                 pass
+
             fitres = FittingResults()
-            
+
             fitres.observations = cdata
             fitres.corrected_data = self._processor_fitter.correct(
-                observations = cdata,
-                correctors = self._processor_fitter.correctors,
-                correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+                observations=cdata,
+                correctors=self._processor_fitter.correctors,
+                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
             )
             fitres.predicted_data = self._processor_fitter.predict(
-                predictors = self._processor_fitter.predictors,
-                prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+                predictors=self._processor_fitter.predictors,
+                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
             )
             fitres.df_correction = self._processor_fitter.df_correction(
-                observations = cdata,
-                correctors = self._processor_fitter.correctors,
-                correction_parameters = correction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+                observations=cdata,
+                correctors=self._processor_fitter.correctors,
+                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
             )
             fitres.df_prediction = self._processor_fitter.df_prediction(
-                observations = cdata,
-                predictors = self._processor_fitter.predictors,
-                prediction_parameters = prediction_parameters[:, x:(x+dx), y:(y+dy), z:(z+dz)]
+                observations=cdata,
+                predictors=self._processor_fitter.predictors,
+                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
             )
             axis, curve = self.curve(
-                prediction_parameters = orig_pparams[:, x:(x+dx), y:(y+dy), z:(z+dz)],
-                tpoints = 128  # We set a high granularity to evaluate the curve more precisely
+                prediction_parameters=orig_pparams[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                tpoints=128  # We set a high granularity to evaluate the curve more precisely
                 # Another option could be to set it to a value proportional to the number of subjects
                 # tpoints = 2*len(self.target.subjects)
             )
             fitres.curve = curve
-            fitres.xdiff = axis[1]-axis[0]
+            fitres.xdiff = axis[1] - axis[0]
 
             # Evaluate the fit for the voxels in this chunk and store them
-            fitting_scores[x:x+dx, y:y+dy, z:z+dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)
-
+            fitting_scores[x:x + dx, y:y + dy, z:z + dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)
 
             # Update progress
-            self.__processor_update_progress(prog_inc*dx*dy*dz)
+            self.__processor_update_progress(prog_inc * dx * dy * dz)
 
         if self.progress != 100.0:
             self.__processor_update_progress(10000.0 - self._processor_progress)
@@ -557,11 +565,12 @@ class Processor(object):
         return fitting_scores
 
     @staticmethod
-    def clusterize(fitting_scores, default_value = 0.0, fit_lower_threshold = None, fit_upper_threshold = None, cluster_threshold = None, produce_labels = False):
+    def clusterize(fitting_scores, default_value=0.0, fit_lower_threshold=None, fit_upper_threshold=None,
+                   cluster_threshold=None, produce_labels=False):
 
-        fitscores = np.ones(fitting_scores.shape, dtype = np.float64) * default_value
+        fitscores = np.ones(fitting_scores.shape, dtype=np.float64) * default_value
         if produce_labels:
-            labels = np.zeros(fitting_scores.shape, dtype = np.float64)
+            labels = np.zeros(fitting_scores.shape, dtype=np.float64)
             label = 0
 
         ng = NiftiGraph(fitting_scores, fit_lower_threshold, fit_upper_threshold)
@@ -582,9 +591,7 @@ class Processor(object):
         else:
             return fitscores
 
-
-
-    #TODO: define more of these?
+    # TODO: define more of these?
 
     @staticmethod
     def __processor_get__(obtain_input_from, apply_function, try_ntimes, default_value, show_text, show_error_text):
@@ -618,14 +625,14 @@ class Processor(object):
 
     @staticmethod
     def __getint__(
-        default_value = None,
-        try_ntimes = 3,
-        lower_limit = None,
-        upper_limit = None,
-        show_text = 'Please, enter an integer number (or leave blank to set by default): ',
-        obtain_input_from = raw_input,
+            default_value=None,
+            try_ntimes=3,
+            lower_limit=None,
+            upper_limit=None,
+            show_text='Please, enter an integer number (or leave blank to set by default): ',
+            obtain_input_from=raw_input,
     ):
-        def nit(s, lower = lower_limit, upper = upper_limit):
+        def nit(s, lower=lower_limit, upper=upper_limit):
             x = int(s)
             if (not (lower is None)) and x < lower:
                 raise ValueError('The value must be greater than or equal to ' + str(lower))
@@ -644,14 +651,14 @@ class Processor(object):
 
     @staticmethod
     def __getfloat__(
-        default_value = None,
-        try_ntimes = 3,
-        lower_limit = None,
-        upper_limit = None,
-        show_text = 'Please, enter a real number (or leave blank to set by default): ',
-        obtain_input_from = raw_input,
+            default_value=None,
+            try_ntimes=3,
+            lower_limit=None,
+            upper_limit=None,
+            show_text='Please, enter a real number (or leave blank to set by default): ',
+            obtain_input_from=raw_input,
     ):
-        def olfat(s, lower = lower_limit, upper = upper_limit):
+        def olfat(s, lower=lower_limit, upper=upper_limit):
             x = float(s)
             if (not (lower is None)) and x < lower:
                 raise ValueError('The value must be greater than or equal to ' + str(lower))
@@ -670,23 +677,23 @@ class Processor(object):
 
     @staticmethod
     def __getoneof__(
-        option_list,
-        default_value = None,
-        try_ntimes = 3,
-        show_text = 'Please, select one of the following (enter index, or leave blank to set by default):',
-        obtain_input_from = raw_input,
+            option_list,
+            default_value=None,
+            try_ntimes=3,
+            show_text='Please, select one of the following (enter index, or leave blank to set by default):',
+            obtain_input_from=raw_input,
     ):
         opt_list = list(option_list)
         lol = len(opt_list)
         lslol = len(str(lol))
-        right_justify = lambda s: ' '*(lslol - len(str(s))) + str(s)
+        right_justify = lambda s: ' ' * (lslol - len(str(s))) + str(s)
 
         new_show_text = show_text
         for i in xrange(lol):
             new_show_text += '\n  ' + right_justify(i) + ':  ' + str(opt_list[i])
         new_show_text += '\nYour choice: '
 
-        def get_index(s, ls = lol):
+        def get_index(s, ls=lol):
             index = int(s)
             if index < 0 or index >= ls:
                 raise IndexError('Index ' + s + ' is out of the accepted range [0, ' + str(ls) + '].')
@@ -707,13 +714,13 @@ class Processor(object):
 
     @staticmethod
     def __getoneinrange__(
-        start,
-        end,
-        step = 0,
-        default_value = None,
-        try_ntimes = 3,
-        show_text = 'Please, enter a number in the range',
-        obtain_input_from = raw_input
+            start,
+            end,
+            step=0,
+            default_value=None,
+            try_ntimes=3,
+            show_text='Please, enter a number in the range',
+            obtain_input_from=raw_input
     ):
         if show_text == 'Please, enter a number in the range':
             show_text += ' [' + str(start) + ', ' + str(end) + ')'
@@ -721,14 +728,14 @@ class Processor(object):
                 show_text += ' with a step of ' + str(step)
             show_text += '(or leave blank to set by default): '
 
-        def inrange(s, start = start, end = end, step = step):
+        def inrange(s, start=start, end=end, step=step):
             f = float(s)
             if f >= end or f < start:
                 raise ValueError('Input value is not in specified range.')
             if step > 0:
                 # round number to its nearest step
-                num_step = int((f - start)/step + 0.5) # round(x) = floor(x + 0.5) = int(x + 0.5)
-                f = start + num_step*step
+                num_step = int((f - start) / step + 0.5)  # round(x) = floor(x + 0.5) = int(x + 0.5)
+                f = start + num_step * step
             return f
 
         return Processor.__processor_get__(
@@ -742,10 +749,10 @@ class Processor(object):
 
     @staticmethod
     def __getyesorno__(
-        default_value = None,
-        try_ntimes = 3,
-        show_text = 'Select yes (Y/y) or no (N/n), or leave blank to set by default: ',
-        obtain_input_from = raw_input
+            default_value=None,
+            try_ntimes=3,
+            show_text='Select yes (Y/y) or no (N/n), or leave blank to set by default: ',
+            obtain_input_from=raw_input
     ):
         def yesorno(s2):
             s = s2.strip()

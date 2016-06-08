@@ -1,7 +1,8 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
-import time
 
 import Utils.DataLoader as DataLoader
 from Utils.Subject import Subject
@@ -98,11 +99,11 @@ if __name__ == "__main__":
 
     # Coordinates of the voxels to fit
     x1 = voxel[0]
-    x2 = x1+1
+    x2 = x1 + 1
     y1 = voxel[1]
-    y2 = y1+1
+    y2 = y1 + 1
     z1 = voxel[2]
-    z2 = z1+1
+    z2 = z1 + 1
 
     if show_artificial == 'Y':
         # Get artificial data
@@ -111,7 +112,6 @@ if __name__ == "__main__":
         y = X + np.exp(X * np.sin(X))
         y[::5] += 5 * (0.5 - np.random.rand(20, 1))
         y = np.atleast_2d(y)
-
 
     # Get data from Excel and nii files
     print("Loading Aetionomy data...")
@@ -173,4 +173,3 @@ if __name__ == "__main__":
             plt.title(title)
             plt.legend()
             plt.show()
-

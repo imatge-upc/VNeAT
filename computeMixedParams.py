@@ -1,14 +1,16 @@
-import nibabel as nib
-import Utils.DataLoader as DataLoader
 import time
 from os.path import join
+
+import nibabel as nib
+
+import Utils.DataLoader as DataLoader
 from Processors.MixedProcessor import MixedProcessor
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
+
 RESULTS_DIR = join(RESULTS_DIR, 'MIXED')
 
 if __name__ == "__main__":
-
     """ SELECTION """
 
     # Pre-defined user_defined_params for MixedProcessor
@@ -22,11 +24,11 @@ if __name__ == "__main__":
             join('PGLM-GSVR', 'pglm_gsvr_')
         ],
         'PolyGLM-PolySVR': [
-            (1, [1, 0, 2, 1], 3, [2, 3, 1.65, 0.078, 3]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
+            (1, [1, 0, 2, 1], 3, [2, 3, 1.65, 0.078, 3]),  # correctors: intercept, age^2, sex; predictors: adcsf^3
             join('PGLM-PSVR', 'pglm_psvr_')
         ],
         'PolyGLM-PolyGAM': [
-            (1, [1, 0, 2, 1], 2, [9, [1, 1, 3]]),   # correctors: intercept, age^2, sex; predictors: adcsf^3
+            (1, [1, 0, 2, 1], 2, [9, [1, 1, 3]]),  # correctors: intercept, age^2, sex; predictors: adcsf^3
             join('PGLM-PGAM', 'pglm_pgam_')
         ],
         'None': [
@@ -70,6 +72,3 @@ if __name__ == "__main__":
     niiFile = nib.Nifti1Image
     nib.save(niiFile(results.correction_parameters, affine), join(RESULTS_DIR, udp[1] + 'cparams.nii'))
     nib.save(niiFile(results.prediction_parameters, affine), join(RESULTS_DIR, udp[1] + 'pparams.nii'))
-
-
-

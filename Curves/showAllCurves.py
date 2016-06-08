@@ -26,11 +26,11 @@ from user_paths import RESULTS_DIR
 # Info
 fitters = [
     # NAME              PROCESSOR   PATH                                                           COLOR       MARKER
-    ['Polynomial GLM',  PGLMP,      join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                      'm',        'd'],
-    ['Polynomial GAM',  GAMP,       join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                        'y',        'd'],
-    ['Splines GAM',     GAMP,       join(RESULTS_DIR, 'SGAM', 'gam_splines_s105_'),                'g',        'd'],
-    ['Polynomial SVR',  PSVRP,      join(RESULTS_DIR, 'PSVR', 'psvr_C1.65_eps0.078_'),             'b',        'd'],
-    ['Gaussian SVR',    GSVRP,      join(RESULTS_DIR, 'GSVR', 'gsvr_C1.61_eps0.063_gamma0.3_'),    'r',        'd']
+    ['Polynomial GLM', PGLMP, join(RESULTS_DIR, 'PGLM', 'pglm_curve_'),                 'm', 'd'],
+    ['Polynomial GAM', GAMP, join(RESULTS_DIR, 'PGAM', 'gam_poly_'),                    'y', 'd'],
+    ['Splines GAM', GAMP, join(RESULTS_DIR, 'SGAM', 'gam_splines_'),                    'g', 'd'],
+    ['Polynomial SVR', PSVRP, join(RESULTS_DIR, 'PSVR', 'psvr_C1.65_eps0.078_'),        'b', 'd'],
+    ['Gaussian SVR', GSVRP, join(RESULTS_DIR, 'GSVR', 'gsvr_C1.61_eps0.063_gamma0.3_'), 'r', 'd']
 ]
 
 print 'Obtaining data from Excel file...'
@@ -46,7 +46,6 @@ for fitter in fitters:
     prediction_parameters.append(nib.load(fitter[2] + 'pparams.nii').get_data())
     with open(fitter[2] + 'userdefparams.txt', 'rb') as f:
         user_defined_parameters.append(eval(f.read()))
-
 
 print 'Initializing processors'
 processors = []
@@ -117,19 +116,20 @@ while True:
 
         # Get (corrected) grey matter data
         corrected_data = processors[0].gm_values(
-            x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1)
+            x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
 
         # Get curves for all processors
         for i in range(len(processors)):
             axis, curve = processors[i].curve(
                 prediction_parameters[i],
-                x1=x, x2=x+1, y1=y, y2=y+1, z1=z, z2=z+1, tpoints=50)
+                x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1, tpoints=50)
             plot.plot(axis, curve[:, 0, 0, 0],
                       lw=2, label=fitters[i][0], color=fitters[i][3], marker=fitters[i][4])
 
         # Embed lowess curve
         try:
             from tests.local_regression_smoothing import localRegressionSmoothing as LRS
+
             smoothed = LRS.smooth(axis, adcsf, np.ravel(corrected_data),
                                   80, option="LOESS")
             plot.plot(axis, smoothed, lw=3, ls="--",
@@ -186,5 +186,3 @@ INTERESTING COORDINATES:
     - Right ParaHippocampal: 24, -28, -12 (voxel: 44, 65, 40)
 
 """
-
-

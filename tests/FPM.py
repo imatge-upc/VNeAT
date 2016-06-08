@@ -7,33 +7,33 @@ argc = len(argv)
 fitter_names = ['GLM', 'GAM', 'SVR', 'ANN']
 fitters = [GLM]
 
+
 def usage():
-	print 'Usage: ' + argv[0] + ' <fitter>'
-	print '  Parameters:'
-	print '    - <fitter>: integer'
-	i = 0
-	while i < len(fitters):
-		print i, ' --> ', fitter_names[i]
-		i += 1
-	while i < len(fitter_names):
-		print i, ' --> ', fitter_names[i], '(not implemented)'
-		i += 1
-	exit()
+    print 'Usage: ' + argv[0] + ' <fitter>'
+    print '  Parameters:'
+    print '    - <fitter>: integer'
+    i = 0
+    while i < len(fitters):
+        print i, ' --> ', fitter_names[i]
+        i += 1
+    while i < len(fitter_names):
+        print i, ' --> ', fitter_names[i], '(not implemented)'
+        i += 1
+    exit()
+
 
 if argc != 2:
-	usage()
+    usage()
 
 try:
-	fitter_index = int(argv[1])
+    fitter_index = int(argv[1])
 except:
-	usage()
+    usage()
 if fitter_index > 3 or fitter_index < 0:
-	usage()
+    usage()
 
 try:
-	fitter = fitters[fitter_index]
+    fitter = fitters[fitter_index]
 except IndexError:
-	print 'Sorry, this fitter is not implemented yet. Please, select a different fitter.'
-	exit()
-
-
+    print 'Sorry, this fitter is not implemented yet. Please, select a different fitter.'
+    exit()

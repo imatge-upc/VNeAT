@@ -5,6 +5,7 @@ import nibabel as nib
 from scipy.stats import f, norm
 
 from user_paths import RESULTS_DIR
+
 RESULTS_DIR = join(RESULTS_DIR, 'PGLM_vs_SPM')
 
 p_inv_thresholds = [0.99, 0.995, 0.999]
@@ -15,7 +16,7 @@ for p_inv_threshold in p_inv_thresholds:
     PGLM = join(RESULTS_DIR, "fpmalfa_zscores_" + str(p_inv_threshold) + ".nii")
     GAM = join(RESULTS_DIR, "fpmalfa_gam_zscores_" + str(p_inv_threshold) + ".nii")
     # FILES TO BE SAVED
-    SPM_Z_SCORES = join(RESULTS_DIR, "spm_zscores_" + str(p_inv_threshold) +".nii")
+    SPM_Z_SCORES = join(RESULTS_DIR, "spm_zscores_" + str(p_inv_threshold) + ".nii")
     SPM_FIT_SCORES = join(RESULTS_DIR, "spm_fitscores_map.nii")
     DIFF = join(RESULTS_DIR, "spmvspglm_diff_" + str(p_inv_threshold) + ".nii")
     DIFF_GAM = join(RESULTS_DIR, "spmvsgam_diff_" + str(p_inv_threshold) + ".nii")
@@ -43,7 +44,6 @@ for p_inv_threshold in p_inv_thresholds:
     # Z-scores
     lim_value = norm.ppf(p_inv_threshold)
     Z_scores = norm.ppf(fit_scores) - lim_value + 0.2
-
 
     # print("Saving Z-scores for SPM...")
     nii_z_scores = nib.Nifti1Image(Z_scores, spm.affine)
@@ -86,4 +86,3 @@ for p_inv_threshold in p_inv_thresholds:
     nib.save(niiabs, ABS_DIFF_GAM)
     niise = nib.Nifti1Image(se_gam, spm.affine)
     nib.save(niise, SQUARED_ERROR_GAM)
-

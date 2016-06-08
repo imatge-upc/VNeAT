@@ -2,11 +2,11 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-from Utils.DataLoader import getGMData, getFeatures
-from Utils.Subject import Subject
 
 from Fitters.CurveFitting import CurveFitter
 from Fitters.SVR import PolySVR as PSVR
+from Utils.DataLoader import getGMData, getFeatures
+from Utils.Subject import Subject
 
 if __name__ == "__main__":
 
@@ -15,18 +15,18 @@ if __name__ == "__main__":
     voxel = eval(raw_input("Voxel to be fitted (use the following input format: X, Y, Z): "))
 
     # Coordinates of the voxels to fit
-    x1 = voxel[0] #74
-    x2 = x1+1
-    y1 = voxel[1] #82
-    y2 = y1+1
-    z1 = voxel[2] #39
-    z2 = z1+1
+    x1 = voxel[0]  # 74
+    x2 = x1 + 1
+    y1 = voxel[1]  # 82
+    y2 = y1 + 1
+    z1 = voxel[2]  # 39
+    z2 = z1 + 1
 
     if show_artificial == 'Y':
         # Get artificial data
         print("Getting artificial data...")
         X = np.sort(6 * np.random.rand(50, 1), axis=0)
-        y = 0.5 + X + 0.8*X ** 2 - X ** 3
+        y = 0.5 + X + 0.8 * X ** 2 - X ** 3
         y[::5] += 5 * (0.5 - np.random.rand(10, 1))
         y = np.atleast_2d(y)
 
@@ -91,13 +91,12 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.show()
 
-
             """ PART 2: AETIONOMY DATA """
 
             # Fit data
             print("Fitting Aetionomy data...")
             dims = real_obs.shape
-            num_voxels = dims[1]*dims[2]*dims[3]
+            num_voxels = dims[1] * dims[2] * dims[3]
             reshaped_obs = real_obs.reshape((dims[0], num_voxels))
             start_time = time.clock()
             # Fit PolySVR to original data to correct it

@@ -1,5 +1,3 @@
-
-
 # So, here is the situation:
 #
 # We are given X = (C | R), the design matrix, and Y, the matrix of observations.
@@ -77,35 +75,35 @@ import numpy as np
 
 C = np.random.random((129, 2))
 R = np.linspace(0, 1, 129).reshape(-1, 1)
-R = np.concatenate([R**(i+1) for i in xrange(3)], axis = 1)
+R = np.concatenate([R ** (i + 1) for i in xrange(3)], axis=1)
 
 from Fitters import GLM
-glm = GLM(predictors = R, correctors = C, homogeneous = True)
+
+glm = GLM(predictors=R, correctors=C, homogeneous=True)
 
 C = glm.correctors
 R = glm.predictors
-X = np.concatenate((C, R), axis = 1)
+X = np.concatenate((C, R), axis=1)
 
 Gamma = glm.orthonormalize_all()
 
 ZC = glm.correctors
 ZR = glm.predictors
-Z = np.concatenate((ZC, ZR), axis = 1)
-
+Z = np.concatenate((ZC, ZR), axis=1)
 
 from matplotlib.pyplot import plot, show
 
 params = np.random.uniform(-5, 5, 4)
 params2 = np.random.normal(0, 10, 4)
 
-y = np.array(sum(R[:, i]*params[i] for i in xrange(R.shape[1])))
-y2 = np.array(sum(R[:, i]*params2[i] for i in xrange(R.shape[1])))
+y = np.array(sum(R[:, i] * params[i] for i in xrange(R.shape[1])))
+y2 = np.array(sum(R[:, i] * params2[i] for i in xrange(R.shape[1])))
 plot(R[:, 0], y, 'bs', R[:, 0], y2, 'rs')
 show()
 
 scale1 = y.max() - y.min()
 scale2 = y2.max() - y2.min()
-Y = np.array([y + np.random.normal(0, 0.15*scale1, y.shape), y2 + np.random.normal(0, 0.15*scale2, y2.shape)]).T
+Y = np.array([y + np.random.normal(0, 0.15 * scale1, y.shape), y2 + np.random.normal(0, 0.15 * scale2, y2.shape)]).T
 
 plot(R[:, 0], y, 'bs', R[:, 0], Y[:, 0], 'g^')
 show()
@@ -113,20 +111,16 @@ show()
 plot(R[:, 0], y2, 'bs', R[:, 0], Y[:, 1], 'g^')
 show()
 
-
-
 # Y = np.random.random((20, 2))
 glm.fit(Y)
 
 Beta2C = glm.correction_parameters
 Beta2R = glm.prediction_parameters
 
-
 GammaR = Gamma[:, -(ZR.shape[1]):]
 ZGR = Z.dot(GammaR)
 
-
-glmInv = GLM(predictors = ZGR.T, homogeneous = False)
+glmInv = GLM(predictors=ZGR.T, homogeneous=False)
 glmInv.fit(np.identity(ZGR.shape[1]))
 
 ZGRInv = glmInv.prediction_parameters.T
@@ -142,43 +136,31 @@ ZGRInv = glmInv.prediction_parameters.T
 
 BetaR_denorm = ZGRInv.dot(ZR).dot(Beta2R)
 
-
-
-
-
-
-glm2 = GLM(correctors = C, homogeneous = False)
+glm2 = GLM(correctors=C, homogeneous=False)
 glm2.fit(Y)
 BetaC = glm2.correction_parameters
 
 Yc = glm2.correct(Y)
 
-glm3 = GLM(predictors = R, homogeneous = False)
+glm3 = GLM(predictors=R, homogeneous=False)
 glm3.fit(Yc)
 BetaR = glm3.prediction_parameters
 
-
-print 'Maximum difference between original (separated) parameters and denormalized ones:', np.abs(BetaR_denorm - BetaR).max()
+print 'Maximum difference between original (separated) parameters and denormalized ones:', np.abs(
+    BetaR_denorm - BetaR).max()
 
 Yc_norm = Y - ZC.dot(Beta2C)
 
-print 'Maximum difference between corrected data with normalized features vs. non-normalized features:', np.abs(Yc - Yc_norm).max()
-
-
-
-
+print 'Maximum difference between corrected data with normalized features vs. non-normalized features:', np.abs(
+    Yc - Yc_norm).max()
 
 from matplotlib.pyplot import plot, show
+
 plot(R[:, 0], Yc, 'x')
 
 x = np.linspace(0, 1, 50)
-xdata = np.array([x**(i+1) for i in xrange(3)]).T
+xdata = np.array([x ** (i + 1) for i in xrange(3)]).T
 prediction = glm.predict(xdata, BetaR_denorm)
 plot(x, prediction)
 
 show()
-
-
-
-
-

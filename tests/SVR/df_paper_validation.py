@@ -5,10 +5,9 @@ Script to validate the degrees of freedom implementation based on the paper
 
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 from sklearn.svm import SVR
 
 
@@ -70,13 +69,13 @@ def compute_kernel(x_data):
 if __name__ == "__main__":
 
     ''' CONSTANTS '''
-    l = 64                                  # number of samples per dataset
-    N = 100                                 # number of datasets
-    grid_shape = (30, 30)                   # shape of the surface grid (C, epsilon)
-    noise_var = 0.09                        # noise variance
+    l = 64  # number of samples per dataset
+    N = 100  # number of datasets
+    grid_shape = (30, 30)  # shape of the surface grid (C, epsilon)
+    noise_var = 0.09  # noise variance
 
     ''' GENERATE DATA '''
-    x = np.array([(i - 1.0) / (l - 1) for i in range(1, l+1)])
+    x = np.array([(i - 1.0) / (l - 1) for i in range(1, l + 1)])
     x = np.atleast_2d(x).T
     f_0 = np.exp(np.sin(8 * x))
     noise = np.random.randn(l, N) * np.sqrt(noise_var)
@@ -98,7 +97,6 @@ if __name__ == "__main__":
         print "----------------------------------------"
         for i, C in enumerate(list_C):
             for j, epsilon in enumerate(list_epsilon):
-
                 # Observations
                 current_noise = np.atleast_2d(noise[:, n]).T
                 y = np.ravel(f_0 + current_noise)
@@ -141,10 +139,7 @@ if __name__ == "__main__":
     # Plot surface
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y,  Z, rstride=1, cstride=1, cmap=cm.coolwarm,
+    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,
                            linewidth=0, antialiased=False)
     fig.colorbar(surf, shrink=0.5, aspect=5)
     plt.show()
-
-
-

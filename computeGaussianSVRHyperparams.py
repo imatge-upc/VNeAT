@@ -1,17 +1,18 @@
 from os.path import join
+
+import numpy as np
+
 import CrossValidation.score_functions as score_f
 import Utils.DataLoader as DataLoader
-import numpy as np
-from Fitters.CurveFitting import AdditiveCurveFitter
 from CrossValidation.GridSearch import GridSearch
-from Utils.Subject import Subject
+from Fitters.CurveFitting import AdditiveCurveFitter
 from Fitters.SVR import GaussianSVR
+from Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
 RESULTS_DIR = join(RESULTS_DIR, 'CROSS_VALIDATION')
 
 if __name__ == "__main__":
-
     # Get features
     predictors = DataLoader.getFeatures([Subject.ADCSFIndex])
 
@@ -47,4 +48,3 @@ if __name__ == "__main__":
 
     # Plot error
     gs.plot_error()
-
