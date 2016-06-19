@@ -195,7 +195,7 @@ class Processor(object):
         if not mem_usage is None:
             self._processor_mem_usage = float(mem_usage)
 
-        chunks = Utils.Subject.chunks(
+        chunks = Utils.Subject.Chunks(
             self._processor_subjects,
             x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
             mem_usage=self._processor_mem_usage
@@ -235,7 +235,7 @@ class Processor(object):
         # Update progress
         self.__processor_update_progress(prog_inc * dx * dy * dz)
 
-        # Now do the same for the rest of the chunks
+        # Now do the same for the rest of the Chunks
         for chunk in chunks:
             # Get relative (to the solution matrices) coordinates of the chunk
             x, y, z = chunk.coords
@@ -386,7 +386,7 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=self._processor_mem_usage)
         dims = chunks.dims
 
@@ -417,7 +417,7 @@ class Processor(object):
         if not mem_usage is None:
             self._processor_mem_usage = float(mem_usage)
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=self._processor_mem_usage)
         dims = chunks.dims
 
@@ -479,7 +479,7 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=mem_usage)
         dims = chunks.dims
 

@@ -100,5 +100,5 @@ class Region:
         self.coords = coords
         self.data = data
 
-    def size():
+    def size(self):
         return self.data.shape[:3]

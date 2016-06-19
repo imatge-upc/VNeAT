@@ -1,0 +1,68 @@
+# SECTION 1: INPUT
+input:
+
+  # Path to the Excel file containing the metadata of the study. See README.md for
+  # further details about the accepted file format
+  excel_file: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Data\aging_data\Data_VBM_Alfa_final.xls'
+
+  # Path to the folder containing the NIFTI files with the grey matter values for each subject
+  data_folder: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Data\aging_data\c1_s8mm'
+
+  # Path to the Nifti file containing the template used to register the subjects of these project
+  template_file: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Data\aging_data\MNI152_T1_15mm_template.nii'
+
+  # Study prefix, that is, prefix used in every greymatter file (NIFTI) before the identifier.
+  # (e.g: if prefix is 'study1_' and a subject has id 'subject1', the corresponding greymatter file would be located
+  # inside the folder pointed by data_folder and would be named 'study1_subject1.nii' or 'study1_subject1.nii.gz'
+  study_prefix: 's8mwc1t1_'
+
+  # Are NIFTI files gzipped (nii.gz)?
+  gzip_nifti: No
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 2: MODEL
+model:
+
+  # Identifier used in the excel file for the column that contains the ID of the subject and type of data used to
+  # express this identifier (String, Number)
+  id_identifier: 'Subj_ID'
+  id_type: 'Number'
+
+  # Identifier used in the excel file for the column that contains the category/class of the subject.
+  # If there is no category identifier for this study, put No
+  category_identifier: '# of Apoe4'
+
+  # List of identifiers that should be used as predictors
+  predictors_identifiers:
+    - 'Age'
+
+  # List of identifiers that should be used as correctors
+  correctors_identifiers:
+    - 'Gender(0=female)'
+    - 'Tot Intracranial Volume (mm^3)'
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 3: PROCESSING PARAMETERS
+processing_params:
+
+  # Number of processes spanned to perform computational-heavy tasks, such as fitting.
+  n_jobs: 4
+
+  # Total amount of memory in MB used to get Chunks of gray matter data from all subjects
+  # (as memory increases so does the number of voxels used in one chunck)
+  mem_usage: 256
+
+  # Total amount of memory in MB used to cache the Gramm matrices used in SVR fitting
+  # (more memory implies a speed up in the SVR fitting process)
+  cache_size: 1024
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 4: OUTPUT
+output:
+
+  # Path to the folder where all results will be stored
+  output_path: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Results'
+

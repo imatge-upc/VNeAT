@@ -5,14 +5,16 @@ from Dictionaries import TransformedDict as tdict
 
 
 class ExcelSheet(object):
-    '''Class that implements a reading method for a well-organized sheet in an Excel
-        file (.xls only).
-    '''
+    """
+    Class that implements a reading method for a well-organized sheet in an Excel
+    file (.xls only).
+    """
 
     class Row(tdict):
-        '''Dictionary-like class that represents a row in an Excel sheet. Keys are
-            both, case-insensitive and initial- and final-whitespace-insensitive.
-        '''
+        """
+        Dictionary-like class that represents a row in an Excel sheet. Keys are
+        both, case-insensitive and initial- and final-whitespace-insensitive.
+        """
 
         def __keytransform__(self, key):
             return key.strip().lower()
@@ -24,7 +26,8 @@ class ExcelSheet(object):
             return 'ExcelRow( ' + tdict.__str__(self) + ' )'
 
     def __init__(self, filename, sheet_index=0, header_row=0):
-        '''Constructor.
+        """
+        Constructor.
 
             Parameters:
 
@@ -50,7 +53,7 @@ class ExcelSheet(object):
             Returns:
 
                 - New instance of ExcelSheet.
-        '''
+        """
 
         self._filename = filename
         self._sheet = sheet_index

@@ -37,7 +37,7 @@ if __name__ == "__main__":
         ]
     }
     # SELECT HERE YOUR PREDEFINED USER-DEFINED-PARAMS
-    udp = user_def_params['PolyGLM-PolySVR']
+    udp = user_def_params['PolyGLM-GaussianSVR']
 
     """ PROCESSING """
 
