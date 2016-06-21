@@ -1,3 +1,5 @@
+import numpy as np
+
 from Fitters.CurveFitting import CombinedFitter
 from Processors.GAMProcessing import GAMProcessor
 from Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
@@ -28,11 +30,6 @@ class MixedProcessor(Processor):
         'Gaussian SVR': 4
     }
 
-    def __init__(self, subjects, predictors, correctors=[], user_defined_parameters=()):
-        self._processor_predictors_attr = predictors
-        self._processor_correctors_attr = correctors
-        super(MixedProcessor, self).__init__(subjects, predictors, correctors, user_defined_parameters)
-
     def __fitter__(self, user_defined_parameters):
         # Store user defined parameters
         self._corrector_option = user_defined_parameters[0]
@@ -43,16 +40,18 @@ class MixedProcessor(Processor):
         # Create correction processor
         self._correction_processor = MixedProcessor._mixedprocessor_processor_list[
             self._corrector_option
-        ](self._processor_subjects, [], self._processor_correctors_attr, tuple(self._corrector_udp))
+        ](self._processor_subjects, [], self._processor_correctors_names, np.zeros((0, 0)), self._processor_correctors,
+          self._processor_processing_params, tuple(self._corrector_udp))
 
         # Create prediction processor
         self._prediction_processor = MixedProcessor._mixedprocessor_processor_list[
             self._predictor_option
-        ](self._processor_subjects, self._processor_predictors_attr, [], tuple(self._predictor_udp))
+        ](self._processor_subjects, self._processor_predictors_names, [], self._processor_predictors, np.zeros((0, 0)),
+          self._processor_processing_params, tuple(self._predictor_udp))
 
         # Get correction fitter
-        correction_fitter = self._correction_processor._processor_fitter
-        prediction_fitter = self._prediction_processor._processor_fitter
+        correction_fitter = self._correction_processor.fitter
+        prediction_fitter = self._prediction_processor.fitter
 
         # Create MixedFitter
         fitter = CombinedFitter(correction_fitter, prediction_fitter)
@@ -95,7 +94,8 @@ class MixedProcessor(Processor):
         # User defined parameters for correction fitter
         correct_processor = MixedProcessor._mixedprocessor_processor_list[
             correct_option
-        ](self._processor_subjects, [], self._processor_correctors_attr)
+        ](self._processor_subjects, [], self._processor_correctors_names, np.zeros((0, 0)), self._processor_correctors,
+          self._processor_processing_params)
 
         correct_udp = list(correct_processor.user_defined_parameters)
 
@@ -105,7 +105,8 @@ class MixedProcessor(Processor):
         # User defined parameters for correction fitter
         predict_processor = MixedProcessor._mixedprocessor_processor_list[
             predict_option
-        ](self._processor_subjects, self._processor_predictors_attr, [])
+        ](self._processor_subjects, self._processor_predictors_names, [], self._processor_predictors, np.zeros((0, 0)),
+          self._processor_processing_params)
 
         predict_udp = list(predict_processor.user_defined_parameters)
 
@@ -148,6 +149,10 @@ class MixedProcessor(Processor):
     def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
         return self._correction_processor.__corrected_values__(fitter, observations, correction_parameters,
                                                                *args, **kwargs)
+
+    def get_name(self):
+        return 'correction_' + self._correction_processor.get_name() + \
+               '-prediction_' + self._prediction_processor.get_name()
 
     @property
     def correction_processor(self):

@@ -64,5 +64,5 @@ processing_params:
 output:
 
   # Path to the folder where all results will be stored
-  output_path: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Results'
+  output_path: 'C:\Users\santi\Documents\Santi\Universitat\TFG\Results_new'
 

@@ -149,6 +149,9 @@ class PolySVRProcessor(Processor):
             *args, **kwargs
         )
 
+    def get_name(self):
+        return 'PolySVR'
+
 
 class GaussianSVRProcessor(Processor):
     """
@@ -271,3 +274,6 @@ class GaussianSVRProcessor(Processor):
             gamma=self._gsvrprocessor_gamma,
             *args, **kwargs
         )
+
+    def get_name(self):
+        return 'GaussianSVR'

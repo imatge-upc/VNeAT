@@ -1,30 +1,27 @@
-from os import listdir
-from os.path import join, isfile, basename
-
 import nibabel as nib
 import numpy as np
 import yaml
 
-from Subject import Subject, Participant
+from os.path import join
+from Subject import Subject
 from Utils.ExcelIO import ExcelSheet
 from Utils.niftiIO import NiftiReader
-from user_paths import DATA_DIR, CORRECTED_DATA_DIR, EXCEL_FILE, MNI_TEMPLATE
 
 
-class SubjectsLoader(object):
+class DataLoader(object):
     """
-    Loads the subjects of a study given the path to the configuration file for this study
+    Loads the subjects and the configuration of a study given the path to the configuration file for this study
     """
 
     def __init__(self, configuration_path):
         """
-        Initializes a SubjectsLoader with the given configuration file
+        Initializes a DataLoader with the given configuration file
 
         Parameters
         ----------
         configuration_path : String
             Path to the YAMP configuration file with the configuration parameters expected for a study.
-            See config/examples for more information about the format of configuration files.
+            See config/exampleConfig.yaml for more information about the format of configuration files.
         """
         # Load the configuration
         with open(configuration_path, 'r') as conf_file:
@@ -36,7 +33,7 @@ class SubjectsLoader(object):
 
     def get_subjects(self, start=None, end=None):
         """
-        Gets all the subjects from the study given the configuration parameters of this istance of SubjectsLoader
+        Gets all the subjects from the study given the configuration parameters of this instance of DataLoader
 
         Parameters
         ----------
@@ -47,7 +44,7 @@ class SubjectsLoader(object):
 
         Returns
         -------
-        list<Participant>
+        list<Subject>
             List of all subjects
 
         Raises
@@ -102,7 +99,7 @@ class SubjectsLoader(object):
                 # Category
                 category = row[category_identifier] if category_identifier else 0
                 # Create subject
-                subj = Participant(row[id_identifier], nifti_path, category=category)
+                subj = Subject(row[id_identifier], nifti_path, category=category)
                 # Add prediction and correction parameters
                 for param_name in fields_names:
                     subj.set_parameter(parameter_name=param_name, parameter_value=row[param_name])
@@ -227,90 +224,49 @@ class SubjectsLoader(object):
         correctors = map(lambda subject: subject.get_parameters(correctors_names), subjects)
         return np.asarray(correctors)
 
+    def get_predictors_names(self):
+        """
+        Returns the names of the predictors of this study
 
-"""------------------------------------ LEGACY --------------------------------------"""
+        Returns
+        -------
+        List<String>
+            List of predictors' names
+        """
+        return self._conf['model']['predictors_identifiers']
 
+    def get_correctors_names(self):
+        """
+        Returns the correctors' names of this study
 
-def getSubjects(corrected_data=False):
-    """
-    Gets a list of subjects (nonlinear2.Utils.Subject.Subject instances) from the Excel file
+        Returns
+        -------
+        List<String>
+            List of correctors' names
+        """
+        return self._conf['model']['correctors_identifiers']
 
-    Parameters
-    ----------
-    corrected_data : Boolean
-        Boolean indicating whether normal data or corrected data should be loaded
+    def get_processing_parameters(self):
+        """
+        Returns the parameters used for processing, that is, number of jobs, chunk memory, and cache size
 
-    Returns
-    -------
-    List
-        List with all the Subject instances
-    """
-    if corrected_data:
-        filenames = filter(isfile, map(lambda elem: join(CORRECTED_DATA_DIR, elem),
-                                       listdir(CORRECTED_DATA_DIR)))
-        filenames_by_id = {basename(fn).split('_')[1][:-4]: fn for fn in filenames}
-    else:
-        filenames = filter(isfile, map(lambda elem: join(DATA_DIR, elem),
-                                       listdir(DATA_DIR)))
-        filenames_by_id = {basename(fn).split('_')[0][8:]: fn for fn in filenames}
+        Returns
+        -------
+        dict
+            Dictionary with keys 'n_jobs', 'mem_usage' and 'cache_size' representing
+            number of jobs used for fitting, amount of memory in MB per chunck, and amount of memory
+            reserved for SVR fitting, respectively.
+        """
 
-    exc = ExcelSheet(EXCEL_FILE)
+        return self._conf['processing_params']
 
-    subjects = []
-    for r in exc.get_rows(fieldstype={
-        'id': (lambda s: str(s).strip().split('_')[0]),
-        'diag': (lambda s: int(s) - 1),
-        'age': int,
-        'sex': (lambda s: 2 * int(s) - 1),
-        'apoe4_bin': (lambda s: 2 * int(s) - 1),
-        'escolaridad': int,
-        'ad_csf_index_ttau': float
-    }):
-        subjects.append(
-            Subject(
-                r['id'],
-                filenames_by_id[r['id']],
-                r.get('diag', None),
-                r.get('age', None),
-                r.get('sex', None),
-                r.get('apoe4_bin', None),
-                r.get('escolaridad', None),
-                r.get('ad_csf_index_ttau', None)
-            )
-        )
-    return subjects
+    def get_output_dir(self):
+        """
+        Returns the path to the output folder set in the configuration file
 
-def getGMData(corrected_data=False):
-    """
-    Gets the grey matter from the Nifti files
-    Parameters
-    ----------
-    corrected_data
-
-    Returns
-    -------
-    [numpy.array] 4-dimensional array with gray matter values for all voxels and subjects
-    """
-    subjects = getSubjects(corrected_data)
-    tmp = np.array(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
-    return tmp
-
-
-def getFeatures(features_array):
-    """
-    Gets a list of features from the Subjects
-    Parameters
-    ----------
-    features_array list list of the features to be obtained from Subject
-    (e.g [Subject.ADSCFIndex, Subject.Age])
-
-    Returns
-    -------
-    [numpy.array] 2-dimensional array with the features
-    """
-    subjects = getSubjects(False)
-    return np.array(map(lambda subject: subject.get(features_array), subjects), dtype=np.float64)
-
-
-def getMNIAffine():
-    return nib.load(MNI_TEMPLATE).affine
+        Returns
+        -------
+        String
+            Path to the output folder
+        """
+        return self._conf['output']['output_path']

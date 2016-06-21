@@ -10,14 +10,15 @@ from Utils.graphlib import NiftiGraph
 
 
 class Processor(object):
+    """
+    Class that interfaces between the data and the fitting library
+    """
     __metaclass__ = docstring_inheritor(ABCMeta)
 
     class Results:
         def __init__(self, prediction_parameters, correction_parameters):  # , fitting_scores):
             self._prediction_parameters = prediction_parameters
             self._correction_parameters = correction_parameters
-
-        #			self._fitting_scores = fitting_scores
 
         @property
         def prediction_parameters(self):
@@ -27,25 +28,50 @@ class Processor(object):
         def correction_parameters(self):
             return self._correction_parameters
 
-        #		@property
-        #		def fitting_scores(self):
-        #			return self._fitting_scores
-
         def __str__(self):
             s = 'Results:'
             s += '\n    Correction parameters:' + reduce(lambda x, y: x + '\n    ' + y,
                                                          repr(self._correction_parameters).split('\n'))
             s += '\n\n    Prediction parameters:' + reduce(lambda x, y: x + '\n    ' + y,
                                                            repr(self._prediction_parameters).split('\n'))
-            #			s += '\n\n    Fitting scores:\n' + reduce(lambda x, y: x + '\n    ' + y, repr(self._fitting_scores).split('\n'))
             return s
 
-    def __init__(self, subjects, predictors, correctors=[], user_defined_parameters=()):
-        self._processor_subjects = list(subjects)
-        self._processor_predictors = np.array(map(lambda subject: subject.get(predictors), self._processor_subjects),
-                                              dtype=np.float64)
-        self._processor_correctors = np.array(map(lambda subject: subject.get(correctors), self._processor_subjects),
-                                              dtype=np.float64)
+    def __init__(self, subjects, predictors_names, correctors_names, predictors, correctors,
+                 processing_parameters, user_defined_parameters=()):
+        """
+        Creates a Processor instance
+
+        Parameters
+        ----------
+        subjects : List<Subject>
+            List of subjects to be used in this processor
+        predictors_names : List<String>
+            List of the names of the features that should be used as predictors
+        correctors_names : List<String>
+            List of the names of the features that should be used as correctors
+        predictors : numpy.array(NxP)
+            Array with the values of the features that should be used as predictors, where N is the number of subjects
+            and P the number of predictors
+        correctors : numpy.array(NxC)
+            Array with the values of the features that should be used as correctors, where N is the number of subjects
+            and C the number of correctors
+        processing_parameters : dict
+            Dictionary with the processing parameters specified in the configuration file, that is, 'mem_usage',
+            'n_jobs' and 'cache_size'
+        user_defined_parameters : [Optional] tuple
+            Parameters passed to the processor. If a empty tuple is passed, the parameters are requested by input.
+            Default value: ()
+        """
+        # Load subjects
+        self._processor_subjects = subjects
+        # Load predictors and correctors' names
+        self._processor_predictors_names = predictors_names
+        self._processor_correctors_names = correctors_names
+        # Load predictors and correctors
+        self._processor_predictors = predictors
+        self._processor_correctors = correctors
+        # Load processing parameters
+        self._processor_processing_params = processing_parameters
 
         if 0 in self._processor_predictors.shape:
             self._processor_predictors = np.zeros((len(self._processor_subjects), 0))
@@ -53,152 +79,234 @@ class Processor(object):
             self._processor_correctors = np.zeros((len(self._processor_subjects), 0))
 
         self._processor_progress = 0.0
-        self._processor_mem_usage = 512.0
 
-        if (len(user_defined_parameters) != 0):
+        if len(user_defined_parameters) != 0:
             self._processor_fitter = self.__fitter__(user_defined_parameters)
         else:
-            self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(predictors, correctors))
+            self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(
+                self._processor_predictors_names,
+                self._processor_correctors_names
+            ))
 
     @property
     def subjects(self):
-        '''List of subjects (Subject objects) of this instance.
-        '''
+        """
+        List of subjects (Subject objects) of this instance.
+
+        Returns
+        -------
+        List<Subject>
+            List of subjects
+        """
         return self._processor_subjects
 
     @property
     def correctors(self):
-        '''Matrix of correctors of this instance.
+        """
+        Matrix of correctors of this instance
 
-            NxC (2-dimensional) matrix, representing the values of the features of the subjects that are to be
-            used as correctors in the fitter, where N is the number of subjects and C the number of correctors.
-        '''
+        Returns
+        -------
+        numpy.array (NxC)
+            Values of the features of the subjects that are to be used as correctors in the fitter, where N is the
+            number of subjects and C the number of correctors
+        """
         return self._processor_correctors
 
     @property
     def predictors(self):
-        '''Matrix of predictors of this instance.
+        """
+        Matrix of predictors of this instance.
 
-            NxR (2-dimensional) matrix, representing the values of the features of the subjects that are to be
-            used as predictors in the fitter, where N is the number of subjects and R the number of predictors.
-        '''
-
+        Returns
+        -------
+        numpy.array (NxR)
+            Values of the features of the subjects that are to be used as predictors in the fitter, where N is the
+            number of subjects and R the number of predictors
+        """
         return self._processor_predictors
 
     @property
     def progress(self):
-        '''Progress (percentage of data processed) of the last call to process. If it has not been called yet,
-            this property will be 0.0, whereas if the task is already completed it will be 100.0.
-        '''
+        """
+        Progress (percentage of data processed) of the last call to process. If it has not been called yet,
+        this property will be 0.0, whereas if the task is already completed it will be 100.0.
+
+        Returns
+        -------
+        float
+            Percentage of data processed
+        """
         return int(self._processor_progress) / 100.0
+
+    @property
+    def fitter(self):
+        """
+        Fitter used in this processor
+
+        Returns
+        -------
+        CurveFitter
+            Instance of CurveFitter subclass used by this processor
+        """
+        return self._processor_fitter
+
+    def get_name(self):
+        """
+        Name of the processor, that is, with which fitting method the processor interfaces
+
+        Returns
+        -------
+        String
+            The name of the processor
+        """
+        return 'Base'
 
     @abstractmethod
     def __fitter__(self, user_defined_parameters):
-        '''[Abstract method] Initializes the fitter to be used to process the data.
-            This method is not intended to be used outside the Processor class.
+        """
+        [Abstract method] Initializes the fitter to be used to process the data.
+        This method is not intended to be used outside the Processor class.
 
-            Parameters:
+        Parameters
+        ----------
+        user_defined_parameters : tuple
+            tuple of ints, containing the additional parameters (apart from correctors
+            and predictors) necessary to successfully initialize a new instance of a fitter (see
+            __read_user_defined_parameters__ method).
 
-                - user_defined_parameters: tuple of ints, containing the additional parameters (apart from correctors
-                    and predictors) necessary to succesfully initialize a new instance of a fitter (see
-                    __read_user_defined_parameters__ method).
+        Returns
+        -------
+        CurveFitter
+            A fully initialized instance of a CurveFitter subclass
 
-            Returns:
-
-                - A fully initalized instance of a subclass of the CurveFitter class.
-
-            [Developer notes]
-
-                - This method is always called in the initialization of an instance of the Processing class, which means
-                    that you can consider it as the __init__ of the subclass (you can declare the variables that you
-                    would otherwise initialize in the __init__ method of the subclass here, in the __fitter__ method).
-        '''
-
+        Notes
+        -----
+        This method is always called in the initialization of an instance of the Processing class, which means
+        that you can consider it as the __init__ of the subclass (you can declare the variables that you
+        would otherwise initialize in the __init__ method of the subclass here, in the __fitter__ method).
+        """
         raise NotImplementedError
 
     @abstractmethod
     def __user_defined_parameters__(self, fitter):
-        '''[Abstract method] Gets the additional parameters obtained from the user and used by the __fitter__ method
-            to initialize the fitter.
-            This method is not intended to be used outside the Processor class.
+        """
+        [Abstract method] Gets the additional parameters obtained from the user and used by the __fitter__ method
+        to initialize the fitter.
+        This method is not intended to be used outside the Processor class.
 
-            Parameters:
+        Parameters
+        ----------
+        fitter : CurveFitter
+            A fully initialized instance of a subclass of the CurveFitter class
 
-                - fitter: a fully initialized instance of a subclass of the CurveFitter class.
+        Returns
+        -------
+        tuple
+            Tuple with the values of the additional parameters (apart from the correctors and predictors) that
+            have been used to succesfully initialize and use the fitter of this instance.
 
-            Returns:
-
-                - A tuple with the values of the additional parameters (apart from the correctors and predictors) that
-                    have been used to succesfully initialize and use the fitter of this instance.
-
-            [Developer notes]
-
-                - This method must output a tuple that is recognizable by the __fitter__ method when fed to it as the
-                    'user_defined_parameters' argument, allowing it to initialize a new fitter equal to the one of this
-                    instance (see __read_user_defined_parameters__).
-        '''
-
+        Notes
+        -----
+        This method must output a tuple that is recognizable by the __fitter__ method when fed to it as the
+        'user_defined_parameters' argument, allowing it to initialize a new fitter equal to the one of this
+        instance (see __read_user_defined_parameters__)
+        """
         raise NotImplementedError
 
     @property
     def user_defined_parameters(self):
+        """
+        User defined parameters for this processor
+
+        Returns
+        -------
+        tuple
+            tuple of numerical elements, containing the coded additional parameters (apart from correctors
+            and predictors) necessary to successfully initialize a new instance of a fitter
+        """
         return self.__user_defined_parameters__(self._processor_fitter)
 
     @abstractmethod
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
-        '''[Abstract method] Read the additional parameters (apart from correctors and predictors)
-            necessary to succesfully initialize a new instance of the fitter from the user.
+        """
+        [Abstract method] Read the additional parameters (apart from correctors and predictors)
+        necessary to succesfully initialize a new instance of the fitter from the user
 
-            Parameters:
+        Parameters
+        ----------
+        predictor_names : List<String>
+            List of subject attributes that represent the names of the features to be used as predictors
+        corrector_names : List<String>
+            Iterable of subject attributes that represent the names of the features to be used as correctors
 
-                - predictor_names: iterable of subject attributes (e.g. Subject.ADCSFIndex) that represent the
-                    names of the features to be used as predictors.
+        Returns
+        -------
+        tuple
+            Tuple of numerical elements, containing the coded additional parameters (apart from correctors
+            and predictors) necessary to succesfully initialize a new instance of a fitter
 
-                - corrector_names: iterable of subject attributes (e.g. Subject.Age) that represent the names of
-                    the features to be used as correctors.
+        Notes
+        -----
+        - This method is responsible for obtaining the values of such additional parameters from the user.
 
-            Returns:
+        - Please, make use of the 'getter' methods implemented in this class for such purpose. This will
+        allow future subclasses to implement additional features (such as a GUI) by just overriding the
+        'getter' methods, consequently making it easier to maintain, expand and provide more features
+        together with a larger functionality for the abstract subclasses of Processing without requiring
+        any additional work from the developers that implement the concrete subclasses of the same class.
 
-                - A tuple of numerical elements, containing the coded additional parameters (apart from correctors
-                    and predictors) necessary to succesfully initialize a new instance of a fitter; this tuple will
-                    be past as is to the __fitter__ method.
+        - When calling the 'getter' methods, make sure you use the 'super' built-in function, so that the Method
+        Resolution Order is dynamically adapted and you get to use the methods implemented in the bottom-most
+        subclass of Processing in the inheritance tree.
 
-            [Developer notes]
-
-                - This method is responsible for obtaining the values of such additional parameters from the user.
-
-                - Please, make use of the 'getter' methods implemented in this class for such purpose. This will
-                    allow future subclasses to implement additional features (such as a GUI) by just overriding the
-                    'getter' methods, consequently making it easier to maintain, expand and provide more features
-                    together with a larger functionality for the abstract subclasses of Processing without requiring
-                    any additional work from the developers that implement the concrete subclasses of the same class.
-
-                - When calling the 'getter' methods, make sure you use the 'super' built-in function, so that the Method
-                    Resolution Order is dynamically adapted and you get to use the methods implemented in the bottom-most
-                    subclass of Processing in the inheritance tree.
-
-                - The 'getter' methods are of the form __get***__, where *** denotes the value to be obtained from the user.
-                    Here is a potentially non-exhaustive list of such methods: __getint__, __getfloat__, __getoneof__,
-                    __getoneinrange__, __getyesorno__, ...
-        '''
-
+        - The 'getter' methods are of the form __get***__, where *** denotes the value to be obtained from the user.
+        Here is a potentially non-exhaustive list of such methods: __getint__, __getfloat__, __getoneof__,
+        __getoneinrange__, __getyesorno__, ...
+        """
         raise NotImplementedError
 
+    # TODO Document
     def __processor_update_progress(self, prog_inc):
+        """
+
+        Parameters
+        ----------
+        prog_inc
+
+        Returns
+        -------
+
+        """
         self._processor_progress += prog_inc
         print '\r  ' + str(int(self._processor_progress) / 100.0) + '%',
         if self._processor_progress == 10000.0:
             print
         stdout.flush()
 
-    def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, mem_usage=None, *args, **kwargs):
-        if not mem_usage is None:
-            self._processor_mem_usage = float(mem_usage)
+    # TODO Document
+    def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, *args, **kwargs):
+        """
 
+        Parameters
+        ----------
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+        args
+        kwargs
+
+        Returns
+        -------
+
+        """
         chunks = Utils.Subject.Chunks(
             self._processor_subjects,
             x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-            mem_usage=self._processor_mem_usage
+            mem_usage=self._processor_processing_params['mem_usage']
         )
         dims = chunks.dims
 
@@ -207,8 +315,11 @@ class Processor(object):
         total_num_voxels = dims[-3] * dims[-2] * dims[-1]
         prog_inc = 10000. / total_num_voxels
 
-        # Get the results of the first chunk to initialize dimensions of the solution matrices
+        # Add processing parameters to kwargs
+        kwargs['n_jobs'] = self._processor_processing_params['n_jobs']
+        kwargs['cache_size'] = self._processor_processing_params['cache_size']
 
+        # Get the results of the first chunk to initialize dimensions of the solution matrices
         # Get first chunk and fit the parameters
         chunk = chunks.next()
 
@@ -221,7 +332,6 @@ class Processor(object):
         rpdims = tuple(pparams.shape[:-3] + dims)
 
         # Initialize solution matrices
-        # fitting_scores = np.zeros(dims, dtype = np.float64)
         correction_parameters = np.zeros(cpdims, dtype=np.float64)
         prediction_parameters = np.zeros(rpdims, dtype=np.float64)
 
@@ -229,8 +339,6 @@ class Processor(object):
         dx, dy, dz = cparams.shape[-3:]
         correction_parameters[:, :dx, :dy, :dz] = cparams
         prediction_parameters[:, :dx, :dy, :dz] = pparams
-        # unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(chunk.data, **evaluation_kwargs)
-        # fitting_scores[:dx, :dy, :dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
         # Update progress
         self.__processor_update_progress(prog_inc * dx * dy * dz)
@@ -253,10 +361,6 @@ class Processor(object):
             # Get the optimal parameters and insert them in the solution matrices
             correction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.correction_parameters
             prediction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.prediction_parameters
-
-            # Evaluate the fit for the voxels in this chunk and store them
-            # unfiltered_fitting_scores = self._processor_fitter.evaluate_fit(cdata, **evaluation_kwargs)
-            # fitting_scores[x:x+dx, y:y+dy, z:z+dz] = [[[elem if np.isfinite(elem) else 0.0 for elem in row] for row in mat] for mat in unfiltered_fitting_scores]
 
             # Update progress
             self.__processor_update_progress(prog_inc * dx * dy * dz)
@@ -310,25 +414,50 @@ class Processor(object):
         """
         return prediction_parameters, correction_parameters
 
-    # TODO: Document properly
+    # TODO: Document
     def __curve__(self, fitter, predictor, prediction_parameters):
-        '''Computes a prediction from the predictor and the prediction_parameters. If not overridden, this method
-            calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
-            as they are. Please, override this method if this is not the desired behavior.
-            This method is not intended to be called outside the Processor class.
+        """
+        Computes a prediction from the predictor and the prediction_parameters. If not overridden, this method
+        calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
+        as they are. Please, override this method if this is not the desired behavior.
+        This method is not intended to be called outside the Processor class
 
+        Parameters
+        ----------
+        fitter
+        predictor
+        prediction_parameters
 
-        '''
+        Returns
+        -------
+
+        """
         return fitter.predict(predictor, prediction_parameters)
 
-    # TODO: Document properly
-    def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None, tpoints=20):
-        '''Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
-            a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
-            one predictor).
+    # TODO: Document
+    def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None, tpoints=50):
+        """
+        Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
+        a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
+        one predictor)
 
+        Parameters
+        ----------
+        prediction_parameters
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+        t1
+        t2
+        tpoints
 
-        '''
+        Returns
+        -------
+
+        """
         if x2 is None:
             x2 = prediction_parameters.shape[-3]
         if y2 is None:
@@ -355,21 +484,51 @@ class Processor(object):
 
         return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
 
-    # TODO: Document properly
+    # TODO: Document
     def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        fitter
+        observations
+        correction_parameters
+        args
+        kwargs
+
+        Returns
+        -------
+
+        """
         return fitter.correct(observations=observations, correction_parameters=correction_parameters)
 
-    # TODO: Document properly
+    # TODO: Document
     def corrected_values(self, correction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, origx=0, origy=0,
-                         origz=0, mem_usage=None, *args, **kwargs):
-        '''x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
-            in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
-            which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond.
-        '''
+                         origz=0, *args, **kwargs):
+        """
+        x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
+        in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
+        which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond
 
-        if not mem_usage is None:
-            self._processor_mem_usage = float(mem_usage)
+        Parameters
+        ----------
+        correction_parameters
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+        origx
+        origy
+        origz
+        args
+        kwargs
 
+        Returns
+        -------
+
+        """
         if x2 is None:
             x2 = correction_parameters.shape[-3]
         if y2 is None:
@@ -387,7 +546,7 @@ class Processor(object):
         z2 += origz
 
         chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=self._processor_mem_usage)
+                                      mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
@@ -412,13 +571,26 @@ class Processor(object):
 
         return corrected_data
 
-    def gm_values(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, mem_usage=None):
+    # TODO Document
+    def gm_values(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None):
+        """
 
-        if not mem_usage is None:
-            self._processor_mem_usage = float(mem_usage)
 
+        Parameters
+        ----------
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+
+        Returns
+        -------
+
+        """
         chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=self._processor_mem_usage)
+                                      mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
@@ -441,9 +613,37 @@ class Processor(object):
     # TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
     # since such values affect the values inside the region (if not considered, the clusters could potentially
     # seem smaller and thus be filtered accordingly)
+    # TODO Document
     def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0,
                      y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
-                     default_value=0.0, mem_usage=None, *args, **kwargs):
+                     default_value=0.0, *args, **kwargs):
+        """
+
+
+        Parameters
+        ----------
+        evaluation_function
+        correction_parameters
+        prediction_parameters
+        x1
+        x2
+        y1
+        y2
+        z1
+        z2
+        origx
+        origy
+        origz
+        gm_threshold
+        filter_nans
+        default_value
+        args
+        kwargs
+
+        Returns
+        -------
+
+        """
         # Preprocess parameters
         orig_pparams = prediction_parameters
         prediction_parameters, correction_parameters = self.__pre_process__(
@@ -454,8 +654,6 @@ class Processor(object):
         )
 
         # Evaluate fitting from pre-processed parameters
-        if mem_usage is None:
-            mem_usage = self._processor_mem_usage
 
         if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
                 prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
@@ -480,14 +678,16 @@ class Processor(object):
         z2 += origz
 
         chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=mem_usage)
+                                      mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         # Initialize solution matrix
         fitting_scores = np.zeros(dims, dtype=np.float64)
 
-        if not gm_threshold is None:
-            gm_threshold *= chunks.num_subjects  # Instead of comparing the mean to the original gm_threshold, we compare the sum to such gm_threshold times the number of subjects
+        if gm_threshold is not None:
+            # Instead of comparing the mean to the original gm_threshold,
+            # we compare the sum to such gm_threshold times the number of subjects
+            gm_threshold *= chunks.num_subjects
             invalid_voxels = np.zeros(fitting_scores.shape, dtype=np.bool)
 
         # Initialize progress
@@ -507,7 +707,7 @@ class Processor(object):
             cdata = chunk.data
             dx, dy, dz = cdata.shape[-3:]
 
-            if not gm_threshold is None:
+            if gm_threshold is not None:
                 invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
 
             # Create auxiliar structure to access chunk data inside the evaluation function
@@ -559,14 +759,30 @@ class Processor(object):
             fitting_scores[~np.isfinite(fitting_scores)] = default_value
 
         # Filter by gray-matter threshold
-        if not gm_threshold is None:
+        if gm_threshold is not None:
             fitting_scores[invalid_voxels] = default_value
 
         return fitting_scores
 
+    # TODO Document
     @staticmethod
     def clusterize(fitting_scores, default_value=0.0, fit_lower_threshold=None, fit_upper_threshold=None,
                    cluster_threshold=None, produce_labels=False):
+        """
+
+        Parameters
+        ----------
+        fitting_scores
+        default_value
+        fit_lower_threshold
+        fit_upper_threshold
+        cluster_threshold
+        produce_labels
+
+        Returns
+        -------
+
+        """
 
         fitscores = np.ones(fitting_scores.shape, dtype=np.float64) * default_value
         if produce_labels:
@@ -591,10 +807,25 @@ class Processor(object):
         else:
             return fitscores
 
-    # TODO: define more of these?
-
+    # TODO Document
     @staticmethod
     def __processor_get__(obtain_input_from, apply_function, try_ntimes, default_value, show_text, show_error_text):
+        """
+
+
+        Parameters
+        ----------
+        obtain_input_from
+        apply_function
+        try_ntimes
+        default_value
+        show_text
+        show_error_text
+
+        Returns
+        -------
+
+        """
         if try_ntimes <= 0:
             try_ntimes = -1
 
@@ -623,15 +854,32 @@ class Processor(object):
 
         return default_value
 
+    # TODO Document
     @staticmethod
-    def __getint__(
-            default_value=None,
-            try_ntimes=3,
-            lower_limit=None,
-            upper_limit=None,
-            show_text='Please, enter an integer number (or leave blank to set by default): ',
-            obtain_input_from=raw_input,
-    ):
+    def __getint__(default_value=None,
+                   try_ntimes=3,
+                   lower_limit=None,
+                   upper_limit=None,
+                   show_text='Please, enter an integer number (or leave blank to set by default): ',
+                   obtain_input_from=raw_input,
+                   ):
+        """
+
+
+        Parameters
+        ----------
+        default_value
+        try_ntimes
+        lower_limit
+        upper_limit
+        show_text
+        obtain_input_from
+
+        Returns
+        -------
+
+        """
+
         def nit(s, lower=lower_limit, upper=upper_limit):
             x = int(s)
             if (not (lower is None)) and x < lower:
@@ -649,15 +897,32 @@ class Processor(object):
             lambda e: 'Could not match input with integer number: ' + str(e)
         )
 
+    # TODO Document
     @staticmethod
-    def __getfloat__(
-            default_value=None,
-            try_ntimes=3,
-            lower_limit=None,
-            upper_limit=None,
-            show_text='Please, enter a real number (or leave blank to set by default): ',
-            obtain_input_from=raw_input,
-    ):
+    def __getfloat__(default_value=None,
+                     try_ntimes=3,
+                     lower_limit=None,
+                     upper_limit=None,
+                     show_text='Please, enter a real number (or leave blank to set by default): ',
+                     obtain_input_from=raw_input,
+                     ):
+        """
+
+
+        Parameters
+        ----------
+        default_value
+        try_ntimes
+        lower_limit
+        upper_limit
+        show_text
+        obtain_input_from
+
+        Returns
+        -------
+
+        """
+
         def olfat(s, lower=lower_limit, upper=upper_limit):
             x = float(s)
             if (not (lower is None)) and x < lower:
@@ -675,14 +940,29 @@ class Processor(object):
             lambda e: 'Could not match input with real number: ' + str(e)
         )
 
+    # TODO Document
     @staticmethod
-    def __getoneof__(
-            option_list,
-            default_value=None,
-            try_ntimes=3,
-            show_text='Please, select one of the following (enter index, or leave blank to set by default):',
-            obtain_input_from=raw_input,
-    ):
+    def __getoneof__(option_list,
+                     default_value=None,
+                     try_ntimes=3,
+                     show_text='Please, select one of the following (enter index, or leave blank to set by default):',
+                     obtain_input_from=raw_input,
+                     ):
+        """
+
+
+        Parameters
+        ----------
+        option_list
+        default_value
+        try_ntimes
+        show_text
+        obtain_input_from
+
+        Returns
+        -------
+
+        """
         opt_list = list(option_list)
         lol = len(opt_list)
         lslol = len(str(lol))
@@ -712,16 +992,33 @@ class Processor(object):
 
         return opt_list[index]
 
+    # TODO Document
     @staticmethod
-    def __getoneinrange__(
-            start,
-            end,
-            step=0,
-            default_value=None,
-            try_ntimes=3,
-            show_text='Please, enter a number in the range',
-            obtain_input_from=raw_input
-    ):
+    def __getoneinrange__(start,
+                          end,
+                          step=0,
+                          default_value=None,
+                          try_ntimes=3,
+                          show_text='Please, enter a number in the range',
+                          obtain_input_from=raw_input
+                          ):
+        """
+
+
+        Parameters
+        ----------
+        start
+        end
+        step
+        default_value
+        try_ntimes
+        show_text
+        obtain_input_from
+
+        Returns
+        -------
+
+        """
         if show_text == 'Please, enter a number in the range':
             show_text += ' [' + str(start) + ', ' + str(end) + ')'
             if step > 0:
@@ -747,13 +1044,27 @@ class Processor(object):
             lambda e: 'Could not read input value: ' + str(e)
         )
 
+    # TODO Document
     @staticmethod
-    def __getyesorno__(
-            default_value=None,
-            try_ntimes=3,
-            show_text='Select yes (Y/y) or no (N/n), or leave blank to set by default: ',
-            obtain_input_from=raw_input
-    ):
+    def __getyesorno__(default_value=None,
+                       try_ntimes=3,
+                       show_text='Select yes (Y/y) or no (N/n), or leave blank to set by default: ',
+                       obtain_input_from=raw_input
+                       ):
+        """
+
+
+        Parameters
+        ----------
+        default_value
+        try_ntimes
+        show_text
+        obtain_input_from
+
+        Returns
+        -------
+
+        """
         def yesorno(s2):
             s = s2.strip()
             if s == 'y' or s == 'Y':
@@ -780,7 +1091,6 @@ eval_func[Processor].bind(
     'xdiff',
     lambda self: self.fitting_results.xdiff
 )
-
 eval_func[Processor].bind(
     'corrected_data',
     lambda self: self.fitting_results.corrected_data

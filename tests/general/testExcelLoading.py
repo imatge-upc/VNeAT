@@ -1,7 +1,7 @@
 import yaml
 from os.path import join
 from Utils.ExcelIO import ExcelSheet
-from Utils.Subject import Participant
+from Utils.Subject import Subject
 
 # Load configuration
 CONFIG_PATH = join("..", "..", "config", "adContinuum.yaml")
@@ -54,7 +54,7 @@ try:
             # Category
             category = row[category_identifier] if category_identifier else 0
             # Create subject
-            subj = Participant(row[id_identifier], nifti_path, category=category)
+            subj = Subject(row[id_identifier], nifti_path, category=category)
             # Add prediction and correction parameters
             for param_name in fields_names:
                 subj.set_parameter(parameter_name=param_name, parameter_value=row[param_name])

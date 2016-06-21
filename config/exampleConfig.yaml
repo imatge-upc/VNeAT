@@ -48,15 +48,18 @@ model:
 processing_params:
 
   # Number of processes spanned to perform computational-heavy tasks, such as fitting.
+  # Default value: 4
   n_jobs: 4
 
   # Total amount of memory in MB used to get Chunks of gray matter data from all subjects
   # (as memory increases so does the number of voxels used in one chunck)
+  # Default value: 512
   mem_usage: 512
 
   # Total amount of memory in MB used to cache the Gramm matrices used in SVR fitting
   # (more memory implies a speed up in the SVR fitting process)
-  cache_size: 256
+  # Default value: 1024
+  cache_size: 1024
 
 # --------------------------------------------------------------------------------------------------------------------
 

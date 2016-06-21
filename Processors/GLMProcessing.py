@@ -310,6 +310,9 @@ class GLMProcessor(Processor):
         # Call the normal function with such parameters
         return glm.predict(prediction_parameters=pparams)
 
+    def get_name(self):
+        return 'GLM'
+
 
 GLMProcessor._glmprocessor_perp_norm_options = {GLMProcessor._glmprocessor_perp_norm_options_names[i]: i for i in
                                                 xrange(len(GLMProcessor._glmprocessor_perp_norm_options_names))}
@@ -563,6 +566,9 @@ class PolyGLMProcessor(Processor):
 
         # Call the normal function with such parameters
         return pglm.predict(prediction_parameters=pparams)
+
+    def get_name(self):
+        return 'PolyGLM'
 
 
 PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i]: i for i
