@@ -97,7 +97,7 @@ class DataLoader(object):
                 # Create path to nifti file
                 nifti_path = join(data_folder, study_prefix + str(row[id_identifier]) + extension)
                 # Category
-                category = row[category_identifier] if category_identifier else 0
+                category = row[category_identifier] if category_identifier else None
                 # Create subject
                 subj = Subject(row[id_identifier], nifti_path, category=category)
                 # Add prediction and correction parameters

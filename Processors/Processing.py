@@ -37,7 +37,7 @@ class Processor(object):
             return s
 
     def __init__(self, subjects, predictors_names, correctors_names, predictors, correctors,
-                 processing_parameters, user_defined_parameters=()):
+                 processing_parameters, user_defined_parameters=(), category=None):
         """
         Creates a Processor instance
 
@@ -61,8 +61,18 @@ class Processor(object):
         user_defined_parameters : [Optional] tuple
             Parameters passed to the processor. If a empty tuple is passed, the parameters are requested by input.
             Default value: ()
+        category : [Optional] String
+            Specifies the category for which the fitting should be done. If not specified or None, the fitting is
+            computed over all subjects.
+            Default value: None
         """
-        # Load subjects
+        # Filter subjects by category if needed
+        if category is not None:
+            all_indices = range(len(subjects))
+            category_indices = filter(lambda index: subjects[index].category == category, all_indices)
+            subjects = [subjects[i] for i in category_indices]
+            predictors = predictors[category_indices, :]
+            correctors = correctors[category_indices, :]
         self._processor_subjects = subjects
         # Load predictors and correctors' names
         self._processor_predictors_names = predictors_names

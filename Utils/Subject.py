@@ -7,7 +7,7 @@ class Subject(object):
     Class that represents a participant (or subject) in a study, and holds the information related to him/her.
     """
 
-    def __init__(self, participant_id, gmfile, category=0):
+    def __init__(self, participant_id, gmfile, category=None):
         """
         Initializes a participant
 
@@ -22,7 +22,7 @@ class Subject(object):
         """
         self._id = participant_id
         self._gmfile = str(gmfile)
-        self._category = int(category)
+        self._category = category
         self._parameters = {}
 
     @property
