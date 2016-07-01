@@ -40,7 +40,6 @@ model:
   # List of identifiers that should be used as correctors
   correctors_identifiers:
     - 'Gender(0=female)'
-    - 'Tot Intracranial Volume (mm^3)'
 
 # --------------------------------------------------------------------------------------------------------------------
 

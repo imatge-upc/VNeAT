@@ -29,13 +29,25 @@ if __name__ == '__main__':
         data_loader = None
         exit(1)
 
-    # Load all necessary data: subjects, predictors_names, correctors_names, predictors, correctors, processing_params
-    subjects = data_loader.get_subjects()
-    predictors_names = data_loader.get_predictors_names()
-    correctors_names = data_loader.get_correctors_names()
-    predictors = data_loader.get_predictors()
-    correctors = data_loader.get_correctors()
-    processing_parameters = data_loader.get_processing_parameters()
+    # Load all necessary data
+    try:
+        subjects = data_loader.get_subjects()
+        predictors_names = data_loader.get_predictors_names()
+        correctors_names = data_loader.get_correctors_names()
+        predictors = data_loader.get_predictors()
+        correctors = data_loader.get_correctors()
+        processing_parameters = data_loader.get_processing_parameters()
+        affine_matrix = data_loader.get_template_affine()
+        output_dir = data_loader.get_output_dir()
+    except KeyError:
+        print
+        print 'Configuration file does not have the specified format.'
+        print 'See config/exampleConfig.yaml for further information about the format of configuration ' \
+              'files'
+        subjects = predictors = correctors = None
+        predictors_names = correctors_names = None
+        processing_parameters = affine_matrix = output_dir = None
+        exit(1)
 
     # Create MixedProcessor instance
     processor = MixedProcessor(subjects,
@@ -52,7 +64,8 @@ if __name__ == '__main__':
 
     print
     print 'Storing user defined parameters...'
-    output_folder = path.join(data_loader.get_output_dir(), processor_name)
+    output_folder_name = '{}-{}'.format(prefix, processor_name) if prefix else processor_name
+    output_folder = path.join(output_dir, output_folder_name)
 
     # Check if directory exists
     if not path.isdir(output_folder):
@@ -60,7 +73,7 @@ if __name__ == '__main__':
         os.makedirs(output_folder)
 
     # Filename
-    udp_file = prefix + 'user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
+    udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
 
     with open(path.join(output_folder, udp_file), 'wb') as f:
         f.write(str(udp) + '\n')

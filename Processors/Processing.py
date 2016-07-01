@@ -73,6 +73,7 @@ class Processor(object):
             subjects = [subjects[i] for i in category_indices]
             predictors = predictors[category_indices, :]
             correctors = correctors[category_indices, :]
+        self._category = category
         self._processor_subjects = subjects
         # Load predictors and correctors' names
         self._processor_predictors_names = predictors_names
@@ -160,6 +161,18 @@ class Processor(object):
             Instance of CurveFitter subclass used by this processor
         """
         return self._processor_fitter
+
+    @property
+    def category(self):
+        """
+        Category with which the processor was initialized
+
+        Returns
+        -------
+        int
+            Numeric category if specified, otherwise None
+        """
+        return self._category
 
     def get_name(self):
         """
@@ -1075,6 +1088,7 @@ class Processor(object):
         -------
 
         """
+
         def yesorno(s2):
             s = s2.strip()
             if s == 'y' or s == 'Y':

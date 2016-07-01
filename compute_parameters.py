@@ -16,7 +16,7 @@ if __name__ == '__main__':
                                             ' or you can specify for which categories should the parameters be'
                                             ' computed ')
     arg_parser.add_argument('configuration_file', help='Path to the YAML configuration file'
-                                                       ' for this study')
+                                                       ' used to load the data for this study.')
     arg_parser.add_argument('--categories', nargs='+', type=int, help='Category or categories (as they are represented '
                                                                       'in the Excel file) for which the fitting '
                                                                       'parameters should be computed', )
@@ -41,7 +41,7 @@ if __name__ == '__main__':
         except IOError as ioe:
             print
             print 'The provided parameters file, ' + ioe.filename + ', does not exist.'
-            print 'Standard input will be used to configure the correction and prediction processors' \
+            print ' Standard input will be used to configure the correction and prediction processors' \
                   ' instead.'
             print
             udp = ()
@@ -71,13 +71,25 @@ if __name__ == '__main__':
         data_loader = None
         exit(1)
 
-    # Load all necessary data: subjects, predictors_names, correctors_names, predictors, correctors, processing_params
-    subjects = data_loader.get_subjects()
-    predictors_names = data_loader.get_predictors_names()
-    correctors_names = data_loader.get_correctors_names()
-    predictors = data_loader.get_predictors()
-    correctors = data_loader.get_correctors()
-    processing_parameters = data_loader.get_processing_parameters()
+    # Load all necessary data
+    try:
+        subjects = data_loader.get_subjects()
+        predictors_names = data_loader.get_predictors_names()
+        correctors_names = data_loader.get_correctors_names()
+        predictors = data_loader.get_predictors()
+        correctors = data_loader.get_correctors()
+        processing_parameters = data_loader.get_processing_parameters()
+        affine_matrix = data_loader.get_template_affine()
+        output_dir = data_loader.get_output_dir()
+    except KeyError:
+        print
+        print 'Configuration file does not have the specified format.'
+        print 'See config/exampleConfig.yaml for further information about the format of configuration ' \
+              'files'
+        subjects = predictors = correctors = None
+        predictors_names = correctors_names = None
+        processing_parameters = affine_matrix = output_dir = None
+        exit(1)
 
     """ PROCESSING """
     # Create MixedProcessor instance
@@ -99,14 +111,14 @@ if __name__ == '__main__':
         print 'Processing...'
         results = processor.process()
         print 'Done processing'
-        print
 
         correction_params = results.correction_parameters
         prediction_params = results.prediction_parameters
 
         """ STORE RESULTS """
         print 'Storing the results...'
-        output_folder = path.join(data_loader.get_output_dir(), processor_name)
+        output_folder_name = '{}-{}'.format(prefix, processor_name) if prefix else processor_name
+        output_folder = path.join(output_dir, output_folder_name)
 
         # Check if directory exists
         if not path.isdir(output_folder):
@@ -114,9 +126,9 @@ if __name__ == '__main__':
             os.makedirs(output_folder)
 
         # Filenames
-        udp_file = prefix + 'user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
-        p_file = prefix + 'prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
-        c_file = prefix + 'correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
+        udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
+        p_file = prefix + '-prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
+        c_file = prefix + '-correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
 
         # Save user defined parameters
         with open(path.join(output_folder, udp_file), 'wb') as f:
@@ -124,7 +136,6 @@ if __name__ == '__main__':
 
         # Save correction and prediction parameters
         niiImage = nib.Nifti1Image
-        affine_matrix = data_loader.get_template_affine()
         p_image = niiImage(prediction_params, affine_matrix)
         c_image = niiImage(correction_params, affine_matrix)
         nib.save(p_image, path.join(output_folder, p_file))
@@ -157,7 +168,12 @@ if __name__ == '__main__':
 
             """ STORE RESULTS """
             print 'Storing the results...'
-            output_folder = path.join(data_loader.get_output_dir(), processor_name + '_category-' + str(category))
+            output_folder_name = '{}-{}-category_{}'.format(
+                prefix,
+                processor_name,
+                category
+            ) if prefix else '{}-category_{}'.format(processor_name, category)
+            output_folder = path.join(output_dir, output_folder_name)
 
             # Check if directory exists
             if not path.isdir(output_folder):
@@ -165,9 +181,9 @@ if __name__ == '__main__':
                 os.makedirs(output_folder)
 
             # Filenames
-            udp_file = prefix + 'user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
-            p_file = prefix + 'prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
-            c_file = prefix + 'correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
+            udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
+            p_file = prefix + '-prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
+            c_file = prefix + '-correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
 
             # Save user defined parameters
             with open(path.join(output_folder, udp_file), 'wb') as f:
