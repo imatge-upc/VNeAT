@@ -4,10 +4,10 @@ from os.path import join
 import nibabel as nib
 from scipy.stats import norm
 
-import Utils.DataLoader as DataLoader
-from FitScores.FitEvaluation import ftest
-from Processors.MixedProcessor import MixedProcessor
-from Utils.Subject import Subject
+import src.Utils.DataLoader as DataLoader
+from src.FitScores.FitEvaluation import ftest
+from src.Processors.MixedProcessor import MixedProcessor
+from src.Utils.Subject import Subject
 from user_paths import RESULTS_DIR
 
 RESULTS_DIR = join(RESULTS_DIR, 'MIXED')

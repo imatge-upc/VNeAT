@@ -1,3 +1,4 @@
+from __future__ import print_function
 from argparse import ArgumentParser
 from glob import glob
 from os import path
@@ -91,12 +92,12 @@ if __name__ == '__main__':
     compare = arguments.compare
 
     """ LOAD DATA USING DATALOADER """
-    print 'Loading configuration data...'
+    print('Loading configuration data...')
     try:
         data_loader = DataLoader(config_file)
     except IOError as e:
-        print
-        print e.filename + ' does not exist.'
+        print()
+        print(e.filename + ' does not exist.')
         data_loader = None
         exit(1)
 
@@ -111,10 +112,10 @@ if __name__ == '__main__':
         affine_matrix = data_loader.get_template_affine()
         output_dir = data_loader.get_output_dir()
     except KeyError:
-        print
-        print 'Configuration file does not have the specified format.'
-        print 'See config/exampleConfig.yaml for further information about the format of configuration ' \
-              'files'
+        print()
+        print('Configuration file does not have the specified format.')
+        print('See config/exampleConfig.yaml for further information about the format of configuration '
+              'files')
         subjects = predictors = correctors = None
         predictors_names = correctors_names = None
         processing_parameters = affine_matrix = output_dir = None
@@ -128,8 +129,8 @@ if __name__ == '__main__':
 
     """ LOAD DATA TO SHOW CURVES """
     if dirs is None:
-        print 'Loading results data...'
-        print
+        print('Loading results data...')
+        print()
         # Find prediction parameters inside results folder
         pathname = path.join(output_dir, '**', '*prediction_parameters.nii.gz')
         for p in glob(pathname):
@@ -140,14 +141,14 @@ if __name__ == '__main__':
             processors.append(proc)
 
     else:
-        print 'Loading results data...'
-        print
+        print('Loading results data...')
+        print()
         for directory in dirs:
             full_path = path.join(output_dir, directory)
             pathname = glob(path.join(full_path, '*prediction_parameters.nii.gz'))
             # If there is no coincidence, ignore this directory
             if len(pathname) == 0:
-                print '{} does not exist or contain any result.'.format(full_path)
+                print('{} does not exist or contain any result.'.format(full_path))
                 continue
             n, pred_p, corr_p, proc = get_results_from_path(pathname[0])
             names.append(n)
@@ -156,7 +157,7 @@ if __name__ == '__main__':
             processors.append(proc)
 
     if len(processors) == 0:
-        print 'There are no results to be shown. Use compute_parameters.py first to generate them.'
+        print('There are no results to be shown. Use compute_parameters.py first to generate them.')
         exit(0)
 
     """ ASK USER FOR VOXEL """
@@ -165,30 +166,30 @@ if __name__ == '__main__':
             entry = raw_input('Write a tuple of mm coordinates (in MNI space) to display its curve '
                               '(or press Ctrl+D to exit): ')
         except EOFError:
-            print
-            print 'Program has finished.'
-            print
+            print()
+            print('Program has finished.')
+            print()
             break
         except Exception as e:
-            print '[ERROR] Unexpected error was found when reading input:'
-            print e
-            print
+            print('[ERROR] Unexpected error was found when reading input:')
+            print(e)
+            print()
             continue
         try:
             x, y, z = map(float, eval(entry))
         except (NameError, TypeError, ValueError, EOFError):
-            print '[ERROR] Input was not recognized'
-            print 'To display the voxel with coordinates (x, y, z), please enter \'x, y, z\''
-            print 'e.g., for voxel (57, 49, 82), type \'57, 49, 82\' (without inverted commas) as input'
-            print
+            print('[ERROR] Input was not recognized')
+            print('To display the voxel with coordinates (x, y, z), please enter \'x, y, z\'')
+            print('e.g., for voxel (57, 49, 82), type \'57, 49, 82\' (without inverted commas) as input')
+            print()
             continue
         except Exception as e:
-            print '[ERROR] Unexpected error was found when reading input:'
-            print e
-            print
+            print('[ERROR] Unexpected error was found when reading input:')
+            print(e)
+            print()
             continue
 
-        print 'Processing request... please wait'
+        print('Processing request... please wait')
 
         try:
             # Transform mm coordinates -> voxel coordinates using affine
@@ -201,7 +202,7 @@ if __name__ == '__main__':
             y = voxel_coordinates[1]
             z = voxel_coordinates[2]
 
-            print 'Voxel coordinates: {}, {}, {}'.format(x, y, z)
+            print('Voxel coordinates: {}, {}, {}'.format(x, y, z))
 
             color_counter = np.random.randint(0, len(AVAILABLE_COLORS) - 1)
             for i in range(len(processors)):
@@ -281,10 +282,10 @@ if __name__ == '__main__':
             if compare is not None:
                 plt.tight_layout()
                 plt.show()
-                print
+                print()
 
         except Exception as e:
-            print '[ERROR] Unexpected error occurred while computing and showing the results:'
-            print e
-            print
+            print('[ERROR] Unexpected error occurred while computing and showing the results:')
+            print(e)
+            print()
             continue

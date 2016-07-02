@@ -12,9 +12,11 @@ from user_paths import RESULTS_DIR
 
 
 class GridSearch(object):
-    """ Finds hyperparameters for a fitter using an exhaustive search over all the possible
-     values the parameters can take, and assessing their results with a variety of
-     score functions """
+    """
+    Finds hyperparameters for a fitter using an exhaustive search over all the possible
+    values the parameters can take, and assessing their results with a variety of
+    score functions
+    """
 
     def __init__(self, fitter, results_directory=RESULTS_DIR, n_jobs=4):
         """
@@ -58,6 +60,7 @@ class GridSearch(object):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
         value of all N iterations
+
         Parameters
         ----------
         grid_parameters : dict{param_name: param_values}
@@ -68,15 +71,16 @@ class GridSearch(object):
             Number of iterations
         m : int
             Number of randomly selected voxels (without repetition) for each iteration
-        score : Optional[function]
+        score : [Optional]function
             Score function used to decide the best selection of parameters.
             Default is MSE.
-        save_all_scores : Optional[boolean]
+        save_all_scores : [Optional]boolean
             Whether to save all scores for all possible combinations of parameters of each iteration.
             Default is False
-        filename : Optional[String]
+        filename : [Optional]String
             Name of the file where all the scores will be saved.
             Default is "xvalidation_scores".
+
         Returns
         -------
         dictionary{param_name: optimal_param_value}
