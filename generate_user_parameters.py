@@ -3,8 +3,8 @@ import os
 from argparse import ArgumentParser
 from os import path
 
-from Utils.DataLoader import DataLoader
-from Processors.MixedProcessor import MixedProcessor
+from src.Utils.DataLoader import DataLoader
+from src.Processors.MixedProcessor import MixedProcessor
 
 if __name__ == '__main__':
 

@@ -1,4 +1,4 @@
-from FitScores.FitEvaluation_v2 import evaluation_function as evaf
+from src.FitScores.FitEvaluation_v2 import evaluation_function as evaf
 
 
 @evaf

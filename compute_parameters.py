@@ -4,8 +4,8 @@ from argparse import ArgumentParser
 
 import nibabel as nib
 
-from Processors.MixedProcessor import MixedProcessor
-from Utils.DataLoader import DataLoader
+from src.Processors.MixedProcessor import MixedProcessor
+from src.Utils.DataLoader import DataLoader
 
 if __name__ == '__main__':
 

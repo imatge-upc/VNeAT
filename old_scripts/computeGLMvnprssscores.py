@@ -4,7 +4,7 @@ from os.path import join, isfile, basename
 import nibabel as nib
 import numpy as np
 
-from FitScores.FitEvaluation_v2 import vnprss
+from src.FitScores.FitEvaluation_v2 import vnprss
 from Processors.GLMProcessing import GLMProcessor as GLMP
 from scipy.stats import norm
 

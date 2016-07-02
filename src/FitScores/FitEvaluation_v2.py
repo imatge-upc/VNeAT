@@ -379,7 +379,7 @@ class evaluation_function(object):
                 s += desc[rd.name] + '\n'
             for name in self._forced:
                 s += '       [Forced]  ' + name + ': ' + (
-                'None\n' if getattr(self, name).__doc__ is None else getattr(self, name).__doc__) + '\n'
+                    'None\n' if getattr(self, name).__doc__ is None else getattr(self, name).__doc__) + '\n'
             s += '\n'
             s += 'Dependencies:'
             if len(self._dependencies) == 0:
@@ -388,7 +388,7 @@ class evaluation_function(object):
             for (alias, eval_func) in self._dependencies.iteritems():
                 salias = str(alias)
                 s += ' ' * (13 - len(salias)) + '[' + salias + ']  ' + (
-                'None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
+                    'None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
             s += '\n'
 
             return s
@@ -729,7 +729,9 @@ aic.requires('max_likelihood_value', 'The maximum value that the likelihood func
 
 @evaluation_function
 def prss(self, gamma):
-    """Evaluates the goodness of fit by means of the Penalized Residual Sum of Squares. In particular, this method
+    """
+    Evaluates the goodness of fit by means of the Penalized Residual Sum of Squares.
+       In particular, this method
         computes the following expression: PRSS = MSE + gamma*sum(d2(curve)/d(x2)), that is, the Mean Squared Error
         plus a penalization parameter (gamma) times an indicator of the abruptness of the curve (i.e., the integral
         of the second derivative of the curve in the region of interest).
@@ -751,9 +753,11 @@ def prss(self, gamma):
 
 
 prss.requires('curve',
-              'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable.')
+              'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in '
+              'each of T uniformly distributed points of the axis for each variable.')
 prss.requires('xdiff', 'Float indicating the separation between any two contiguous points of the axis.')
-# prss.implicit('mse', "Result of evaluating the 'mse' test on the target", lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))
+# prss.implicit('mse', "Result of evaluating the 'mse' test on the target",
+# lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))
 prss.uses(mse, 'mse')
 
 

@@ -3,10 +3,10 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Fitters.CurveFitting import CurveFitter
-from Fitters.SVR import GaussianSVR as GSVR
-from Utils.DataLoader import getGMData, getFeatures
-from Utils.Subject import Subject
+from src.Fitters.CurveFitting import CurveFitter
+from src.Fitters.SVR import GaussianSVR as GSVR
+from src.Utils.DataLoader import getGMData, getFeatures
+from src.Utils.Subject import Subject
 
 if __name__ == "__main__":
 

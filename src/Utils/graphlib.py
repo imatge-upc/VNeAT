@@ -19,7 +19,8 @@ class Graph(object):
 
     @abstractmethod
     def neighbours(self, node):
-        '''[Abstract Method] Given a node, generates/returns its neighbours.
+        '''
+        [Abstract Method] Given a node, generates/returns its neighbours.
         '''
         raise NotImplementedError
 

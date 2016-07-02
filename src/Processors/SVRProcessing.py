@@ -3,8 +3,8 @@ Processor for Support Vector Regression fitters
 """
 from numpy import zeros
 
-from Fitters.SVR import PolySVR, GaussianSVR
-from Processors.Processing import Processor
+from src.Fitters.SVR import PolySVR, GaussianSVR
+from src.Processors.Processing import Processor
 
 
 class PolySVRProcessor(Processor):
@@ -91,26 +91,30 @@ class PolySVRProcessor(Processor):
         )]
 
         # Treat data option
-        perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[super(PolySVRProcessor, self).__getoneof__(
-            PolySVRProcessor._psvrprocessor_perp_norm_options_names,
-            default_value='Use correctors and predictor as they are',
-            show_text='PolySVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
-        )]
+        perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[
+            super(PolySVRProcessor, self).__getoneof__(
+                PolySVRProcessor._psvrprocessor_perp_norm_options_names,
+                default_value='Use correctors and predictor as they are',
+                show_text='PolySVR Processor: How do you want to treat the features? '
+                          '(default: Use correctors and predictor as they are)'
+            )
+        ]
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
-            default_value=3.162,
+            default_value=1,
             try_ntimes=3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 3.162)'
+            show_text='PolySVR Processor: Please, enter the regularization parameter C (default: 1)'
         )
 
         # epsilon regularization parameter
         epsilon = super(PolySVRProcessor, self).__getfloat__(
-            default_value=0.16,
+            default_value=0.1,
             try_ntimes=3,
             lower_limit=0.0,
-            show_text='PolySVR Processor: Please, enter the epsilon-tube within which no penalty is associated in the training loss function (default: 0.16)'
+            show_text='PolySVR Processor: Please, enter the epsilon-tube within which no penalty is '
+                      'associated in the training loss function (default: 0.1)'
         )
 
         # Polynomial degrees
@@ -204,7 +208,8 @@ class GaussianSVRProcessor(Processor):
         self._gsvrprocessor_gamma = user_defined_parameters[4]
 
         # Orthonormalize/Orthogonalize/Do nothing options
-        treat_data = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_list[self._gsvrprocessor_perp_norm_option]
+        treat_data = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_list[
+            self._gsvrprocessor_perp_norm_option]
         # Intercept option
         intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options_list[self._gsvrprocessor_intercept]
 
@@ -235,31 +240,33 @@ class GaussianSVRProcessor(Processor):
             super(GaussianSVRProcessor, self).__getoneof__(
                 GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
                 default_value='Use correctors and predictor as they are',
-                show_text='GaussianSVR Processor: How do you want to treat the features? (default: Use correctors and predictor as they are)'
+                show_text='GaussianSVR Processor: How do you want to treat the features? '
+                          '(default: Use correctors and predictor as they are)'
             )]
 
         # C regularization parameter
         C = super(GaussianSVRProcessor, self).__getfloat__(
-            default_value=3.162,
+            default_value=1,
             try_ntimes=3,
             lower_limit=0.0,
-            show_text='GaussianSVR Processor: Please, enter the regularization parameter C (default: 3.162)'
+            show_text='GaussianSVR Processor: Please, enter the regularization parameter C (default: 1)'
         )
 
         # epsilon regularization parameter
         epsilon = super(GaussianSVRProcessor, self).__getfloat__(
-            default_value=0.08916,
+            default_value=0.1,
             try_ntimes=3,
             lower_limit=0.0,
-            show_text='GaussianSVR Processor: Please, enter the epsilon-tube within which no penalty is associated in the training loss function (default: 0.08916)'
+            show_text='GaussianSVR Processor: Please, enter the epsilon-tube within which no penalty '
+                      'is associated in the training loss function (default: 0.1)'
         )
 
         # gamma for Gaussian kernel
         gamma = super(GaussianSVRProcessor, self).__getfloat__(
-            default_value=0.25,
+            default_value=0.1,
             try_ntimes=3,
             lower_limit=0.0,
-            show_text='GaussianSVR Processor: Please, enter the gamma for the gaussian kernel (default: 0.25)'
+            show_text='GaussianSVR Processor: Please, enter the gamma for the gaussian kernel (default: 0.1)'
         )
 
         return intercept, perp_norm_option, C, epsilon, gamma

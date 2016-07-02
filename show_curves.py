@@ -6,8 +6,47 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
-from Processors.MixedProcessor import MixedProcessor
-from Utils.DataLoader import DataLoader
+from src.Processors.MixedProcessor import MixedProcessor
+from src.Utils.DataLoader import DataLoader
+
+""" FUNCTION DEFINITIONS """
+
+
+def get_results_from_path(pred_params_path):
+    # From path found by glob infer the paths to the other files
+    # (correction parameters and user defined parameters)
+    # and the name of the fitting method
+    folder_path, prediction_params_name = path.split(pred_params_path)
+    prefix = prediction_params_name.replace('prediction_parameters.nii.gz', '')
+    prediction_params_path = pred_params_path
+    correction_params_path = path.join(folder_path, '{}correction_parameters.nii.gz'.format(prefix))
+    udp_path = path.join(folder_path, '{}user_defined_parameters.txt'.format(prefix))
+    # Try to infer whether there is a curve for a category or not by folder name
+    folder_name = path.basename(folder_path)
+    if 'category' in folder_name:
+        cat = int(folder_name.split('-')[-1].split('_')[-1])
+        name = '-'.join(folder_name.split('-')[:-1])
+    else:
+        cat = None
+        name = folder_name
+    # Load niftis and txt files and keep them
+    with open(udp_path, 'rb') as udp_file:
+        udp = eval(udp_file.read())
+    pred_parameters = nib.load(prediction_params_path).get_data()
+    corr_parameters = nib.load(correction_params_path).get_data()
+    # Create MixedProcessor and keep it
+    processor = MixedProcessor(
+        subjects,
+        predictors_names,
+        correctors_names,
+        predictors,
+        correctors,
+        processing_parameters,
+        user_defined_parameters=udp,
+        category=cat
+    )
+    return name, pred_parameters, corr_parameters, processor
+
 
 if __name__ == '__main__':
 
@@ -82,47 +121,27 @@ if __name__ == '__main__':
         exit(1)
 
     # Lists to store the necessary data to show the curves
+    names = []
     prediction_parameters = []
     correction_parameters = []
     processors = []
 
+    """ LOAD DATA TO SHOW CURVES """
     if dirs is None:
-        """ LOAD DATA TO SHOW CURVES """
         print 'Loading results data...'
         print
         # Find prediction parameters inside results folder
         pathname = path.join(output_dir, '**', '*prediction_parameters.nii.gz')
         for p in glob(pathname):
-            # From prediction parameters path found by glob infer the paths to the other files
-            # (correction parameters and user defined parameters)
-            folder_path, prediction_params_name = path.split(p)
-            prefix = prediction_params_name.replace('prediction_parameters.nii.gz', '')
-            prediction_params_path = p
-            correction_params_path = path.join(folder_path, '{}correction_parameters.nii.gz'.format(prefix))
-            udp_path = path.join(folder_path, '{}user_defined_parameters.txt'.format(prefix))
-            # Try to predict whether there it is a curve for a category or not by folder name
-            folder_name = path.basename(folder_path)
-            if 'category' in folder_name:
-                category = int(folder_name.split('-')[-1].split('_')[-1])
-            else:
-                category = None
-            # Load niftis and txt files and keep them
-            with open(udp_path, 'rb') as udp_file:
-                udp = eval(udp_file.read())
-            prediction_parameters.append(nib.load(prediction_params_path).get_data())
-            correction_parameters.append(nib.load(correction_params_path).get_data())
-            # Create MixedProcessor and keep it
-            processors.append(MixedProcessor(
-                subjects,
-                predictors_names,
-                correctors_names,
-                predictors,
-                correctors,
-                processing_parameters,
-                user_defined_parameters=udp,
-                category=category
-            ))
+            n, pred_p, corr_p, proc = get_results_from_path(p)
+            names.append(n)
+            prediction_parameters.append(pred_p)
+            correction_parameters.append(corr_p)
+            processors.append(proc)
+
     else:
+        print 'Loading results data...'
+        print
         for directory in dirs:
             full_path = path.join(output_dir, directory)
             pathname = glob(path.join(full_path, '*prediction_parameters.nii.gz'))
@@ -130,36 +149,11 @@ if __name__ == '__main__':
             if len(pathname) == 0:
                 print '{} does not exist or contain any result.'.format(full_path)
                 continue
-            # From prediction parameters path found by glob infer the paths to the other files
-            # (correction parameters and user defined parameters)
-            folder_path, prediction_params_name = path.split(pathname[0])
-            prefix = prediction_params_name.replace('prediction_parameters.nii.gz', '')
-            prediction_params_path = pathname[0]
-            correction_params_path = path.join(folder_path, '{}correction_parameters.nii.gz'.format(prefix))
-            udp_path = path.join(folder_path, '{}user_defined_parameters.txt'.format(prefix))
-            # Try to predict whether there it is a curve for a category or not by folder name
-            folder_name = path.basename(folder_path)
-            if 'category' in folder_name:
-                category = int(folder_name.split('-')[-1].split('_')[-1])
-            else:
-                category = None
-            # Load niftis and txt files and keep them
-            with open(udp_path, 'rb') as udp_file:
-                udp = eval(udp_file.read())
-            prediction_parameters.append(nib.load(prediction_params_path).get_data())
-            correction_parameters.append(nib.load(correction_params_path).get_data())
-            # Create MixedProcessor and keep it
-            processors.append(MixedProcessor(
-                subjects,
-                predictors_names,
-                correctors_names,
-                predictors,
-                correctors,
-                processing_parameters,
-                user_defined_parameters=udp,
-                category=category
-            ))
-
+            n, pred_p, corr_p, proc = get_results_from_path(pathname[0])
+            names.append(n)
+            prediction_parameters.append(pred_p)
+            correction_parameters.append(corr_p)
+            processors.append(proc)
 
     if len(processors) == 0:
         print 'There are no results to be shown. Use compute_parameters.py first to generate them.'
@@ -207,7 +201,7 @@ if __name__ == '__main__':
             y = voxel_coordinates[1]
             z = voxel_coordinates[2]
 
-            print 'This is voxel ', x, y, z
+            print 'Voxel coordinates: {}, {}, {}'.format(x, y, z)
 
             color_counter = np.random.randint(0, len(AVAILABLE_COLORS) - 1)
             for i in range(len(processors)):
@@ -248,6 +242,7 @@ if __name__ == '__main__':
                 plt.plot(
                     axis,
                     curve[:, 0, 0, 0],
+                    label=names[i],
                     lw=2,
                     color=AVAILABLE_COLORS[color_counter]
                 )

@@ -5,7 +5,7 @@ import nibabel as nib
 import numpy as np
 from scipy.stats import norm
 
-from FitScores.FitEvaluation_v2 import ftest
+from src.FitScores.FitEvaluation_v2 import ftest
 from Processors.GLMProcessing import GLMProcessor as GLMP
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject

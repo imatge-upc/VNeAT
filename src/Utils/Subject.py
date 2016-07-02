@@ -1,5 +1,5 @@
 import numpy as np
-import niftiIO as nio
+import niftiIO
 
 
 class Subject(object):
@@ -149,7 +149,7 @@ class Chunks:
         if mem_usage is None:
             mem_usage = 512.0
         self._gmdata_readers = map(
-            lambda subject: nio.NiftiReader(subject.gmfile, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2), subject_list)
+            lambda subject: niftiIO.NiftiReader(subject.gmfile, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2), subject_list)
         self._dims = self._gmdata_readers[0].dims
         self._num_subjects = np.float64(len(self._gmdata_readers))
         self._iterators = map(lambda gmdata_reader: gmdata_reader.chunks(mem_usage / self._num_subjects),
@@ -170,4 +170,4 @@ class Chunks:
         reg = self._iterators[0].next()  # throws StopIteration if there are not more Chunks
         chunkset = [reg.data]
         chunkset += [it.next().data for it in self._iterators[1:]]
-        return nio.Region(reg.coords, np.array(chunkset, dtype=np.float64))
+        return niftiIO.Region(reg.coords, np.array(chunkset, dtype=np.float64))

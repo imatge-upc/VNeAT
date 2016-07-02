@@ -1,7 +1,7 @@
 import numpy as np
 
-from Fitters.GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
-from Processors.Processing import Processor
+from src.Fitters.GAM import GAM, InterceptSmoother, PolynomialSmoother, SplinesSmoother, SmootherSet
+from src.Processors.Processing import Processor
 
 
 class GAMProcessor(Processor):

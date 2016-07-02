@@ -8,9 +8,9 @@ from joblib import Parallel, delayed
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
-from Fitters.CurveFitting import AdditiveCurveFitter
-from Fitters.CurveFitting import CurveFitter
-from Utils.Transforms import polynomial
+from src.Fitters.CurveFitting import AdditiveCurveFitter
+from src.Fitters.CurveFitting import CurveFitter
+from src.Utils.Transforms import polynomial
 
 
 class LinSVR(AdditiveCurveFitter):
@@ -20,7 +20,7 @@ class LinSVR(AdditiveCurveFitter):
     """
 
     def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept,
-                 C=100, epsilon=0.1):
+                 C=1, epsilon=0.1):
         self._svr_C = C
         self._svr_epsilon = epsilon
         self._svr_intercept = intercept
@@ -243,7 +243,7 @@ class GaussianSVR(CurveFitter):
     """ GAUSSIAN SVR """
 
     def __init__(self, predictors=None, correctors=None, intercept=CurveFitter.NoIntercept,
-                 C=100, epsilon=0.1, gamma=0.5):
+                 C=1, epsilon=0.1, gamma=0.1):
         self._svr_intercept = intercept
         self._svr_C = C
         self._svr_epsilon = epsilon

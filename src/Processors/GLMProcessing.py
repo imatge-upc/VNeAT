@@ -1,7 +1,7 @@
 import numpy as np
 
-from Fitters.GLM import GLM, PolyGLM as PGLM
-from Processors.Processing import Processor
+from src.Fitters.GLM import GLM, PolyGLM as PGLM
+from src.Processors.Processing import Processor
 
 
 class GLMProcessor(Processor):

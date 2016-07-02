@@ -1,10 +1,10 @@
 import numpy as np
 
-from Fitters.CurveFitting import CombinedFitter
-from Processors.GAMProcessing import GAMProcessor
-from Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
-from Processors.Processing import Processor
-from Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
+from src.Fitters.CurveFitting import CombinedFitter
+from src.Processors.GAMProcessing import GAMProcessor
+from src.Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
+from src.Processors.Processing import Processor
+from src.Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
 
 
 class MixedProcessor(Processor):

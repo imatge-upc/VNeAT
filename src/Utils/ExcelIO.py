@@ -1,7 +1,7 @@
 from xlrd import open_workbook as open_wb
 from xlrd.sheet import ctype_text as type2text
 
-from Dictionaries import TransformedDict as tdict
+from Dictionaries import TransformedDict
 
 
 class ExcelSheet(object):
@@ -10,7 +10,7 @@ class ExcelSheet(object):
     file (.xls only).
     """
 
-    class Row(tdict):
+    class Row(TransformedDict):
         """
         Dictionary-like class that represents a row in an Excel sheet. Keys are
         both, case-insensitive and initial- and final-whitespace-insensitive.
@@ -20,10 +20,10 @@ class ExcelSheet(object):
             return key.strip().lower()
 
         def __repr__(self):
-            return 'ExcelRow( ' + tdict.__repr__(self) + ' )'
+            return 'ExcelRow( ' + TransformedDict.__repr__(self) + ' )'
 
         def __str__(self):
-            return 'ExcelRow( ' + tdict.__str__(self) + ' )'
+            return 'ExcelRow( ' + TransformedDict.__str__(self) + ' )'
 
     def __init__(self, filename, sheet_index=0, header_row=0):
         """
@@ -144,11 +144,11 @@ class ExcelSheet(object):
                 return
 
             # Set default start and end (if not already set)
-            if start == None:
+            if start is None:
                 start = self._header_row + 1
             elif start < 0:
                 start == 0
-            if end == None or end > ws.nrows:
+            if end is None or end > ws.nrows:
                 end = ws.nrows
 
             for i in xrange(start, end):

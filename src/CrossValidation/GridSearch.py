@@ -6,7 +6,7 @@ import matplotlib.pyplot as plot
 import numpy as np
 from matplotlib import cm
 
-import Utils.DataLoader as DataLoader
+import src.Utils.DataLoader as DataLoader
 import score_functions
 from user_paths import RESULTS_DIR
 

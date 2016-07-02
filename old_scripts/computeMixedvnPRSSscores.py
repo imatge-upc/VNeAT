@@ -5,7 +5,7 @@ import nibabel as nib
 import numpy as np
 
 import Utils.DataLoader as DataLoader
-from FitScores.FitEvaluation_v2 import vnprss
+from src.FitScores.FitEvaluation_v2 import vnprss
 from Processors.MixedProcessor import MixedProcessor
 from Utils.Subject import Subject
 from user_paths import RESULTS_DIR

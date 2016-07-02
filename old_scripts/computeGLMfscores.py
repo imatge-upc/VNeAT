@@ -4,7 +4,7 @@ from os.path import join, isfile, basename
 import nibabel as nib
 import numpy as np
 
-from FitScores.FitEvaluation_v2 import fstat
+from src.FitScores.FitEvaluation_v2 import fstat
 from Processors.GLMProcessing import GLMProcessor as GLMP
 from Utils.ExcelIO import ExcelSheet as Excel
 from Utils.Subject import Subject

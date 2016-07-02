@@ -2,11 +2,10 @@ from abc import ABCMeta, abstractmethod
 from sys import stdout
 
 import numpy as np
-
-import Utils.Subject
-from FitScores.FitEvaluation_v2 import evaluation_function as eval_func
-from Utils.Documentation import docstring_inheritor
-from Utils.graphlib import NiftiGraph
+from src.Utils.Subject import Chunks
+from src.FitScores.FitEvaluation_v2 import evaluation_function as eval_func
+from src.Utils.Documentation import docstring_inheritor
+from src.Utils.graphlib import NiftiGraph
 
 
 class Processor(object):
@@ -326,7 +325,7 @@ class Processor(object):
         -------
 
         """
-        chunks = Utils.Subject.Chunks(
+        chunks = Chunks(
             self._processor_subjects,
             x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
             mem_usage=self._processor_processing_params['mem_usage']
@@ -568,7 +567,7 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
@@ -612,7 +611,7 @@ class Processor(object):
         -------
 
         """
-        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
@@ -700,7 +699,7 @@ class Processor(object):
         z1 += origz
         z2 += origz
 
-        chunks = Utils.Subject.Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                                       mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
