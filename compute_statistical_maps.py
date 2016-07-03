@@ -279,10 +279,12 @@ if __name__ == '__main__':
             print("{} progress: ".format(method),)
             try:
                 results = compute_fitting_scores(proc, method, pred_p, corr_p, cluster_size,
-                                                 p_thresholds, gamma, percentile_filter, gm_threshold, labels,
-                                                 processing_parameters['mem_usage'])
+                                                 p_thresholds, gamma, percentile_filter, gm_threshold,
+                                                 labels, processing_parameters['mem_usage'])
             except RuntimeError:
-                print('{} is not supported by this fitter. Try another fit evaluation method.'.format(method))
+                print('{} is not supported by this fitter. Try another fit evaluation method.'.
+                      format(method)
+                      )
                 continue
             print('Storing fitting results')
             folder_name = path.split(pathname[0])[0]
