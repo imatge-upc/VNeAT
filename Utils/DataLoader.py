@@ -88,6 +88,8 @@ def getFeatures(features_array):
     subjects = getSubjects(False)
     return np.array(map(lambda subject: subject.get(features_array), subjects), dtype=np.float64)
 
+def getMNITemplate():
+    return nib.load(MNI_TEMPLATE).get_data()
 
 def getMNIAffine():
     return nib.load(MNI_TEMPLATE).affine

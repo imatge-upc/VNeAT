@@ -347,11 +347,14 @@ class Processor(object):
             preds = np.sort(np.squeeze(self._processor_predictors))[:, np.newaxis]
         else:
             preds = np.zeros((tpoints, 1), dtype=np.float64)
-            step = float(t2 - t1) / (tpoints - 1)
-            t = t1
-            for i in xrange(tpoints):
-                preds[i][0] = t
-                t += step
+            if tpoints == 1:
+                preds[0][0] = t1
+            elif tpoints > 1:
+                step = float(t2 - t1) / (tpoints - 1)
+                t = t1
+                for i in xrange(tpoints):
+                    preds[i][0] = t
+                    t += step
 
         return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
 

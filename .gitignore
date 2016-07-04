@@ -3,6 +3,7 @@ data/*
 *.pyc
 .DS_STORE
 *.nii
+*.nii.gz
 *.txt
 *.csv
 !requirements.txt

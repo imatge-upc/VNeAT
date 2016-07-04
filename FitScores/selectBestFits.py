@@ -11,13 +11,13 @@ fitting_scores = []
 # Append all files to be compared (must have same dimensions)
 
 # Files generated with GLM
-GLM_DIR = join(RESULTS_DIR, 'MIXED', 'PGLM-PGLM')
+# GLM_DIR = join(RESULTS_DIR, 'MIXED', 'PGLM-PGLM')
 # fitting_scores.append(join(GLM_DIR, 'glm_all_fitscores.nii'))
-# fitting_scores.append(join(GLM_DIR, 'glm_linear_fitscores.nii'))
+fitting_scores.append(join(GLM_DIR, 'glm_linear_fitscores.nii'))
 # fitting_scores.append(join(GLM_DIR, 'glm_nonlinear_fitscores.nii'))
-# fitting_scores.append(join(GLM_DIR, 'glm_quadratic_fitscores.nii'))
-# fitting_scores.append(join(GLM_DIR, 'glm_cubic_fitscores.nii'))
-fitting_scores.append(join(GLM_DIR, 'pglm_pglm_fitscores.nii'))
+fitting_scores.append(join(GLM_DIR, 'glm_quadratic_fitscores.nii'))
+fitting_scores.append(join(GLM_DIR, 'glm_cubic_fitscores.nii'))
+# fitting_scores.append(join(GLM_DIR, 'pglm_pglm_fitscores.nii'))
 
 # Files generated with GAM
 # GAM_DIR = join('results', 'GAM')

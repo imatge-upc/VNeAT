@@ -13,7 +13,7 @@ from Utils.Subject import Subject
 from user_paths import DATA_DIR, EXCEL_FILE
 
 filename_prefix = join('results', 'GLM', 'glm_all_')
-gamma = 3e-4
+gamma = 4e-4
 percentile = 5e-3 # over 1
 pvalue = 0.001 # threshold for visualization transformation
 
