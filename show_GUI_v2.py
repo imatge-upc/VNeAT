@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D as mplline
+import matplotlib.cm as cm
 import numpy as np
 
 
@@ -89,17 +90,29 @@ class FSLView(object):
 #    def __axes_leave_event__(self, event):
 #        print 'Axis left!', event
 
-    @staticmethod
-    def __axial_cut__(image, voxel):
-        return np.fliplr(image[:, :, voxel[2]]).T
+    def __axial_cut__(self, voxel):
+        image = self._rgba_image
+        channels = image.shape[3]
+        cut = np.zeros((image.shape[1], image.shape[0], channels))
+        for i in xrange(channels):
+            cut[:, :, i] = np.fliplr(image[:, :, voxel[2], i]).T
+        return cut
 
-    @staticmethod
-    def __sagittal_cut__(image, voxel):
-        return np.fliplr(np.fliplr(image[voxel[0], :, :]).T)
+    def __sagittal_cut__(self, voxel):
+        image = self._rgba_image
+        channels = image.shape[3]
+        cut = np.zeros((image.shape[2], image.shape[1], channels))
+        for i in xrange(channels):
+            cut[:, :, i] = np.fliplr(np.fliplr(image[voxel[0], :, :, i]).T)
+        return cut
 
-    @staticmethod
-    def __coronal_cut__(image, voxel):
-        return np.fliplr(image[:, voxel[1], :]).T
+    def __coronal_cut__(self, voxel):
+        image = self._rgba_image
+        channels = image.shape[3]
+        cut = np.zeros((image.shape[2], image.shape[0], channels))
+        for i in xrange(channels):
+            cut[:, :, i] = np.fliplr(image[:, voxel[1], :, i]).T
+        return cut
 
     def __update_views__(self, new_voxel):
         if new_voxel is None or new_voxel == self._current_voxel:
@@ -110,8 +123,7 @@ class FSLView(object):
         for i in xrange(len(axes)):
             ax, cut = axes[i]
             ax.clear()
-            for img, cmap in [(self._template, self._template_cmap)] + self._images:
-                ax.imshow(cut(img, new_voxel), norm=mpl.colors.Normalize(vmin=0.0, vmax=1.0), cmap=cmap, interpolation='nearest')
+            ax.imshow(cut(new_voxel), interpolation='nearest')
 
             (xdata, ydata), (width, height) = xydata[i]
             ax.add_line(mplline(xdata=[0, width], ydata=[ydata, ydata], linewidth=1, color='green'))
@@ -161,7 +173,6 @@ class FSLView(object):
         effective_width = 1. - outer_padding[0] - outer_padding[1] - inner_padding[0]
         effective_height = 1. - outer_padding[2] - outer_padding[3] - inner_padding[1]
 
-
         width1 = self._template.shape[0]*effective_width/total_width
         width2 = effective_width - width1
 
@@ -178,6 +189,25 @@ class FSLView(object):
         for ax in self._ax[0,0], self._ax[0,1], self._ax[1,0]:
             ax.set_xticks([])
             ax.set_yticks([])
+
+
+        cmap = cm.get_cmap(self._template_cmap)
+        self._rgba_image = cmap(self._template)
+
+        for img, cmap in self._images:
+            cmap = cm.get_cmap(cmap)
+            img = cmap(img)
+
+            Cfg, Afg = img[:, :, :, :3], img[:, :, :, 3]
+            Cbg, Abg = self._rgba_image[:, :, :, :3], self._rgba_image[:, :, :, 3]
+
+            Ar = Afg + Abg*(1 - Afg)
+            Cr = np.zeros(Cbg.shape)
+            for c in xrange(Cr.shape[3]):
+                Cr[:, :, :, c] = Cfg[:, :, :, c]*Afg + Cbg[:, :, :, c]*Abg*(1 - Afg)/Ar
+
+            self._rgba_image[:, :, :, :3] = Cr
+            self._rgba_image[:, :, :,  3] = Ar
 
 #       self._figure, self._ax = plt.subplots(2, 2, gridspec_kw = {'height_ratios':[1, 1]})
 
