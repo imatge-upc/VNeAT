@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     argument_parser = ArgumentParser(description='Generates user defined parameters for a '
                                                  'specific correction and prediction processor'
-                                                 ' so you can use them in compute_parameters.py'
+                                                 ' so you can use them in compute_fitting.py'
                                                  ' using the --parameters option')
 
     argument_parser.add_argument('configuration_file', help='Path to the YAML configuration file'

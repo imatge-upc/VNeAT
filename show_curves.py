@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     """ CLI ARGUMENTS """
     arguments_parser = ArgumentParser(description='Shows the curves for the fitting results computed by'
-                                                  ' compute_parameters.py. By default shows all computed'
+                                                  ' compute_fitting.py. By default shows all computed'
                                                   ' parameters inside the results folder specified in the'
                                                   ' configuration file')
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             processors.append(proc)
 
     if len(processors) == 0:
-        print('There are no results to be shown. Use compute_parameters.py first to generate them.')
+        print('There are no results to be shown. Use compute_fitting.py first to generate them.')
         exit(0)
 
     """ ASK USER FOR VOXEL """

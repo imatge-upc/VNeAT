@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
     """ CLI ARGUMENTS """
     arguments_parser = ArgumentParser(description='Computes statistical maps for the fitting results '
-                                                  ' computed by compute_parameters.py. By default '
+                                                  ' computed by compute_fitting.py. By default '
                                                   ' uses all computed parameters inside the results'
                                                   ' folder specified in the configuration file.')
 
