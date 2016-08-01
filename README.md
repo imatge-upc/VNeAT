@@ -4,7 +4,7 @@ This software provides the tools to analyze the (potentially non-linear)
 dynamics of grey-matter and study the
 statistical significance of such dynamics.
 
-## What does this software offer to me?
+## What does this software offer?
 
 Several **fitting** methods, each with its pros and cons, that
 let you freely choose the ones that fit the most for your

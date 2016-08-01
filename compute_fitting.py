@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import nibabel as nib
 
 from src.Processors.MixedProcessor import MixedProcessor
-from src.Utils.DataLoader import DataLoader
+from src import helper_functions
 
 if __name__ == '__main__':
 
@@ -63,33 +63,8 @@ if __name__ == '__main__':
         udp = ()
 
     """ LOAD DATA USING DATALOADER """
-    try:
-        data_loader = DataLoader(config_file)
-    except IOError as e:
-        print
-        print e.filename + ' does not exist.'
-        data_loader = None
-        exit(1)
-
-    # Load all necessary data
-    try:
-        subjects = data_loader.get_subjects()
-        predictors_names = data_loader.get_predictors_names()
-        correctors_names = data_loader.get_correctors_names()
-        predictors = data_loader.get_predictors()
-        correctors = data_loader.get_correctors()
-        processing_parameters = data_loader.get_processing_parameters()
-        affine_matrix = data_loader.get_template_affine()
-        output_dir = data_loader.get_output_dir()
-    except KeyError:
-        print
-        print 'Configuration file does not have the specified format.'
-        print 'See config/exampleConfig.yaml for further information about the format of configuration ' \
-              'files'
-        subjects = predictors = correctors = None
-        predictors_names = correctors_names = None
-        processing_parameters = affine_matrix = output_dir = None
-        exit(1)
+    subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
+    affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
 
     """ PROCESSING """
     # Create MixedProcessor instance

@@ -8,7 +8,6 @@ from matplotlib import cm
 
 import src.Utils.DataLoader as DataLoader
 import score_functions
-from user_paths import RESULTS_DIR
 
 
 class GridSearch(object):
@@ -18,13 +17,13 @@ class GridSearch(object):
     score functions
     """
 
-    def __init__(self, fitter, results_directory=RESULTS_DIR, n_jobs=4):
+    def __init__(self, fitter, results_directory, n_jobs=4):
         """
 
         Parameters
         ----------
         fitter : Fitters.CurveFitter
-            Fitter instance whose hyperparams you want to find
+            Fitter instance whose hyperparameters you want to find
         results_directory : Optional[string]
             Path into the results directory where the file will be stored.
             Default is your RESULTS_DIR in user_paths
