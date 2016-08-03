@@ -225,8 +225,8 @@ if __name__ == '__main__':
                 label = 'Category {}'.format(cat) if cat is not None else 'All categories'
                 if plot_name == 'univariate_density':
                     x_series = pd.Series(data=x_data, name=x_option_input)
-                    sns.distplot(x_series, rug=True, label=label)
-                    plt.title(title)
+                    sns.distplot(x_series, rug=True)
+                    plt.title(' - '.join([title, label]))
                     plt.show()
                     print('__________________________________')
                     print()
@@ -237,7 +237,7 @@ if __name__ == '__main__':
                     }
                     xy_frame = pd.DataFrame(data=xy_data)
                     sns.jointplot(x=x_option_input, y=y_option_input, data=xy_frame, kind="kde")
-                    plt.title(title)
+                    plt.title(' - '.join([title, label]))
                     plt.show()
                     print('__________________________________')
                     print()
@@ -245,7 +245,7 @@ if __name__ == '__main__':
                     x_series = pd.Series(data=x_data, name=x_option_input)
                     sns.boxplot(data=x_series)
                     plt.ylabel(x_option_input)
-                    plt.title(title)
+                    plt.title(' - '.join([title, label]))
                     plt.show()
                     print('__________________________________')
                     print()
