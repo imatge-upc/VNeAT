@@ -4,12 +4,12 @@ from argparse import ArgumentParser
 from glob import glob
 from os import path
 
+import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 
 from src import helper_functions
-import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
@@ -28,7 +28,10 @@ if __name__ == '__main__':
     arguments_parser.add_argument('configuration_file', help="Path to the YAML configuration file"
                                                              " used to load the data for this study.")
     arguments_parser.add_argument('plot', choices=AVAILABLE_PLOTS,
-                                  help='Type of plot to be used.')
+                                  help='Type of plot to be used. For the categorical_boxplot it is'
+                                       ' assumed that the dirs specified belong to different categories'
+                                       ' of the data. Otherwise, only the last data retrieved from a'
+                                       ' a specific category will be taken into account.')
     arguments_parser.add_argument('--dirs', nargs='+', help='Specify one or several directories within the '
                                                             'results directory specified in the '
                                                             'configuration file from which the '
@@ -129,11 +132,24 @@ if __name__ == '__main__':
             y = voxel_coordinates[1]
             z = voxel_coordinates[2]
 
+            title = 'Voxel {}, {}, {}'.format(*mm_coordinates_prima[:-1])
             print('Voxel coordinates: {}, {}, {}'.format(x, y, z))
 
+            # Define a selected option for categorical boxplot, so that when the user selects a
+            # feature in the first loop it is remembered for the following loops
+            cat_boxplot_feature = False
+
+            # Define a dictionary to store the categorical data for categorical boxplot
+            cat_data_dict = {}
+
             for i in range(len(processors)):
-                print()
-                print('Processor {}'.format(processors[i].get_name()))
+                # Only plot processor name in plot methods different than categorical boxplot, as in the
+                # latter there will be no explicit iteration over processors. That is, the user
+                # selects the feature at the beginning of the iteration and the result is shown at the
+                # end of it, so there is no need for the user to know the current state of the iteration.
+                if plot_name != "categorical_boxplot":
+                    print()
+                    print('Processor {} ({} of {})'.format(processors[i].get_name(), i+1, len(processors)))
 
                 # Available x and y data
                 options = {
@@ -160,38 +176,49 @@ if __name__ == '__main__':
                 for ind, c_name in enumerate(correctors_names):
                     options[c_name] = processors[i].correctors[:, ind]
 
-                # Pretty-print option keys
+                """ ASK FOR INPUT """
                 print()
-                print('What do you want to have in the x-axis? ')
-                print('----------------')
-                print('    OPTIONS     ')
-                print('----------------')
-                for key in options:
-                    print(key)
-                while True:
-                    x_option_input = raw_input('Selected option: ')
-                    if x_option_input in options:
-                        break
-                    else:
-                        print('Invalid option. Try again.')
+                if plot_name == 'univariate_density' or plot_name == 'bivariate_density':
+                    print('What feature do you want to have in the x-axis? ')
+                elif (plot_name == 'boxplot') or (plot_name == 'categorical_boxplot' and not cat_boxplot_feature):
+                    print('What is the feature that you want to plot in a boxplot? ')
+
+                if plot_name != 'categorical_boxplot' or not cat_boxplot_feature:
+                    print()
+                    print('    OPTIONS     ')
+                    print()
+                    for key in options:
+                        print(key)
+                    print()
+                    while True:
+                        x_option_input = raw_input('Selected option: ')
+                        if x_option_input in options:
+                            break
+                        else:
+                            print('Invalid option. Try again.')
 
                 x_data = options[x_option_input]
 
-                print()
-                print('What do you want to have in the y-axis? ')
-                print('----------------')
-                print('    OPTIONS     ')
-                print('----------------')
-                for key in options:
-                    print(key)
-                while True:
-                    y_option_input = raw_input('Selected option: ')
-                    if y_option_input in options:
-                        break
-                    else:
-                        print('Invalid option. Try again.')
+                if plot_name == 'bivariate_density':
+                    print()
+                    print('What do you want to have in the y-axis? ')
+                    print('----------------')
+                    print('    OPTIONS     ')
+                    print('----------------')
+                    for key in options:
+                        print(key)
+                    while True:
+                        y_option_input = raw_input('Selected option: ')
+                        if y_option_input in options:
+                            break
+                        else:
+                            print('Invalid option. Try again.')
+                    y_data = options[y_option_input]
 
-                y_data = options[y_option_input]
+                elif plot_name == 'categorical_boxplot':
+                    # Put it to True in the first loop, so that subsequent loops are
+                    # performed without a blocking input request.
+                    cat_boxplot_feature = True
 
                 """ STATISTICAL PLOTS """
                 cat = processors[i].category
@@ -199,7 +226,10 @@ if __name__ == '__main__':
                 if plot_name == 'univariate_density':
                     x_series = pd.Series(data=x_data, name=x_option_input)
                     sns.distplot(x_series, rug=True, label=label)
+                    plt.title(title)
                     plt.show()
+                    print('__________________________________')
+                    print()
                 elif plot_name == 'bivariate_density':
                     xy_data = {
                         x_option_input: x_data,
@@ -207,14 +237,31 @@ if __name__ == '__main__':
                     }
                     xy_frame = pd.DataFrame(data=xy_data)
                     sns.jointplot(x=x_option_input, y=y_option_input, data=xy_frame, kind="kde")
+                    plt.title(title)
                     plt.show()
+                    print('__________________________________')
+                    print()
                 elif plot_name == 'boxplot':
-                    pass
+                    x_series = pd.Series(data=x_data, name=x_option_input)
+                    sns.boxplot(data=x_series)
+                    plt.ylabel(x_option_input)
+                    plt.title(title)
+                    plt.show()
+                    print('__________________________________')
+                    print()
                 elif plot_name == 'categorical_boxplot':
-                    pass
+                    cat_data_dict[label] = pd.Series(data=x_data, name=x_option_input)
                 else:
                     print('This plot option is not available.')
                     exit(1)
+
+            # Only for categorical boxplot do the plot at the end of the loop
+            if plot_name == 'categorical_boxplot':
+                categorical_data = pd.DataFrame(data=cat_data_dict)
+                sns.boxplot(data=categorical_data)
+                plt.ylabel(x_option_input)
+                plt.title(title)
+                plt.show()
 
         except Exception as e:
             print('[ERROR] Unexpected error occurred while computing and showing the results:')
