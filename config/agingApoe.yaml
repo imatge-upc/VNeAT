@@ -45,7 +45,51 @@ model:
 
 # --------------------------------------------------------------------------------------------------------------------
 
-# SECTION 3: PROCESSING PARAMETERS
+# SECTION 3: CONFIGURATION FOR FINDING HYPERPARAMETERS
+hyperparameters_finding:
+
+  # Find epsilon hyperparameter (can be used for PolySVR and GaussianSVR) ?
+  epsilon: Yes
+
+  # If epsilon is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  epsilon_values:
+    spacing: linear
+    method: deterministic
+    N: 15
+    start: 0.01
+    end: 0.2
+
+  # Find C (regularization) hyperparameter (can be used for PolySVR and GaussianSVR) ?
+  C: Yes
+
+  # If C is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  C_values:
+    spacing: logarithmic
+    method: random
+    N: 10
+    start: 0
+    end: 3
+
+  # Find gamma hyperparameter (can be used for GaussianSVR only) ?
+  gamma: Yes
+
+  # If gamma is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  gamma_values:
+    spacing: linear
+    method: random
+    N: 20
+    start: 0.1
+    end: 0.5
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 4: PROCESSING PARAMETERS
 processing_params:
 
   # Number of processes spanned to perform computational-heavy tasks, such as fitting.

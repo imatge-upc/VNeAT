@@ -2,9 +2,10 @@ from abc import ABCMeta, abstractmethod
 from sys import stdout
 
 import numpy as np
-from src.Utils.Subject import Chunks
+
 from src.FitScores.FitEvaluation_v2 import evaluation_function as eval_func
 from src.Utils.Documentation import docstring_inheritor
+from src.Utils.Subject import Chunks
 from src.Utils.graphlib import NiftiGraph
 
 
@@ -568,7 +569,7 @@ class Processor(object):
         z2 += origz
 
         chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=self._processor_processing_params['mem_usage'])
+                        mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
@@ -612,7 +613,7 @@ class Processor(object):
 
         """
         chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=self._processor_processing_params['mem_usage'])
+                        mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
@@ -700,7 +701,7 @@ class Processor(object):
         z2 += origz
 
         chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                                      mem_usage=self._processor_processing_params['mem_usage'])
+                        mem_usage=self._processor_processing_params['mem_usage'])
         dims = chunks.dims
 
         # Initialize solution matrix

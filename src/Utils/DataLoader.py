@@ -270,3 +270,55 @@ class DataLoader(object):
             Path to the output folder
         """
         return self._conf['output']['output_path']
+
+    def get_hyperparams_finding_configuration(self, fitting_method='PolySVR'):
+        """
+        Returns a GridSearch ready dictionary with the possible values for the specified hyperparameters
+
+        Returns
+        -------
+        Dictionary
+            The keys of the dictionary are the name of the hyperparameter and the values the numpy array
+            containing all the possible values amongst which the optimal will be found.
+        """
+
+        # Inner function
+        def get_hyperparams(hyperparams_dict, hyperparam_name):
+
+            identifier = '{}_values'.format(hyperparam_name)
+
+            start_val = hyperparams_config[identifier]['start']
+            end_val = hyperparams_config[identifier]['end']
+            N = hyperparams_config[identifier]['N']
+
+            if hyperparams_config[identifier]['spacing'] == 'logarithmic':
+                if hyperparams_config[identifier]['method'] == 'random':
+                    # Logarithmic spacing and random search
+                    hyperparams_dict[hyperparam_name] = np.sort([10 ** i for i in np.random.uniform(
+                        start_val, end_val, N
+                    )])
+                else:
+                    # Logarithmic spacing and deterministic search
+                    hyperparams_dict[hyperparam_name] = np.logspace(start_val, end_val, N)
+            else:
+                if hyperparams_config[identifier]['method'] == 'random':
+                    # Linear spacing and random search
+                    hyperparams_dict[hyperparam_name] = np.sort(np.random.uniform(
+                        start_val, end_val, N
+                    ))
+                else:
+                    # Logarithmic spacing and deterministic search
+                    hyperparams_dict[hyperparam_name] = np.linspace(start_val, end_val, N)
+
+        hyperparams_config = self._conf['hyperparameters_finding']
+        hyperparams_dict = {}
+        if hyperparams_config['epsilon']:
+            get_hyperparams(hyperparams_dict, 'epsilon')
+        if hyperparams_config['C']:
+            get_hyperparams(hyperparams_dict, 'C')
+        if fitting_method == 'GaussianSVR':
+            if hyperparams_config['gamma']:
+                get_hyperparams(hyperparams_dict, 'gamma')
+
+        return hyperparams_dict
+

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import csv
 import itertools as it
 from os.path import join
@@ -17,11 +19,12 @@ class GridSearch(object):
     score functions
     """
 
-    def __init__(self, fitter, results_directory, n_jobs=4):
+    def __init__(self, subjects, fitter, results_directory, n_jobs=4):
         """
-
         Parameters
         ----------
+        subjects : List
+            List of subjects from which the GM data is loaded
         fitter : Fitters.CurveFitter
             Fitter instance whose hyperparameters you want to find
         results_directory : Optional[string]
@@ -29,6 +32,7 @@ class GridSearch(object):
             Default is your RESULTS_DIR in user_paths
         """
         # Init
+        self._subjects = subjects
         self._fitter = fitter
         self._results_dir = results_directory
         self._n_jobs = n_jobs  # number of parallel jobs used to fit
@@ -46,13 +50,6 @@ class GridSearch(object):
 
         # Init gm threshold
         self._gm_threshold = 0.01  # grey matter threshold
-
-        # Get data from Excel and nii files
-        self._observations = DataLoader.getGMData(corrected_data=True)
-
-        # Dimensions
-        self._num_subjects = self._observations.shape[0]
-        self._X_dim, self._Y_dim, self._Z_dim = self._observations.shape[1:]
 
     def fit(self, grid_parameters, N, m, score=score_functions.mse,
             save_all_scores=False, filename="xvalidation_scores"):
@@ -111,11 +108,11 @@ class GridSearch(object):
         # Iterate N times
         for iteration in range(N):
 
-            print
-            print
-            print "-------------------------"
-            print "Iteration ", iteration + 1, "of ", N
-            print "-------------------------"
+            print()
+            print()
+            print("-------------------------")
+            print("Iteration {} of {}".format(iteration + 1, N))
+            print("-------------------------")
 
             # Select m voxels randomly
             m_counter = 0
@@ -143,6 +140,8 @@ class GridSearch(object):
             # Get gm from selected voxels
             current_observations = np.asarray([self._observations[:, voxel[0], voxel[1], voxel[2]] \
                                                for voxel in selected_voxels]).T
+            # Convert variances list to numpy array
+            variances = np.array(selected_voxels_var, dtype=np.float32)
 
             # Initialize progress for this iteration
             progress_counter = 0
@@ -151,8 +150,8 @@ class GridSearch(object):
                 # Create temporary dictionary to pass it to fitter as optional params
                 tmp_params = {self._param_names[i]: params[i] for i in range(len(params))}
                 # Show progress
-                print "\r",
-                print (float(progress_counter) / self._total_computations) * 100, "%",
+                print("\r", end="")
+                print((float(progress_counter) / self._total_computations) * 100, "%", end="")
                 # Fit data
                 self._fitter.fit(current_observations, n_jobs=self._n_jobs, **tmp_params)
                 # Predict data
@@ -161,10 +160,8 @@ class GridSearch(object):
                 df = self._fitter.df_prediction(current_observations)
                 # Score function
                 score_value = score(current_observations, predicted, df)
-                # Convert variances list to numpy array
-                vars = np.array(selected_voxels_var)
                 # Calculate total error (Score value weighted by the gm data variance)
-                tmp_error = np.sum(score_value / vars)
+                tmp_error = np.sum(score_value / variances)
 
                 # Update error and optimal params
                 if tmp_error < self._total_error:
@@ -195,6 +192,7 @@ class GridSearch(object):
     def store_results(self, filename, verbose=False):
         """
         Store optimal parameters found in fit method
+
         Parameters
         ----------
         filename : str
@@ -217,15 +215,15 @@ class GridSearch(object):
 
         # Print final results if verbose
         if verbose:
-            print
-            print
-            print string
-            print
+            print()
+            print()
+            print(string)
+            print()
 
     def plot_error(self):
         """
         Plots the error with respect to the first parameter (2D plot) if there is only one,
-        or the first two parameters (3D surface plot) if there are two or more parameters
+        or the first two parameters (3D surface plot) if there are two parameters
         """
         # Check if there is any error vector
         if len(self._errors_vector) == 0:
@@ -270,5 +268,27 @@ class GridSearch(object):
 
             plot.show()
         else:
-            print
-            print "Cannot draw the error curve or surface as there are more than 2 parameters"
+            print()
+            print("Cannot draw the error curve or surface as there are more than 2 parameters")
+
+    def __load_gm_values__(self):
+        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                        mem_usage=self._processor_processing_params['mem_usage'])
+        dims = chunks.dims
+
+        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
+
+        for chunk in chunks:
+            # Get relative (to the solution matrix) coordinates of the chunk
+            x, y, z = chunk.coords
+            x -= x1
+            y -= y1
+            z -= z1
+
+            # Get chunk data and its dimensions
+            cdata = chunk.data
+            dx, dy, dz = cdata.shape[-3:]
+
+            gm_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = cdata
+
+        return gm_data

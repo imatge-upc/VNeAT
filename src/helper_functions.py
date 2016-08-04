@@ -66,6 +66,43 @@ def load_data_from_config_file(config_file):
         exit(1)
 
 
+def load_hyperparams_from_config_file(config_file, fitting_method):
+    """
+    Loads all the data specified in the configuration file using src.Utils.DataLoader.DataLoader
+
+    Parameters
+    ----------
+    config_file : String
+        Path to the YAML configuration file that DataLoader uses to load the data
+    fitting_method : String
+        String that identifies the fitting method (PolySVR or GaussianSVR)
+
+    Returns
+    -------
+    Dictionary
+        The keys of the dictionary are the name of the hyperparameter and the values the numpy array
+        containing all the possible values amongst which the optimal will be found.
+    """
+    print('Loading hyperparams data...')
+    try:
+        data_loader = DataLoader(config_file)
+    except IOError as e:
+        print()
+        print(e.filename + ' does not exist.')
+        data_loader = None
+        exit(1)
+
+    # Load all necessary data:
+    try:
+        return data_loader.get_hyperparams_finding_configuration(fitting_method=fitting_method)
+    except KeyError:
+        print()
+        print('Configuration file does not have the specified format.')
+        print('See config/exampleConfig.yaml for further information about the format of configuration '
+              'files')
+        exit(1)
+
+
 def get_results_from_path(pred_params_path, subjects, predictors_names, correctors_names,
                           predictors, correctors, processing_parameters):
     """
