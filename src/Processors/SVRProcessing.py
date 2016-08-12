@@ -71,7 +71,7 @@ class PolySVRProcessor(Processor):
 
         # Instantiate a PolySVR
         psvr = PolySVR(features=features, predictors=range(num_regs), degrees=self._psvrprocessor_degrees,
-                       intercept=intercept)
+                       intercept=intercept, C=self._psvrprocessor_C, epsilon=self._psvrprocessor_epsilon)
         treat_data(psvr)
         return psvr
 

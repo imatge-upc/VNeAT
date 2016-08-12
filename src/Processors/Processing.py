@@ -138,6 +138,19 @@ class Processor(object):
         return self._processor_predictors
 
     @property
+    def image_shape(self):
+        """
+        Dimensions of the NIFTI images in voxels
+
+        Returns
+        -------
+        tuple
+            Tuple with the x, y and z dimensions of the NIFTI images
+        """
+        chunk = Chunks([self._processor_subjects[0]])
+        return chunk.dims
+
+    @property
     def progress(self):
         """
         Progress (percentage of data processed) of the last call to process. If it has not been called yet,

@@ -162,7 +162,11 @@ class LinSVR(AdditiveCurveFitter):
 class PolySVR(LinSVR):
     """ POLYNOMIAL SVR """
 
-    def __init__(self, features, predictors=None, degrees=None, intercept=CurveFitter.NoIntercept):
+    def __init__(self, features, predictors=None, degrees=None, intercept=CurveFitter.NoIntercept,
+                 C=1, epsilon=0.1):
+        self._svr_C = C
+        self._svr_epsilon = epsilon
+        self._svr_intercept = intercept
         # Check features matrix
         self._svr_features = np.array(features)
         if len(self._svr_features.shape) != 2:
@@ -236,7 +240,8 @@ class PolySVR(LinSVR):
             predictors = np.array(predictors).T
 
         # Instance a LinSVR (parent) with the expanded polynomial features
-        super(PolySVR, self).__init__(predictors, correctors, self._svr_intercept)
+        super(PolySVR, self).__init__(predictors, correctors, self._svr_intercept,
+                                      self._svr_C, self._svr_epsilon)
 
 
 class GaussianSVR(CurveFitter):

@@ -1,17 +1,26 @@
-import os
-import os.path as path
+from __future__ import print_function
+
 from argparse import ArgumentParser
 
-import nibabel as nib
+import os
 
 from src import helper_functions
 from src.Processors.SVRProcessing import GaussianSVRProcessor, PolySVRProcessor
+from src.CrossValidation.GridSearch import GridSearch
+from src.CrossValidation.score_functions import anova_error, mse, statisticC_p
 
 if __name__ == '__main__':
+
     """ CONSTANTS """
     AVAILABLE_FITTERS = {
         'PolySVR': PolySVRProcessor,
         'GaussianSVR': GaussianSVRProcessor
+    }
+
+    AVAILABLE_SCORES = {
+        'mse': mse,
+        'anova': anova_error,
+        'Cp': statisticC_p
     }
 
     """ PARSE ARGUMENTS FROM CLI """
@@ -22,9 +31,12 @@ if __name__ == '__main__':
                                                        ' used to load the data for this study.')
     arg_parser.add_argument('fitter', choices=AVAILABLE_FITTERS.keys(),
                             help='The fitter for which the hyperparameters should be found.')
+    arg_parser.add_argument('--error', choices=AVAILABLE_SCORES.keys(), default='anova',
+                            help='Error function to be minimized in order to find the optimal '
+                                 'hyperparameters.')
     arg_parser.add_argument('--iterations', '-i', type=int, default=5,
                             help='The number of iterations to perform.')
-    arg_parser.add_argument('--voxels', '-v', type=int, default=1000,
+    arg_parser.add_argument('--voxels', '-v', type=int, default=100,
                             help='The number of voxels to be used to compute the error and therefore'
                                  ' find the optimal hyperparameters. In general, more voxels used may'
                                  ' imply better generalization, but also more computation time and'
@@ -36,7 +48,10 @@ if __name__ == '__main__':
 
     arguments = arg_parser.parse_args()
     config_file = arguments.configuration_file
+    error_func = AVAILABLE_SCORES[arguments.error]
     fitter_name = arguments.fitter
+    N = arguments.iterations
+    m = arguments.voxels
     categories = arguments.categories
     prefix = arguments.prefix
 
@@ -45,16 +60,42 @@ if __name__ == '__main__':
     affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
     hyperparams_dict = helper_functions.load_hyperparams_from_config_file(config_file, fitter_name)
 
+    """ RESULTS DIRECTORY """
+    output_folder_name = '{}-{}-{}'.format(prefix, 'hyperparameters', fitter_name) if prefix \
+        else '{}-{}'.format('hyperparameters', fitter_name)
+    output_folder = os.path.join(output_dir, output_folder_name)
+
+    # Check if directory exists
+    if not os.path.isdir(output_folder):
+        # Create directory
+        os.makedirs(output_folder)
+
     """ PROCESSING """
-    # Create MixedProcessor instance
-    processor = AVAILABLE_FITTERS[fitter_name](subjects,
-                                               predictors_names,
-                                               correctors_names,
-                                               predictors,
-                                               correctors,
-                                               processing_parameters)
+    if categories is not None:
+        for category in categories:
+            # Create MixedProcessor instance
+            processor = AVAILABLE_FITTERS[fitter_name](subjects,
+                                                       predictors_names,
+                                                       correctors_names,
+                                                       predictors,
+                                                       correctors,
+                                                       processing_parameters,
+                                                       category=category)
+            # TODO
 
-    # Get fitter
-    fitter = processor.fitter
+            print('Done')
+    else:
+        processor = AVAILABLE_FITTERS[fitter_name](subjects,
+                                                   predictors_names,
+                                                   correctors_names,
+                                                   predictors,
+                                                   correctors,
+                                                   processing_parameters)
 
+        # Gridsearch
+        grid_search = GridSearch(processor, output_folder, n_jobs=processing_parameters['n_jobs'])
+        grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
+        grid_search.store_results('optimal_hyperparameters')
+        grid_search.plot_error('error_plot')
 
+        print('Done')

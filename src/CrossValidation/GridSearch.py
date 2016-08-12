@@ -2,13 +2,13 @@ from __future__ import print_function
 
 import csv
 import itertools as it
+import sys
 from os.path import join
 
 import matplotlib.pyplot as plot
 import numpy as np
 from matplotlib import cm
 
-import src.Utils.DataLoader as DataLoader
 import score_functions
 
 
@@ -19,21 +19,22 @@ class GridSearch(object):
     score functions
     """
 
-    def __init__(self, subjects, fitter, results_directory, n_jobs=4):
+    def __init__(self, processor, results_directory, voxel_offset=20, n_jobs=4):
         """
         Parameters
         ----------
-        subjects : List
-            List of subjects from which the GM data is loaded
-        fitter : Fitters.CurveFitter
-            Fitter instance whose hyperparameters you want to find
-        results_directory : Optional[string]
-            Path into the results directory where the file will be stored.
-            Default is your RESULTS_DIR in user_paths
+        processor : Processors.Processing
+            Processor instance with the fitter whose hyperparameters you want to find
+        voxel_offset : int
+            Number of voxels that will not be taken into account in all directions, both at the
+            beginning and at the end. That is, for a voxel offset of v, only the following voxels
+            will be taken into account: (v:x_dim-v, v:y_dim-v, v:z_dim-v)
+        results_directory : String
+            Path into the results directory where the file will be stored
         """
         # Init
-        self._subjects = subjects
-        self._fitter = fitter
+        self._processor = processor
+        self._fitter = processor.fitter
         self._results_dir = results_directory
         self._n_jobs = n_jobs  # number of parallel jobs used to fit
         self._total_error = 1000000000  # total error initialization
@@ -43,16 +44,34 @@ class GridSearch(object):
         self._optimal_params = {}  # optimal parameters
         self._N = 1  # number of iterations
         self._m = 1  # number of randomly selected voxels
-        self._num_params = 0  # number of parameters to use for
-        # plotting the error
-        self._errors_vector = []  # vector into which the errors
-        # are stored
+        self._num_params = 0  # number of parameters to use for plotting the error
+        self._errors_vector = []  # vector into which the errors are stored
 
         # Init gm threshold
-        self._gm_threshold = 0.01  # grey matter threshold
+        self._gm_threshold = 1e-6  # grey matter threshold
 
-    def fit(self, grid_parameters, N, m, score=score_functions.mse,
-            save_all_scores=False, filename="xvalidation_scores"):
+        # Image boundaries (in voxels)
+        self._img_shape = self._processor.image_shape
+        start_boundary = ()
+        end_boundary = ()
+        for dim in self._img_shape:
+            start_boundary += (voxel_offset,)
+            end_boundary += (dim - voxel_offset,)
+
+        # Observations
+        print()
+        print('Initializing GridSearch and loading observations...')
+        self._obs = self._processor.gm_values(
+            x1=start_boundary[0],
+            x2=end_boundary[0],
+            y1=start_boundary[1],
+            y2=end_boundary[1],
+            z1=start_boundary[2],
+            z2=end_boundary[2],
+        )
+        print('Done')
+
+    def fit(self, grid_parameters, N, m, score=score_functions.mse, filename="xvalidation_scores"):
         """
         Fits the data for all combinations of the params (cartesian product) and returns the optimal
         value of all N iterations
@@ -70,9 +89,6 @@ class GridSearch(object):
         score : [Optional]function
             Score function used to decide the best selection of parameters.
             Default is MSE.
-        save_all_scores : [Optional]boolean
-            Whether to save all scores for all possible combinations of parameters of each iteration.
-            Default is False
         filename : [Optional]String
             Name of the file where all the scores will be saved.
             Default is "xvalidation_scores".
@@ -99,8 +115,7 @@ class GridSearch(object):
             self._num_params = len(self._param_names)
 
         # Save all scores variable (if required)
-        if save_all_scores:
-            errors = [['Iteration'] + self._param_names + ['Error']]
+        errors = [['Iteration'] + self._param_names + ['Error']]
 
         # Pre-assign errors for N iterations
         self._errors_vector = [[] for _ in range(N)]
@@ -115,6 +130,9 @@ class GridSearch(object):
             print("-------------------------")
 
             # Select m voxels randomly
+            print()
+            print('Searching valid voxels...')
+            print()
             m_counter = 0
             selected_voxels = []
             selected_voxels_var = []
@@ -122,24 +140,30 @@ class GridSearch(object):
                 # Random voxel (uniform distribution,
                 # with prior knowledge of voxels without interest,
                 # thus limiting its span)
-                x = np.random.randint(10, 110)
-                y = np.random.randint(20, 130)
-                z = np.random.randint(30, 100)
+                x = np.random.randint(0, self._obs.shape[1])
+                y = np.random.randint(0, self._obs.shape[2])
+                z = np.random.randint(0, self._obs.shape[3])
                 voxel = (x, y, z)
-                obs = self._observations[:, x, y, z]
                 # Voxel variance
-                mean = np.sum(obs) / self._num_subjects
-                var = np.sum((obs - mean) ** 2) / (self._num_subjects - 1)
+                current_obs = self._obs[:, x, y, z]
+                var = np.var(current_obs)
                 # Filter out voxels with low data variance
                 if (var > self._gm_threshold) and (voxel not in selected_voxels):
                     # Select this voxel
                     selected_voxels.append(voxel)
                     selected_voxels_var.append(var)
                     m_counter += 1
+                    print("\r{} valid voxels of {}".format(m_counter, m), end="")
+                    sys.stdout.flush()
+            print()
+            print('Done')
+            print()
 
             # Get gm from selected voxels
-            current_observations = np.asarray([self._observations[:, voxel[0], voxel[1], voxel[2]] \
-                                               for voxel in selected_voxels]).T
+            current_observations = np.asarray(
+                [self._obs[:, voxel[0], voxel[1], voxel[2]] for voxel in selected_voxels]
+            ).T
+
             # Convert variances list to numpy array
             variances = np.array(selected_voxels_var, dtype=np.float32)
 
@@ -150,8 +174,10 @@ class GridSearch(object):
                 # Create temporary dictionary to pass it to fitter as optional params
                 tmp_params = {self._param_names[i]: params[i] for i in range(len(params))}
                 # Show progress
+                current_progress = (float(progress_counter) / self._total_computations) * 100
+                current_progress_percentage = '{} %'.format(current_progress)
                 print("\r", end="")
-                print((float(progress_counter) / self._total_computations) * 100, "%", end="")
+                print(current_progress_percentage, end="")
                 # Fit data
                 self._fitter.fit(current_observations, n_jobs=self._n_jobs, **tmp_params)
                 # Predict data
@@ -171,25 +197,27 @@ class GridSearch(object):
                 # Store errors if it is the last iteration for posterior error plotting
                 self._errors_vector[iteration].append(tmp_error)
 
-                # Save score if required
-                if save_all_scores:
-                    l_params = map(lambda x: round(x, 2), list(params))
-                    errors.append([iteration + 1] + l_params + [round(tmp_error, 2)])
+                # Save scores
+                l_params = map(lambda x: round(x, 2), list(params))
+                errors.append(
+                    ['#{} / {}'.format(iteration + 1, current_progress_percentage)] +
+                    l_params +
+                    [round(tmp_error, 2)]
+                )
 
                 # Update progress
                 progress_counter += 1
 
         # Save scores to file if required
-        if save_all_scores:
-            with open(join(self._results_dir, filename + '.csv'), 'wb') as f:
-                writer = csv.writer(f, delimiter=";")
-                for row in errors:
-                    writer.writerow(row)
+        with open(join(self._results_dir, filename + '.csv'), 'wb') as f:
+            writer = csv.writer(f, delimiter=";")
+            for row in errors:
+                writer.writerow(row)
 
         # Return found optimal parameters
         return self._optimal_params
 
-    def store_results(self, filename, verbose=False):
+    def store_results(self, filename):
         """
         Store optimal parameters found in fit method
 
@@ -203,32 +231,44 @@ class GridSearch(object):
             Default is False.
         """
         # Create string to store
-        string = "m=" + str(self._m) + " randomly selected voxels, " + \
-                 "N=" + str(self._N) + " iterations, " + \
-                 "and total_error=" + str(self._total_error) + ":\n\n"
+        string = [
+            "m = {} randomly selected voxels".format(self._m),
+            "N = {} iterations".format(self._N),
+            "Total error = {}".format(self._total_error),
+            "",
+            " PARAMETERS",
+            " ---------- ",
+            ""
+        ]
         for key, value in self._optimal_params.iteritems():
-            string += str(key) + " --> " + str(value) + "\n"
+            string.append('{} --> {}'.format(key, value))
 
         # Store results
         with open(join(self._results_dir, filename + ".txt"), 'wb') as f:
-            f.write(string)
+            f.write("\n".join(string))
 
-        # Print final results if verbose
-        if verbose:
-            print()
-            print()
-            print(string)
-            print()
+        print()
+        print()
+        print(string)
+        print()
 
-    def plot_error(self):
+    def plot_error(self, plot_name):
         """
         Plots the error with respect to the first parameter (2D plot) if there is only one,
         or the first two parameters (3D surface plot) if there are two parameters
+
+        Parameters
+        ------
+        plot_name : String
+            Name that will be given to the PNG image stored with the plot
         """
         # Check if there is any error vector
         if len(self._errors_vector) == 0:
             raise Exception("There is no errors vector for this instace of GridSearch. "
                             "Please use the 'fit' method before using the 'plot_error' one")
+
+        # Path to store the plot
+        plot_path = join(self._results_dir, plot_name)
 
         # Convert it to numpy array
         self._errors_vector = np.asarray(self._errors_vector)
@@ -249,7 +289,8 @@ class GridSearch(object):
             plot.plot(x, y)
             plot.xlabel(self._param_names[0])
             plot.ylabel("error")
-            plot.show()
+            plot.savefig(plot_path)
+            plot.close()
         elif self._num_params == 2:
             # Get the meshgrid
             X = self._param_values[0]
@@ -266,29 +307,8 @@ class GridSearch(object):
                                    linewidth=0, antialiased=False)
             fig.colorbar(surf, shrink=0.5, aspect=5)
 
-            plot.show()
+            plot.savefig(plot_path)
+            plot.close()
         else:
             print()
             print("Cannot draw the error curve or surface as there are more than 2 parameters")
-
-    def __load_gm_values__(self):
-        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                        mem_usage=self._processor_processing_params['mem_usage'])
-        dims = chunks.dims
-
-        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
-
-        for chunk in chunks:
-            # Get relative (to the solution matrix) coordinates of the chunk
-            x, y, z = chunk.coords
-            x -= x1
-            y -= y1
-            z -= z1
-
-            # Get chunk data and its dimensions
-            cdata = chunk.data
-            dx, dy, dz = cdata.shape[-3:]
-
-            gm_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = cdata
-
-        return gm_data
