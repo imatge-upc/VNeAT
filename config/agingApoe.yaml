@@ -49,30 +49,32 @@ model:
 hyperparameters_finding:
 
   # Find epsilon hyperparameter (can be used for PolySVR and GaussianSVR) ?
-  epsilon: Yes
+  epsilon: No
 
   # If epsilon is used, use the start and end values specified below.
   # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
   # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  # Available methods: deterministic and random
   epsilon_values:
     spacing: linear
     method: deterministic
-    N: 15
-    start: 0.01
-    end: 0.2
+    N: 10
+    start: 0.05
+    end: 0.15
 
   # Find C (regularization) hyperparameter (can be used for PolySVR and GaussianSVR) ?
-  C: Yes
+  C: No
 
   # If C is used, use the start and end values specified below.
   # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
   # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  # Available methods: deterministic and random
   C_values:
     spacing: logarithmic
     method: random
-    N: 10
+    N: 2
     start: 0
-    end: 3
+    end: 1
 
   # Find gamma hyperparameter (can be used for GaussianSVR only) ?
   gamma: Yes
@@ -80,10 +82,11 @@ hyperparameters_finding:
   # If gamma is used, use the start and end values specified below.
   # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
   # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  # Available methods: deterministic and random
   gamma_values:
     spacing: linear
     method: random
-    N: 20
+    N: 5
     start: 0.1
     end: 0.5
 
@@ -93,7 +96,7 @@ hyperparameters_finding:
 processing_params:
 
   # Number of processes spanned to perform computational-heavy tasks, such as fitting.
-  n_jobs: 6
+  n_jobs: 4
 
   # Total amount of memory in MB used to get Chunks of gray matter data from all subjects
   # (as memory increases so does the number of voxels used in one chunck)

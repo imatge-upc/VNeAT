@@ -338,7 +338,7 @@ class GaussianSVR(CurveFitter):
         else:
             intercept = 0
 
-        training_examples = self.correctors[:, 1:]
+        training_examples = self.correctors
 
         # Correction
         correction = self.__predict_from_params__(correctors, correction_parameters,

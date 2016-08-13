@@ -2,9 +2,9 @@ from __future__ import print_function
 
 import csv
 import itertools as it
-import sys
 from os.path import join
 
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plot
 import numpy as np
 from matplotlib import cm
@@ -48,7 +48,7 @@ class GridSearch(object):
         self._errors_vector = []  # vector into which the errors are stored
 
         # Init gm threshold
-        self._gm_threshold = 1e-6  # grey matter threshold
+        self._gm_threshold = 0.01  # grey matter threshold
 
         # Image boundaries (in voxels)
         self._img_shape = self._processor.image_shape
@@ -69,7 +69,6 @@ class GridSearch(object):
             z1=start_boundary[2],
             z2=end_boundary[2],
         )
-        print('Done')
 
     def fit(self, grid_parameters, N, m, score=score_functions.mse, filename="xvalidation_scores"):
         """
@@ -132,7 +131,6 @@ class GridSearch(object):
             # Select m voxels randomly
             print()
             print('Searching valid voxels...')
-            print()
             m_counter = 0
             selected_voxels = []
             selected_voxels_var = []
@@ -154,9 +152,6 @@ class GridSearch(object):
                     selected_voxels_var.append(var)
                     m_counter += 1
                     print("\r{} valid voxels of {}".format(m_counter, m), end="")
-                    sys.stdout.flush()
-            print()
-            print('Done')
             print()
 
             # Get gm from selected voxels
@@ -176,7 +171,7 @@ class GridSearch(object):
                 # Show progress
                 current_progress = (float(progress_counter) / self._total_computations) * 100
                 current_progress_percentage = '{} %'.format(current_progress)
-                print("\r", end="")
+                print("\rProgress: ", end="")
                 print(current_progress_percentage, end="")
                 # Fit data
                 self._fitter.fit(current_observations, n_jobs=self._n_jobs, **tmp_params)
@@ -204,9 +199,14 @@ class GridSearch(object):
                     l_params +
                     [round(tmp_error, 2)]
                 )
-
                 # Update progress
                 progress_counter += 1
+
+            # Show final progress
+            current_progress = (float(progress_counter) / self._total_computations) * 100
+            current_progress_percentage = '{} %'.format(current_progress)
+            print("\rProgress: ", end="")
+            print(current_progress_percentage)
 
         # Save scores to file if required
         with open(join(self._results_dir, filename + '.csv'), 'wb') as f:
@@ -249,7 +249,7 @@ class GridSearch(object):
 
         print()
         print()
-        print(string)
+        print("\n".join(string))
         print()
 
     def plot_error(self, plot_name):
@@ -275,6 +275,11 @@ class GridSearch(object):
 
         # Filter nans
         without_nans = self._errors_vector[np.isfinite(self._errors_vector)]
+        if without_nans.size == 0:
+            print('There are no numeric errors. Try to change the search span of the hyperparameters '
+                  'so that the fitting is more accurate and the error function, therefore, returns '
+                  'numeric values.')
+            return
         self._errors_vector[~np.isfinite(self._errors_vector)] = without_nans.max()
 
         # Get the mean of the N iterations
