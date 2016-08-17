@@ -83,7 +83,7 @@ def load_hyperparams_from_config_file(config_file, fitting_method):
         The keys of the dictionary are the name of the hyperparameter and the values the numpy array
         containing all the possible values amongst which the optimal will be found.
     """
-    print('Loading hyperparams data...')
+    print('Loading hyperparameters data...')
     try:
         data_loader = DataLoader(config_file)
     except IOError as e:
@@ -95,6 +95,40 @@ def load_hyperparams_from_config_file(config_file, fitting_method):
     # Load all necessary data:
     try:
         return data_loader.get_hyperparams_finding_configuration(fitting_method=fitting_method)
+    except KeyError:
+        print()
+        print('Configuration file does not have the specified format.')
+        print('See config/exampleConfig.yaml for further information about the format of configuration '
+              'files')
+        exit(1)
+
+
+def load_template_from_config_file(config_file):
+    """
+    Loads the template used to co-register all the subjects from the configuration file
+
+    Parameters
+    ----------
+    config_file : String
+        Path to the YAML configuration file that DataLoader uses to load the data
+
+    Returns
+    -------
+    ndarray
+        3D numpy array with the template image
+    """
+    print('Loading template data...')
+    try:
+        data_loader = DataLoader(config_file)
+    except IOError as e:
+        print()
+        print(e.filename + ' does not exist.')
+        data_loader = None
+        exit(1)
+
+    # Load all necessary data:
+    try:
+        return data_loader.get_template()
     except KeyError:
         print()
         print('Configuration file does not have the specified format.')

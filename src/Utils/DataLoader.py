@@ -113,6 +113,18 @@ class DataLoader(object):
         # Return the cached subjects
         return self._cached_subjects
 
+    def get_template(self):
+        """
+        Returns the template specified in the configuration file
+
+        Returns
+        -------
+        ndarray
+            3D numpy array that contains the template image
+        """
+        template_path = self._conf['input']['template_file']
+        return nib.load(template_path).get_data()
+
     def get_template_affine(self):
         """
         Returns the affine matrix used to map between the template coordinates space and the voxel coordinates space
