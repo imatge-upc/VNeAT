@@ -161,7 +161,12 @@ class GLMProcessor(Processor):
         if 0 in correctors.shape:
             correctors = None
 
-        self._glmprocessor_glm = GLM(predictors=np.array(predictors).T, correctors=correctors, intercept=intercept)
+        if len(predictors) == 0:
+            predictors = None
+        else:
+            predictors = np.atleast_2d(predictors).T
+
+        self._glmprocessor_glm = GLM(predictors=predictors, correctors=correctors, intercept=intercept)
         self._glmprocessor_deorthonormalization_matrix = treat_data(self._glmprocessor_glm)
         return self._glmprocessor_glm
 
@@ -195,22 +200,6 @@ class GLMProcessor(Processor):
 
         BetaR_denorm = BetaR_denorm.reshape(prediction_parameters.shape)
         pparams = np.concatenate((prediction_parameters, BetaR_denorm), axis=0)
-
-        #        allparams = np.concatenate((results.correction_parameters, results.prediction_parameters), axis = 0)
-        #        allparams = allparams.reshape(allparams.shape[0], -1)
-        #
-        #        allparams_denorm = self._glmprocessor_compute_original_parameters(self._glmprocessor_deorthonormalization_matrix, allparams)
-        #        pparams = allparams_denorm[-(results.prediction_parameters.shape[0]):]
-        #        pparams = pparams.reshape(results.prediction_parameters.shape)
-        #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
-
-        #        R = results.prediction_parameters.shape[0]
-        #        pparams = results.prediction_parameters.reshape(R, -1)
-        #
-        #        pparams = self._glmprocessor_compute_original_parameters(self._glmprocessor_deorthonormalization_matrix[-R:, -R:], pparams)
-        #
-        #        pparams = pparams.reshape(results.prediction_parameters.shape)
-        #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
         return Processor.Results(pparams, correction_parameters)
 
     def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
@@ -227,11 +216,25 @@ class GLMProcessor(Processor):
             self._glmprocessor_degrees) + tuple(self._glmprocessor_submodels)
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+        # Intercept term
+        # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
+        # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
+        # show all options
+        if len(predictor_names) == 0:
+            default_value = GLMProcessor._glmprocessor_intercept_options_names[1]
+            options_names = GLMProcessor._glmprocessor_intercept_options_names[:2]
+        elif len(corrector_names) == 0:
+            default_value = GLMProcessor._glmprocessor_intercept_options_names[2]
+            options_names = GLMProcessor._glmprocessor_intercept_options_names[::2]
+        else:
+            default_value = GLMProcessor._glmprocessor_intercept_options_names[1]
+            options_names = GLMProcessor._glmprocessor_intercept_options_names
         intercept = GLMProcessor._glmprocessor_intercept_options[super(GLMProcessor, self).__getoneof__(
-            GLMProcessor._glmprocessor_intercept_options_names,
-            default_value=GLMProcessor._glmprocessor_intercept_options_names[2],
-            show_text='GLM Processor: How do you want to include the intercept term? (default: ' +
-                      GLMProcessor._glmprocessor_intercept_options_names[2] + ')'
+            options_names,
+            default_value=default_value,
+            show_text='GLM Processor: How do you want to include the intercept term? (default: {})'.format(
+                default_value
+            )
         )]
 
         perp_norm_option = GLMProcessor._glmprocessor_perp_norm_options[super(GLMProcessor, self).__getoneof__(
@@ -261,9 +264,10 @@ class GLMProcessor(Processor):
         submodels = []
         for i in xrange(len(predictor_names)):
             reg = predictor_names[i]
+            submodels_text = 'GLM Processor: Would you like to analyze a submodel of {} instead of the full model? ' \
+                             '(Y/N, default N): '.format(reg)
             if super(GLMProcessor, self).__getyesorno__(default_value=False,
-                                                        show_text='GLM Processor: Would you like to analyze a submodel of ' + str(
-                                                                reg) + ' instead of the full model? (Y/N, default N): '):
+                                                        show_text=submodels_text):
                 # TODO: create a __getmultipleyesorno__ method that allows to check that at least 1 has been selected
                 # TODO: create a __getmultipleoneof__ method that allows to check for arbitrary restrictions
                 for j in xrange(degrees[i]):
@@ -519,11 +523,25 @@ class PolyGLMProcessor(Processor):
             self._pglmprocessor_degrees)
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+        # Intercept term
+        # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
+        # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
+        # show all options
+        if len(predictor_names) == 0:
+            default_value = PolyGLMProcessor._pglmprocessor_intercept_options_names[1]
+            options_names = PolyGLMProcessor._pglmprocessor_intercept_options_names[:2]
+        elif len(corrector_names) == 0:
+            default_value = PolyGLMProcessor._pglmprocessor_intercept_options_names[2]
+            options_names = PolyGLMProcessor._pglmprocessor_intercept_options_names[::2]
+        else:
+            default_value = PolyGLMProcessor._pglmprocessor_intercept_options_names[1]
+            options_names = PolyGLMProcessor._pglmprocessor_intercept_options_names
         intercept = PolyGLMProcessor._pglmprocessor_intercept_options[super(PolyGLMProcessor, self).__getoneof__(
-            PolyGLMProcessor._pglmprocessor_intercept_options_names,
-            default_value=PolyGLMProcessor._pglmprocessor_intercept_options_names[2],
-            show_text='PolyGLM Processor: How do you want to include the intercept term? (default: ' +
-                      PolyGLMProcessor._pglmprocessor_intercept_options_names[2] + ')'
+            options_names,
+            default_value=default_value,
+            show_text='PolyGLM Processor: How do you want to include the intercept term? (default: {})'.format(
+                default_value
+            )
         )]
 
         perp_norm_option = PolyGLMProcessor._pglmprocessor_perp_norm_options[super(PolyGLMProcessor, self).__getoneof__(

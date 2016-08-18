@@ -253,7 +253,8 @@ class evaluation_function(object):
                     self._forced.append(method_name)
                 else:
                     raise AttributeError(
-                        "Method '" + method_name + "' was not defined as a requirement for this test and can not be bound to it.")
+                        "Method '" + method_name + "' was not defined as a requirement for this test and can not "
+                                                   "be bound to it.")
 
             setattr(self, method_name, types.MethodType(method, self))
             return self
@@ -520,9 +521,11 @@ def mse(self):
 
 
 mse.requires('corrected_data',
-             'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+             'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution '
+             'of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
 mse.requires('predicted_data',
-             'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+             'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected '
+             'observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
 
 
 @evaluation_function
@@ -552,23 +555,24 @@ r2.requires('predicted_data',
 
 @evaluation_function
 def fstat(self):
-    """Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-        the value of the F-statistic for a test in which the null hypothesis states that the predictors do not
-        explain the variation of the observations at all. The calculated F-statistic value compares the variance
-        of the prediction error with the variance of the corrected data, WITHOUT then mapping the result to its
-        corresponding p-value (which takes into account the degrees of freedom of both, the corrected data and
-        the prediction error). Please, refer to the "ftest" method if what you wish is a p-value related measure
-        rather than the F-statistic itself.
+    """
+    Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+    the value of the F-statistic for a test in which the null hypothesis states that the predictors do not
+    explain the variation of the observations at all. The calculated F-statistic value compares the variance
+    of the prediction error with the variance of the corrected data, WITHOUT then mapping the result to its
+    corresponding p-value (which takes into account the degrees of freedom of both, the corrected data and
+    the prediction error). Please, refer to the "ftest" method if what you wish is a p-value related measure
+    rather than the F-statistic itself.
     """
     corrected_data = self.corrected_data()
 
-    ## Get the error obtained when using the full model (correctors + predictors)
+    # Get the error obtained when using the full model (correctors + predictors)
     # prediction = self.__predict__(predictors, prediction_parameters)
 
     # prediction_error = corrected_data - prediction
     prediction_error = corrected_data - self.predicted_data()
 
-    ## Now compare the variances of the errors
+    # Now compare the variances of the errors
 
     # Residual Sum of Squares for restricted model
     rss1 = ((corrected_data - corrected_data.mean(axis=0)) ** 2).sum(axis=0)
@@ -589,15 +593,7 @@ def fstat(self):
     var1 = (rss1 - rss2) / df1
     var2 = rss2 / df2
     f_score = var1 / var2
-
-    # print rss1, rss2
-    # print 'Df Residuals:', df2
-    # print 'Df Model:', df1
-    # print 'F-statistic:', f_score
-    # print 'R-squared:', 1 - rss2/rss1
-
     return f_score
-
 
 fstat.requires('corrected_data',
                'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
@@ -661,71 +657,25 @@ ftest.requires('df_prediction',
                'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
 
 
-# TODO: Use alternative with 'uses' tool
-#   @evaluation_function
-#   def ftest(self):
-#       """Evaluates the significance of the predictors as regards the behaviour of the observations by performing
-#           an F-test. In particular, the null hypothesis states that the predictors do not explain the variation
-#           of the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
-#           Refer to the "fstats" method if what you are looking for is the value of the f-statistic rather than
-#           the p-value.
-#       """
-#   
-#   
-#       try:
-#           fitting_results = self.fitting_results
-#       except AttributeError:
-#           fitting_results = None
-#   
-#       f_score = fstat[self.target].evaluate(fitting_results)
-#   
-#       # Degrees of freedom
-#       dfc = fstat[self.target].df_correction()
-#       dfp = fstat[self.target].df_prediction()
-#   
-#       n = corrected_data.shape[0]
-#       df1 = dfp # degrees of freedom of rss1 - rss2
-#       df2 = n - dfc - dfp # degrees of freedom of rss2
-#   
-#       # Compute p-values
-#       return f_stat.cdf(f_score, df1, df2)
-#   
-#   # TODO: make expression below (commented) work with all inheritance and stuff (be able to use the bindings of fstat in ftest)
-#   ftest.uses(fstat)
-#   # Another option would be to use something like this, but this does not resolve the issue either:
-#   # ftest.implicit('fstat', "Result of evaluating the 'fstat' test on the target", lambda self: fstat[self.target].evaluate(getattr(self, 'fitting_results', None)))
-
 @evaluation_function
 def aic(self):
-    """Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-        the Akaike Information Criterion (AIC).
+    """
+    Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+    the Akaike Information Criterion (AIC).
     """
     k = self.num_estimated_parameters()
-    L = self.max_likelihood_value()
+    L = self.max_log_likelihood_value()
 
-    return 2 * k - 2 * np.log(L)
+    return 2 * k - 2 * L
 
 
 aic.requires('num_estimated_parameters',
-             'The number of estimated parameters by the model (in total), counting the residual error as being one of them.')
-aic.requires('max_likelihood_value', 'The maximum value that the likelihood function for this model can take.')
+             'The number of estimated parameters by the model (in total), '
+             'counting the residual error as being one of them.')
+aic.requires('max_log_likelihood_value', 'The maximum value that the log-likelihood function for this model can take.')
 
 
-#   @evaluation_function
-#   def aicc(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters):
-#       """Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-#           the corrected Akaike Information Criterion (AICc).
-#       """
-#       k = correction_parameters.shape[0] + prediction_parameters.shape[0] + 1 # the residual error counts as an estimated variable
-#       n = observations.shape[0]
-#   
-#       return aic(correction_fitter, prediction_fitter, observations, correctors, correction_parameters, predictors, prediction_parameters) + 2*k*(k+1)/np.float64(n - k - 1)
-
-
-
-
-##### Curve based measures #####
-
+""" Curve based measures """
 
 @evaluation_function
 def prss(self, gamma):
@@ -761,12 +711,12 @@ prss.requires('xdiff', 'Float indicating the separation between any two contiguo
 prss.uses(mse, 'mse')
 
 
-# TODO: Test this
 @evaluation_function
 def vnprss(self, gamma):
-    """Evaluates the goodness of fit by means of the Variance Normalized Penalized Residual Sum of Squares.
-        In particular, this method computes the following expression: VNPRSS = PRSS(gamma)/VAR, that is, the Penalized Residual
-        Sum of Squares normalized with the variance of the curve.
+    """
+    Evaluates the goodness of fit by means of the Variance Normalized Penalized Residual Sum of Squares.
+    In particular, this method computes the following expression: VNPRSS = PRSS(gamma)/VAR, that is, the Penalized Residual
+    Sum of Squares normalized with the variance of the curve.
     """
     try:
         fitting_results = self.fitting_results
@@ -782,27 +732,3 @@ def vnprss(self, gamma):
 
 
 vnprss.uses(prss, 'prss')
-
-
-#   @evaluation_function
-#   def vnprss(self, gamma):
-#       """Evaluates the goodness of fit by means of the Variance Normalized Penalized Residual Sum of Squares.
-#           In particular, this method computes the following expression: VNPRSS = PRSS(gamma)/VAR, that is, the Penalized Residual
-#           Sum of Squares normalized with the variance of the curve.
-#       """
-#       try:
-#           fitting_results = self.fitting_results
-#       except AttributeError:
-#           fitting_results = None
-#   
-#       MSE = self.mse()
-#       curve = np.array(self.curve(), dtype=np.float64)
-#   
-#       VAR = curve.var(axis = 0)
-#   
-#       abruptness = np.diff(np.diff(curve, axis = 0), axis = 0).sum(axis = 0)
-#   
-#       return (MSE + gamma*abruptness)/VAR
-#   
-#   vnprss.requires('curve', 'Matrix of shape (T, X1, ..., Xn) that contains the value of the predicted curve in each of T uniformly distributed points of the axis for each variable')
-#   vnprss.implicit('mse', "Result of evaluating the 'mse' test on the target", lambda self: mse[self.target].evaluate(getattr(self, 'fitting_results', None)))

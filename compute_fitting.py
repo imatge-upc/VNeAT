@@ -166,7 +166,6 @@ if __name__ == '__main__':
 
             # Save correction and prediction parameters
             niiImage = nib.Nifti1Image
-            affine_matrix = data_loader.get_template_affine()
             p_image = niiImage(prediction_params, affine_matrix)
             c_image = niiImage(correction_params, affine_matrix)
             nib.save(p_image, path.join(output_folder, p_file))

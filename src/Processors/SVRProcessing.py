@@ -83,11 +83,25 @@ class PolySVRProcessor(Processor):
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
         # Intercept term
+        # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
+        # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
+        # show all options
+        if len(predictor_names) == 0:
+            default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[1]
+            options_names = PolySVRProcessor._psvrprocessor_intercept_options_names[:2]
+        elif len(corrector_names) == 0:
+            default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[2]
+            options_names = PolySVRProcessor._psvrprocessor_intercept_options_names[::2]
+        else:
+            default_value = PolySVRProcessor._psvrprocessor_intercept_options_names[1]
+            options_names = PolySVRProcessor._psvrprocessor_intercept_options_names
+
         intercept = PolySVRProcessor._psvrprocessor_intercept_options[super(PolySVRProcessor, self).__getoneof__(
-            PolySVRProcessor._psvrprocessor_intercept_options_names,
-            default_value=PolySVRProcessor._psvrprocessor_intercept_options_names[2],
-            show_text='PolySVR Processor: How do you want to include the intercept term? (default: ' +
-                      PolySVRProcessor._psvrprocessor_intercept_options_names[2] + ')'
+            options_names,
+            default_value=default_value,
+            show_text='PolySVR Processor: How do you want to include the intercept term? (default: {})'.format(
+                default_value
+            )
         )]
 
         # Treat data option
@@ -227,12 +241,25 @@ class GaussianSVRProcessor(Processor):
 
     def __read_user_defined_parameters__(self, predictor_names, corrector_names):
         # Intercept term
+        # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
+        # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
+        # show all options
+        if len(predictor_names) == 0:
+            default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[1]
+            options_names = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[:2]
+        elif len(corrector_names) == 0:
+            default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2]
+            options_names = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[::2]
+        else:
+            default_value = GaussianSVRProcessor._gsvrprocessor_intercept_options_names[1]
+            options_names = GaussianSVRProcessor._gsvrprocessor_intercept_options_names
         intercept = GaussianSVRProcessor._gsvrprocessor_intercept_options[
             super(GaussianSVRProcessor, self).__getoneof__(
-                GaussianSVRProcessor._gsvrprocessor_intercept_options_names,
-                default_value=GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2],
-                show_text='GaussianSVR Processor: How do you want to include the intercept term? (default: ' +
-                          GaussianSVRProcessor._gsvrprocessor_intercept_options_names[2] + ')'
+                options_names,
+                default_value=default_value,
+                show_text='GaussianSVR Processor: How do you want to include the intercept term? (default: {})'.format(
+                    default_value
+                )
             )]
 
         # Treat data option

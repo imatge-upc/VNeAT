@@ -1318,39 +1318,6 @@ class CurveFitter(object):
         return df_prediction.reshape(-1, *dims[1:])
 
 
-eval_func[CurveFitter].bind(
-    'corrected_data',
-    lambda self: self.target.correct(
-        observations=self.fitting_results.observations,
-        correctors=self.fitting_results.correctors,
-        correction_parameters=self.fitting_results.correction_parameters
-    )
-)
-eval_func[CurveFitter].bind(
-    'predicted_data',
-    lambda self: self.target.predict(
-        predictors=self.fitting_results.predictors,
-        prediction_parameters=self.fitting_results.prediction_parameters
-    )
-)
-eval_func[CurveFitter].bind(
-    'df_correction',
-    lambda self: self.target.df_correction(
-        observations=self.fitting_results.observations,
-        correctors=self.fitting_results.correctors,
-        correction_parameters=self.fitting_results.correction_parameters
-    )
-)
-eval_func[CurveFitter].bind(
-    'df_prediction',
-    lambda self: self.target.df_prediction(
-        observations=self.fitting_results.observations,
-        predictors=self.fitting_results.predictors,
-        prediction_parameters=self.fitting_results.prediction_parameters
-    )
-)
-
-
 class AdditiveCurveFitter(CurveFitter):
     '''CurveFitter subclass for the cases in which the following model is assumed:
             Y = fp(C, CP) + fp(R, RP) + err
@@ -1369,8 +1336,6 @@ class AdditiveCurveFitter(CurveFitter):
         '''
         return observations - self.__predict__(correctors, correction_parameters, *args, **kwargs)
 
-
-# TODO: use metaclass instead of method
 
 def MixedFitter(correction_fitter_type, prediction_fitter_type):
     class MixedFitter(CurveFitter):
@@ -1512,3 +1477,38 @@ def CombinedFitter(correction_fitter, prediction_fitter):
             return prediction_fitter.predictors
 
     return CombinedFitter
+
+
+""" FIT EVALUATION BINDINGS """
+
+eval_func[CurveFitter].bind(
+    'corrected_data',
+    lambda self: self.target.correct(
+        observations=self.fitting_results.observations,
+        correctors=self.fitting_results.correctors,
+        correction_parameters=self.fitting_results.correction_parameters
+    )
+)
+eval_func[CurveFitter].bind(
+    'predicted_data',
+    lambda self: self.target.predict(
+        predictors=self.fitting_results.predictors,
+        prediction_parameters=self.fitting_results.prediction_parameters
+    )
+)
+eval_func[CurveFitter].bind(
+    'df_correction',
+    lambda self: self.target.df_correction(
+        observations=self.fitting_results.observations,
+        correctors=self.fitting_results.correctors,
+        correction_parameters=self.fitting_results.correction_parameters
+    )
+)
+eval_func[CurveFitter].bind(
+    'df_prediction',
+    lambda self: self.target.df_prediction(
+        observations=self.fitting_results.observations,
+        predictors=self.fitting_results.predictors,
+        prediction_parameters=self.fitting_results.prediction_parameters
+    )
+)

@@ -144,6 +144,15 @@ class GLM(AdditiveCurveFitter):
     def __df_prediction__(self, observations, predictors, prediction_parameters):
         return np.ones((1, observations.shape[1])) * predictors.shape[1]
 
+    def num_estimated_parameters(self, correction_parameters, prediction_parameters):
+        # TODO
+        pass
+
+    def max_loglikelihood_value(self):
+        # TODO
+        pass
+
+
 
 class PolyGLM(GLM):
     def __init__(self, features, predictors=None, degrees=None, intercept=AdditiveCurveFitter.NoIntercept):
