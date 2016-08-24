@@ -122,10 +122,9 @@ class GLMProcessor(Processor):
         return Beta
 
     def __fitter__(self, user_defined_parameters):
-        '''Initializes the GLM fitter to be used to process the data.
-
-
-        '''
+        """
+        Initializes the GLM fitter to be used to process the data.
+        """
 
         preds = self.predictors.T
         cors = self.correctors.T
@@ -314,6 +313,35 @@ class GLMProcessor(Processor):
         # Call the normal function with such parameters
         return glm.predict(prediction_parameters=pparams)
 
+    def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
+                              fitting_results):
+        # Pre-process parameters for fitter operations (predict, correct, etc.) and leave original
+        # parameters for processor operations (curve)
+        processed_prediction_parameters, processed_correction_parameters = self.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            predictors,
+            correctors
+        )
+        # Assign data to compute AIC
+        fitting_results.num_estimated_parameters = self._processor_fitter.num_estimated_parameters(
+            correction_parameters=correction_parameters,
+            prediction_parameters=processed_prediction_parameters
+        )
+        fitting_results.max_loglikelihood_value = self._processor_fitter.max_loglikelihood_value(
+            observations=observations,
+            correction_parameters=correction_parameters,
+            prediction_parameters=processed_prediction_parameters,
+            predictors=predictors,
+            correctors=correctors
+        )
+        bound_functions = ['num_estimated_parameters', 'max_loglikelihood_value']
+        # Call parent method
+        bound_functions += super(GLMProcessor, self).__assign_bound_data__(observations, predictors,
+                                                                           prediction_parameters, correctors,
+                                                                           correction_parameters, fitting_results)
+        return bound_functions
+
     def get_name(self):
         return 'GLM'
 
@@ -366,10 +394,11 @@ class PolyGLMProcessor(Processor):
     ]
 
     def _pglmprocessor_compute_original_parameters(self, Gamma, Beta2):
-        '''Given an upper triangular matrix Gamma, and an arbitrary matrix Beta2, computes Beta such
-            that Beta2 = Gamma * Beta.
-            Notice that if Beta2 is the np.identity matrix, then Beta is the right-pseudoinverse of Gamma.
-        '''
+        """
+        Given an upper triangular matrix Gamma, and an arbitrary matrix Beta2, computes Beta such
+        that Beta2 = Gamma * Beta.
+        Notice that if Beta2 is the np.identity matrix, then Beta is the right-pseudoinverse of Gamma.
+        """
 
         # Gamma is the deorthogonalization (upper triangular) matrix
         # Beta2 is the matrix with the optimal parameters of the orthonormalized design matrix
@@ -490,23 +519,6 @@ class PolyGLMProcessor(Processor):
 
         BetaR_denorm = BetaR_denorm.reshape(prediction_parameters.shape)
         pparams = np.concatenate((prediction_parameters, BetaR_denorm), axis=0)
-
-        #        allparams = np.concatenate((results.correction_parameters, results.prediction_parameters), axis = 0)
-        #        allparams = allparams.reshape(allparams.shape[0], -1)
-        #
-        #        allparams_denorm = self._pglmprocessor_compute_original_parameters(self._pglmprocessor_deorthonormalization_matrix, allparams)#
-        #        pparams = allparams_denorm[-(results.prediction_parameters.shape[0]):]
-        #        pparams = pparams.reshape(results.prediction_parameters.shape)
-        #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
-
-        #        R = results.prediction_parameters.shape[0]
-        #        pparams = results.prediction_parameters.reshape(R, -1)
-        #
-        #        pparams = self._pglmprocessor_compute_original_parameters(self._pglmprocessor_deorthonormalization_matrix[-R:, -R:], pparams)
-        #
-        #        pparams = pparams.reshape(results.prediction_parameters.shape)
-        #        pparams = np.concatenate((results.prediction_parameters, pparams), axis = 0)
-
         return Processor.Results(pparams, results.correction_parameters)
 
     def __pre_process__(self, prediction_parameters, correction_parameters, predictors, correctors):
@@ -571,10 +583,9 @@ class PolyGLMProcessor(Processor):
         return (intercept, perp_norm_option) + tuple(degrees)
 
     def __curve__(self, fitter, predictor, prediction_parameters):
+
         pglm = PGLM(predictor, degrees=self._pglmprocessor_degrees[:1],
                     intercept=PolyGLMProcessor._pglmprocessor_intercept_options_list[self._pglmprocessor_intercept])
-        # PolyGLMProcessor._pglmprocessor_perp_norm_options_list[self._pglmprocessor_perp_norm_option](pglm)
-
         # Get the prediction parameters for the original features matrix
         if self._pglmprocessor_perp_norm_option < 6:
             Kx2 = prediction_parameters.shape[0]
@@ -585,13 +596,44 @@ class PolyGLMProcessor(Processor):
         # Call the normal function with such parameters
         return pglm.predict(prediction_parameters=pparams)
 
+    def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
+                              fitting_results):
+        # Pre-process parameters for fitter operations (predict, correct, etc.) and leave original
+        # parameters for processor operations (curve)
+        processed_prediction_parameters, processed_correction_parameters = self.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            predictors,
+            correctors
+        )
+        # Assign data to compute AIC
+        fitting_results.num_estimated_parameters = self._processor_fitter.num_estimated_parameters(
+            correction_parameters=correction_parameters,
+            prediction_parameters=processed_prediction_parameters
+        )
+        fitting_results.max_loglikelihood_value = self._processor_fitter.max_loglikelihood_value(
+            observations=observations,
+            correction_parameters=correction_parameters,
+            prediction_parameters=processed_prediction_parameters,
+            predictors=predictors,
+            correctors=correctors
+        )
+        bound_functions = ['num_estimated_parameters', 'max_loglikelihood_value']
+        # Call parent method
+        bound_functions += super(PolyGLMProcessor, self).__assign_bound_data__(observations, predictors,
+                                                                               prediction_parameters, correctors,
+                                                                               correction_parameters, fitting_results)
+        return bound_functions
+
     def get_name(self):
         return 'PolyGLM'
 
 
-PolyGLMProcessor._pglmprocessor_perp_norm_options = {PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i]: i for i
-                                                     in xrange(
-    len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))}
-PolyGLMProcessor._pglmprocessor_intercept_options = {PolyGLMProcessor._pglmprocessor_intercept_options_names[i]: i for i
-                                                     in xrange(
-    len(PolyGLMProcessor._pglmprocessor_intercept_options_names))}
+PolyGLMProcessor._pglmprocessor_perp_norm_options = {
+    PolyGLMProcessor._pglmprocessor_perp_norm_options_names[i]: i for i in range(
+    len(PolyGLMProcessor._pglmprocessor_perp_norm_options_names))
+    }
+PolyGLMProcessor._pglmprocessor_intercept_options = {
+    PolyGLMProcessor._pglmprocessor_intercept_options_names[i]: i for i in range(
+    len(PolyGLMProcessor._pglmprocessor_intercept_options_names))
+    }

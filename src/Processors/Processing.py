@@ -3,7 +3,7 @@ from sys import stdout
 
 import numpy as np
 
-from src.FitScores.FitEvaluation_v2 import evaluation_function as eval_func
+from src.FitScores.FitEvaluation_v2 import evaluation_function as eval_func, FittingResults
 from src.Utils.Documentation import docstring_inheritor
 from src.Utils.Subject import Chunks
 from src.Utils.graphlib import NiftiGraph
@@ -320,24 +320,31 @@ class Processor(object):
             print
         stdout.flush()
 
-    # TODO Document
     def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, *args, **kwargs):
         """
+        Processes all the data from coordinates x1, y1, z1 to x2, y2, z2
 
         Parameters
         ----------
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
-        args
-        kwargs
+        x1 : int
+            Voxel in the x-axis from where the processing begins
+        x2 : int
+            Voxel in the x-axis where the processing ends
+        y1 : int
+            Voxel in the y-axis from where the processing begins
+        y2 : int
+            Voxel in the y-axis where the processing ends
+        z1 : int
+            Voxel in the z-axis from where the processing begins
+        z2 : int
+            Voxel in the z-axis where the processing ends
+        args : List
+        kwargs : Dict
 
         Returns
         -------
-
+        Processor.Results instance
+            Object with two properties: correction_parameters and prediction_parameters
         """
         chunks = Chunks(
             self._processor_subjects,
@@ -450,27 +457,29 @@ class Processor(object):
         """
         return prediction_parameters, correction_parameters
 
-    # TODO: Document
     def __curve__(self, fitter, predictor, prediction_parameters):
         """
-        Computes a prediction from the predictor and the prediction_parameters. If not overridden, this method
+        Computes a prediction from the predictors and the prediction_parameters. If not overridden, this method
         calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
         as they are. Please, override this method if this is not the desired behavior.
         This method is not intended to be called outside the Processor class
 
         Parameters
         ----------
-        fitter
-        predictor
-        prediction_parameters
+        fitter : CurveFitter subclass
+            Instance of a subclass of CurveFitter
+        predictor : ndarray
+            Array with the predictors whose curve must be computed
+        prediction_parameters : ndarray
+            Array with the prediction parameters obtained by means of the process() method
 
         Returns
         -------
-
+        ndarray
+            Array with the points that represent the curve
         """
         return fitter.predict(predictor, prediction_parameters)
 
-    # TODO: Document
     def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None, tpoints=50):
         """
         Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
@@ -479,20 +488,31 @@ class Processor(object):
 
         Parameters
         ----------
-        prediction_parameters
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
-        t1
-        t2
-        tpoints
+        prediction_parameters : ndarray
+            Prediction parameters obtained for this processor by means of the process() method
+        x1 : int
+            Voxel in the x-axis from where the curve computation begins
+        x2 : int
+            Voxel in the x-axis where the curve computation ends
+        y1 : int
+            Voxel in the y-axis from where the curve computation begins
+        y2 : int
+            Voxel in the y-axis where the curve computation ends
+        z1 : int
+            Voxel in the z-axis from where the curve computation begins
+        z2 : int
+            Voxel in the z-axis where the curve computation ends
+        t1 : float
+            Value in the axis of the predictor from where the curve computation starts
+        t2 : float
+            Value in the axis of the predictor from where the curve computation ends
+        tpoints : int
+            Number of points used to compute the curve, using a linear spacing between t1 and t2
 
         Returns
         -------
-
+        ndarray
+            4D array with the curve values for the tpoints in each voxel from x1, y1, z1 to x2, y2, z2
         """
         if x2 is None:
             x2 = prediction_parameters.shape[-3]
@@ -502,9 +522,9 @@ class Processor(object):
             z2 = prediction_parameters.shape[-1]
 
         if t1 is None:
-            t1 = self._processor_predictors.min()
+            t1 = self.predictors[:, 0].min()
         if t2 is None:
-            t2 = self._processor_predictors.max()
+            t2 = self.predictors[:, 0].max()
 
         pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
@@ -646,9 +666,64 @@ class Processor(object):
 
         return gm_data
 
-    # TODO: should analyze the surroundings of the indicated region even if they are not going to be displayed
-    # since such values affect the values inside the region (if not considered, the clusters could potentially
-    # seem smaller and thus be filtered accordingly)
+    def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
+                              fitting_results):
+        """
+
+
+        Parameters
+        ----------
+        observations
+        predictors
+        prediction_parameters
+        correctors
+        correction_parameters
+        fitting_results
+
+        Returns
+        -------
+        List
+            List of the names of the functions that should be bound (if they are not already) to the evaluation
+            function that you are using
+        """
+        # Pre-process parameters for fitter operations (predict, correct, etc.) and leave original
+        # parameters for processor operations (curve)
+        processed_prediction_parameters, processed_correction_parameters = self.__pre_process__(
+            prediction_parameters,
+            correction_parameters,
+            predictors,
+            correctors
+        )
+
+        fitting_results.observations = observations
+        fitting_results.corrected_data = self._processor_fitter.correct(
+            observations=observations,
+            correctors=correctors,
+            correction_parameters=processed_correction_parameters
+        )
+        fitting_results.predicted_data = self._processor_fitter.predict(
+            predictors=predictors,
+            prediction_parameters=processed_prediction_parameters
+        )
+        fitting_results.df_correction = self._processor_fitter.df_correction(
+            observations=observations,
+            correctors=correctors,
+            correction_parameters=processed_correction_parameters
+        )
+        fitting_results.df_prediction = self._processor_fitter.df_prediction(
+            observations=observations,
+            predictors=predictors,
+            prediction_parameters=processed_prediction_parameters
+        )
+        axis, curve = self.curve(
+            prediction_parameters=prediction_parameters,
+            tpoints=2 * len(self.subjects)
+        )
+        fitting_results.curve = curve
+        fitting_results.xdiff = axis[1] - axis[0]
+
+        return ['corrected_data', 'predicted_data', 'df_correction', 'df_prediction', 'curve', 'xdiff']
+
     # TODO Document
     def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0,
                      y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
@@ -680,15 +755,6 @@ class Processor(object):
         -------
 
         """
-        # Preprocess parameters
-        orig_pparams = prediction_parameters
-        prediction_parameters, correction_parameters = self.__pre_process__(
-            prediction_parameters,
-            correction_parameters,
-            self.predictors,
-            self.correctors
-        )
-
         # Evaluate fitting from pre-processed parameters
 
         if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
@@ -702,7 +768,6 @@ class Processor(object):
         if z2 is None:
             z2 = z1 + correction_parameters.shape[-1]
 
-        orig_pparams = orig_pparams[:, x1:x2, y1:y2, z1:z2]
         correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
         prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
 
@@ -746,40 +811,24 @@ class Processor(object):
             if gm_threshold is not None:
                 invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
 
-            # Create auxiliar structure to access chunk data inside the evaluation function
-            class FittingResults(object):
-                pass
-
             fitres = FittingResults()
 
-            fitres.observations = cdata
-            fitres.corrected_data = self._processor_fitter.correct(
+            # Assign the bound data necessary for the evaluation
+            bound_functions = self.__assign_bound_data__(
                 observations=cdata,
                 correctors=self._processor_fitter.correctors,
-                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
-            )
-            fitres.predicted_data = self._processor_fitter.predict(
                 predictors=self._processor_fitter.predictors,
-                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
+                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                fitting_results=fitres
             )
-            fitres.df_correction = self._processor_fitter.df_correction(
-                observations=cdata,
-                correctors=self._processor_fitter.correctors,
-                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
-            )
-            fitres.df_prediction = self._processor_fitter.df_prediction(
-                observations=cdata,
-                predictors=self._processor_fitter.predictors,
-                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)]
-            )
-            axis, curve = self.curve(
-                prediction_parameters=orig_pparams[:, x:(x + dx), y:(y + dy), z:(z + dz)],
-                tpoints=128  # We set a high granularity to evaluate the curve more precisely
-                # Another option could be to set it to a value proportional to the number of subjects
-                # tpoints = 2*len(self.target.subjects)
-            )
-            fitres.curve = curve
-            fitres.xdiff = axis[1] - axis[0]
+
+            # Bind the functions to the processor instance
+            def bind_function(function_name):
+                return lambda x: getattr(x.fitting_results, function_name)
+
+            for bound_f in bound_functions:
+                eval_func[self].bind(bound_f, bind_function(bound_f))
 
             # Evaluate the fit for the voxels in this chunk and store them
             fitting_scores[x:x + dx, y:y + dy, z:z + dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)

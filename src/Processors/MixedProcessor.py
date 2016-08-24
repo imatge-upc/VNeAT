@@ -150,6 +150,30 @@ class MixedProcessor(Processor):
         return self._correction_processor.__corrected_values__(fitter, observations, correction_parameters,
                                                                *args, **kwargs)
 
+    def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
+                              fitting_results):
+        # Restrictive bound data assignment: only if both processors are instances of the same class call their
+        # specific implementation of __assign_bound_data__
+        bound_functions = []
+        if self._correction_processor.__class__ == self._prediction_processor.__class__:
+            bound_functions = self._prediction_processor.__assign_bound_data__(observations,
+                                                                               predictors,
+                                                                               prediction_parameters,
+                                                                               correctors,
+                                                                               correction_parameters,
+                                                                               fitting_results
+                                                                               )
+        else:
+            return super(MixedProcessor, self).__assign_bound_data__(observations,
+                                                                     predictors,
+                                                                     prediction_parameters,
+                                                                     correctors,
+                                                                     correction_parameters,
+                                                                     fitting_results
+                                                                     )
+
+        return bound_functions
+
     def get_name(self):
         return 'correction_' + self._correction_processor.get_name() + \
                '-prediction_' + self._prediction_processor.get_name()

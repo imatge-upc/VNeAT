@@ -95,8 +95,8 @@ if __name__ == '__main__':
             print()
             print('Computing fitting results for {}'.format(n), end="")
             if category is not None:
-                print(', category {}'.format(category))
-            print("{} progress: ".format(method))
+                print(', category {}'.format(category), end="")
+            print("\n{} progress: ".format(method))
             try:
                 results = helper_functions.compute_fitting_scores(
                     proc, method, method_func, pred_p, corr_p, cluster_size, p_thresholds, gamma,
@@ -126,8 +126,8 @@ if __name__ == '__main__':
             print()
             print('Computing fitting results for {}'.format(n), end="")
             if category is not None:
-                print(', category {}'.format(category))
-            print("{} progress: ".format(method), )
+                print(', category {}'.format(category), end="")
+            print("\n{} progress: ".format(method), )
             try:
                 results = helper_functions.compute_fitting_scores(
                     proc, method, method_func, pred_p, corr_p, cluster_size, p_thresholds, gamma,

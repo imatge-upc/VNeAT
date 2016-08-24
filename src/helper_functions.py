@@ -334,5 +334,14 @@ def compute_fitting_scores(processor_instance, method_name, method_func, pparams
             percentile_filter
         )
         returned_results.append((filtered_scores_name, fitting_scores))
+    elif method_name == 'aic':
+        print('Transforming and filtering AIC fit scores for better visualization...')
+        masked_scores = np.ma.masked_equal(np.abs(fitting_scores), 0)
+        fit_scores_max = masked_scores.max()
+        fit_scores_min = masked_scores.min()
+        transformed_scores = (masked_scores - fit_scores_min) / (fit_scores_max - fit_scores_min)
+        mean = np.mean(transformed_scores)
+        transformed_scores[transformed_scores < mean] = 0
+        returned_results.append(('aic_filtered_fitscores.nii.gz', transformed_scores))
 
     return returned_results

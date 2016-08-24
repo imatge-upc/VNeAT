@@ -145,13 +145,21 @@ class GLM(AdditiveCurveFitter):
         return np.ones((1, observations.shape[1])) * predictors.shape[1]
 
     def num_estimated_parameters(self, correction_parameters, prediction_parameters):
-        # TODO
-        pass
+        return correction_parameters.shape[0] + prediction_parameters.shape[0] + 1
 
-    def max_loglikelihood_value(self):
-        # TODO
-        pass
+    def max_loglikelihood_value(self, observations, predictors, prediction_parameters,
+                                correctors, correction_parameters):
+        # Compute residuals
+        corrected_values = self.correct(observations, correctors, correction_parameters)
+        residuals = corrected_values - self.predict(predictors, prediction_parameters)
 
+        # Compute residual sum of squares
+        rss = np.sum(np.square(residuals), axis=0)
+
+        # Number of samples N
+        n = observations.shape[0]
+
+        return (-n / 2) * (np.log(2 * np.pi) + np.log(rss) - np.log(n) + 1)
 
 
 class PolyGLM(GLM):

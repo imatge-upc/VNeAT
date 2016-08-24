@@ -8,6 +8,13 @@ class UNBOUND(object):
     pass
 
 
+class FittingResults(object):
+    """
+    Dummy class that is used as a structure to pass data to the evaluation function when the evaluate method is called
+    """
+    pass
+
+
 class dictlike(type):
     class _bound_generic_evaluation_function(object):
         def __init__(self, target, parent):
@@ -179,14 +186,16 @@ class evaluation_function(object):
                         pass
 
                     # First step failed; go to second step:
-                    # Check each ancestor (in order), to see whether they explicitly bound the required method for this test
+                    # Check each ancestor (in order), to see whether they explicitly bound the required method
+                    # for this test
                     # or if, at least, they declared such method generally for all tests.
                     for i in xrange(len(mro)):
                         found = False
                         try:
                             provider = self._parent._bindings[mro[i]]
 
-                            # no need to check for AttributeError, given that all the targets share the same requirements
+                            # no need to check for AttributeError, given that all the targets share the same
+                            # requirements
                             # (set to UNBOUND in the worst case)
                             inherited_method = getattr(provider, ReqDescriptor.name)
                             if not (inherited_method is UNBOUND):
@@ -412,7 +421,8 @@ class evaluation_function(object):
     def _check_integrity(self, method_name):
         if len(self._bindings) > 0:
             raise RuntimeError(
-                'This function has already been bound at least once; it is not possible to specify more requirements nor dependencies at this point.')
+                'This function has already been bound at least once; it is not possible to specify more requirements '
+                'nor dependencies at this point.')
 
         if method_name in self._requirements:
             raise ValueError(
@@ -510,9 +520,10 @@ class evaluation_function(object):
 
 @evaluation_function
 def mse(self):
-    """Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-        the Mean Squared Error of the prediction with respect to the corrected data. The smaller the result,
-        the better the fit.
+    """
+    Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+    the Mean Squared Error of the prediction with respect to the corrected data. The smaller the result,
+    the better the fit.
     """
     # prediction_error = corrected_data - prediction
     prediction_error = self.corrected_data() - self.predicted_data()
@@ -530,9 +541,10 @@ mse.requires('predicted_data',
 
 @evaluation_function
 def r2(self):
-    """Evaluates the significance of the predictors as regards the behaviour of the observations by computing
-        the value of the R-squared measurement, which is basically a range adjusted version of the MSE.
-        In this case, however, the larger the result, the better the fit.
+    """
+    Evaluates the significance of the predictors as regards the behaviour of the observations by computing
+    the value of the R-squared measurement, which is basically a range adjusted version of the MSE.
+    In this case, however, the larger the result, the better the fit.
     """
     corrected_data = self.corrected_data()
     correction_variance = ((corrected_data - corrected_data.mean(axis=0)) ** 2).sum(axis=0)
@@ -548,9 +560,12 @@ def r2(self):
 
 
 r2.requires('corrected_data',
-            'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+            'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the '
+            'contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn '
+            'the number of variables.')
 r2.requires('predicted_data',
-            'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+            'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected '
+            'observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
 
 
 @evaluation_function
@@ -596,22 +611,29 @@ def fstat(self):
     return f_score
 
 fstat.requires('corrected_data',
-               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the '
+               'contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn '
+               'the number of variables.')
 fstat.requires('predicted_data',
-               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the '
+               'corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number '
+               'of variables.')
 fstat.requires('df_correction',
-               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction '
+               'model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
 fstat.requires('df_prediction',
-               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction '
+               'model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
 
 
 @evaluation_function
 def ftest(self):
-    """Evaluates the significance of the predictors as regards the behaviour of the observations by performing
-        an F-test. In particular, the null hypothesis states that the predictors do not explain the variation
-        of the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
-        Refer to the "fstats" method if what you are looking for is the value of the f-statistic rather than
-        the p-value.
+    """
+    Evaluates the significance of the predictors as regards the behaviour of the observations by performing
+    an F-test. In particular, the null hypothesis states that the predictors do not explain the variation
+    of the observations at all. The inverse of the p-value of such experiment (1 - p_value) is returned.
+    Refer to the "fstats" method if what you are looking for is the value of the f-statistic rather than
+    the p-value.
     """
     corrected_data = self.corrected_data()
 
@@ -648,13 +670,19 @@ def ftest(self):
 
 
 ftest.requires('corrected_data',
-               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the '
+               'contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn '
+               'the number of variables.')
 ftest.requires('predicted_data',
-               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the '
+               'corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number '
+               'of variables.')
 ftest.requires('df_correction',
-               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the correction '
+               'model alone (without the predictors) for all variables (constant case) or each variable (matrix case).')
 ftest.requires('df_prediction',
-               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction '
+               'model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
 
 
 @evaluation_function
@@ -664,7 +692,7 @@ def aic(self):
     the Akaike Information Criterion (AIC).
     """
     k = self.num_estimated_parameters()
-    L = self.max_log_likelihood_value()
+    L = self.max_loglikelihood_value()
 
     return 2 * k - 2 * L
 
@@ -672,7 +700,7 @@ def aic(self):
 aic.requires('num_estimated_parameters',
              'The number of estimated parameters by the model (in total), '
              'counting the residual error as being one of them.')
-aic.requires('max_log_likelihood_value', 'The maximum value that the log-likelihood function for this model can take.')
+aic.requires('max_loglikelihood_value', 'The maximum value that the log-likelihood function for this model can take.')
 
 
 """ Curve based measures """
@@ -681,10 +709,10 @@ aic.requires('max_log_likelihood_value', 'The maximum value that the log-likelih
 def prss(self, gamma):
     """
     Evaluates the goodness of fit by means of the Penalized Residual Sum of Squares.
-       In particular, this method
-        computes the following expression: PRSS = MSE + gamma*sum(d2(curve)/d(x2)), that is, the Mean Squared Error
-        plus a penalization parameter (gamma) times an indicator of the abruptness of the curve (i.e., the integral
-        of the second derivative of the curve in the region of interest).
+    In particular, this method
+    computes the following expression: PRSS = MSE + gamma*sum(d2(curve)/d(x2)), that is, the Mean Squared Error
+    plus a penalization parameter (gamma) times an indicator of the abruptness of the curve (i.e., the integral
+    of the second derivative of the curve in the region of interest).
     """
     try:
         fitting_results = self.fitting_results
