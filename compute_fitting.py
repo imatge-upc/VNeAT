@@ -1,11 +1,14 @@
+from __future__ import print_function
+
 import os
 import os.path as path
+import sys
 from argparse import ArgumentParser
 
 import nibabel as nib
 
-from src.Processors.MixedProcessor import MixedProcessor
 from src import helper_functions
+from src.Processors.MixedProcessor import MixedProcessor
 
 if __name__ == '__main__':
 
@@ -19,10 +22,11 @@ if __name__ == '__main__':
                                                        ' used to load the data for this study.')
     arg_parser.add_argument('--categories', nargs='+', type=int, help='Category or categories (as they are represented '
                                                                       'in the Excel file) for which the fitting '
-                                                                      'parameters should be computed', )
-    arg_parser.add_argument('--parameters', help='Path to the txt file with user defined'
-                                                 ' parameters to load a pre-configured'
-                                                 ' correction and prediction processor.')
+                                                                      'parameters should be computed')
+    arg_parser.add_argument('--parameters', help='Path to the txt file within the results directory '
+                                                 'that contains the user defined '
+                                                 'parameters to load a pre-configured '
+                                                 'correction and prediction processor')
     arg_parser.add_argument('--prefix', help='Prefix used in the result files')
 
     arguments = arg_parser.parse_args()
@@ -31,67 +35,78 @@ if __name__ == '__main__':
     parameters = arguments.parameters
     prefix = arguments.prefix
 
-    if parameters:
-        # Load user defined parameters
-        try:
-            with open(arguments.parameters, 'rb') as f:
-                udp = eval(f.read())
-                print
-                print 'User defined parameters have been successfully loaded.'
-        except IOError as ioe:
-            print
-            print 'The provided parameters file, ' + ioe.filename + ', does not exist.'
-            print ' Standard input will be used to configure the correction and prediction processors' \
-                  ' instead.'
-            print
-            udp = ()
-        except SyntaxError:
-            print
-            print 'The provided parameters file is not properly formatted.'
-            print 'Standard input will be used to configure the correction and prediction processors' \
-                  ' instead.'
-            print
-            udp = ()
-        except:
-            print
-            print 'An unexpected error happened.'
-            print 'Standard input will be used to configure the correction and prediction processors' \
-                  ' instead.'
-            print
-            udp = ()
-    else:
-        udp = ()
-
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
     affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
 
-    """ PROCESSING """
+    if parameters:
+        # Load user defined parameters
+        try:
+            parameters_path = path.normpath(path.join(output_dir, parameters))
+            with open(parameters_path, 'rb') as f:
+                udp = eval(f.read())
+                print()
+                print('User defined parameters have been successfully loaded.')
+        except IOError as ioe:
+            print()
+            print('The provided parameters file, ' + ioe.filename + ', does not exist.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+        except SyntaxError:
+            print()
+            print('The provided parameters file is not properly formatted.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+        except:
+            print()
+            print('An unexpected error happened.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+    else:
+        udp = ()
+
+    """ CREATE PROCESSOR """
     # Create MixedProcessor instance
-    processor = MixedProcessor(subjects,
-                               predictors_names,
-                               correctors_names,
-                               predictors,
-                               correctors,
-                               processing_parameters,
-                               user_defined_parameters=udp)
-    # Processor name
-    processor_name = processor.get_name()
-    # User defined parameters
-    udp = processor.user_defined_parameters
+    initial_category = categories[0] if (categories is not None and len(categories)) > 0 else None
+    try:
+        processor = MixedProcessor(subjects,
+                                   predictors_names,
+                                   correctors_names,
+                                   predictors,
+                                   correctors,
+                                   processing_parameters,
+                                   user_defined_parameters=udp,
+                                   category=initial_category)
+        # User defined parameters
+        udp = processor.user_defined_parameters
+    except ValueError:
+        print()
+        print("=" * 15)
+        print("===  ERROR  ===")
+        print("=" * 15)
+        print('The processor parameters are not correctly specified. \n'
+              'Check your user_defined_parameters file first '
+              'if you used one, and if that does not solve the issue, contact the developers.')
+        exit(1)
 
     if not categories:
+        # Processor name
+        processor_name = processor.get_name()
+
         # Process all subjects
-        print
-        print 'Processing...'
+        print()
+        print('Processing...')
         results = processor.process()
-        print 'Done processing'
+        print('Done processing')
 
         correction_params = results.correction_parameters
         prediction_params = results.prediction_parameters
 
         """ STORE RESULTS """
-        print 'Storing the results...'
+        print('Storing the results...')
         output_folder_name = '{}-{}'.format(prefix, processor_name) if prefix else processor_name
         output_folder = path.join(output_dir, output_folder_name)
 
@@ -116,7 +131,7 @@ if __name__ == '__main__':
         nib.save(p_image, path.join(output_folder, p_file))
         nib.save(c_image, path.join(output_folder, c_file))
 
-        print 'Done'
+        print('Done')
 
     else:
         # Process each category
@@ -132,22 +147,22 @@ if __name__ == '__main__':
                                        category=category,
                                        user_defined_parameters=udp)
 
-            print
-            print 'Processing category', category, '...'
-            results = processor.process()
-            print 'Done processing'
-            print
+            # Processor name
+            processor_name = processor.get_name()
 
+            print()
+            print('Processing category', category, '...')
+            results = processor.process()
+            print('Done processing')
+            print()
+
+            processor_name = processor.get_name()
             correction_params = results.correction_parameters
             prediction_params = results.prediction_parameters
 
             """ STORE RESULTS """
-            print 'Storing the results...'
-            output_folder_name = '{}-{}-category_{}'.format(
-                prefix,
-                processor_name,
-                category
-            ) if prefix else '{}-category_{}'.format(processor_name, category)
+            print('Storing the results...')
+            output_folder_name = '{}-{}'.format(prefix, processor_name) if prefix else processor_name
             output_folder = path.join(output_dir, output_folder_name)
 
             # Check if directory exists
@@ -171,7 +186,7 @@ if __name__ == '__main__':
             nib.save(p_image, path.join(output_folder, p_file))
             nib.save(c_image, path.join(output_folder, c_file))
 
-            print 'Done category', category
+            print('Done category', category)
 
-        print
-        print 'Done'
+        print()
+        print('Done')

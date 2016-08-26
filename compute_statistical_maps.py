@@ -38,8 +38,8 @@ if __name__ == '__main__':
                                                                ' per voxel and create a statistical'
                                                                ' map out of these fitting scores.')
 
-    arguments_parser.add_argument('--dirs', nargs='+', help='Specify one or several directories within the '
-                                                            'results directory specified in the '
+    arguments_parser.add_argument('--dirs', nargs='+', help='Specify one or several directories within the'
+                                                            ' results directory specified in the '
                                                             ' configuration file from which the '
                                                             ' parameters should be loaded.')
 
@@ -93,9 +93,9 @@ if __name__ == '__main__':
                 p, subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters
             )
             print()
-            print('Computing fitting results for {}'.format(n), end="")
+            print('Computing fitting results for {} '.format(n), end="")
             if category is not None:
-                print(', category {}'.format(category), end="")
+                print('({})'.format(category), end="")
             print("\n{} progress: ".format(method))
             try:
                 results = helper_functions.compute_fitting_scores(
@@ -124,9 +124,9 @@ if __name__ == '__main__':
                 processing_parameters
             )
             print()
-            print('Computing fitting results for {}'.format(n), end="")
+            print('Computing fitting results for {} '.format(n), end="")
             if category is not None:
-                print(', category {}'.format(category), end="")
+                print('({})'.format(category), end="")
             print("\n{} progress: ".format(method), )
             try:
                 results = helper_functions.compute_fitting_scores(

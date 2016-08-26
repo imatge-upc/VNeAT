@@ -19,10 +19,10 @@ gm2 = subjectsLoader.get_gm_data(start=3, end=13)
 affine = subjectsLoader.get_template_affine()
 
 # Load predictors
-predictors = subjectsLoader.get_predictors()
+predictors = subjectsLoader.get_predictor()
 
 # Load predictors without using cache
-predictors2 = subjectsLoader.get_predictors(use_cache=False)
+predictors2 = subjectsLoader.get_predictor(use_cache=False)
 
 # Load correctors
 correctors = subjectsLoader.get_correctors()

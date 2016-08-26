@@ -48,15 +48,15 @@ def load_data_from_config_file(config_file):
     # Load all necessary data:
     try:
         subjects = data_loader.get_subjects()
-        predictors_names = data_loader.get_predictors_names()
+        predictors_names = data_loader.get_predictor_name()
         correctors_names = data_loader.get_correctors_names()
-        predictors = data_loader.get_predictors()
+        predictor = data_loader.get_predictor()
         correctors = data_loader.get_correctors()
         processing_parameters = data_loader.get_processing_parameters()
         affine_matrix = data_loader.get_template_affine()
         output_dir = data_loader.get_output_dir()
 
-        return subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
+        return subjects, predictors_names, correctors_names, predictor, correctors, processing_parameters, \
                affine_matrix, output_dir
     except KeyError:
         print()
@@ -185,9 +185,14 @@ def get_results_from_path(pred_params_path, subjects, predictors_names, correcto
     # Try to infer whether there is a curve for a category or not by folder name
     folder_name = path.basename(folder_path)
     if 'category' in folder_name:
-        cat = int(folder_name.split('-')[-1].split('_')[-1])
+        cat_name = folder_name.split('-')[-1].replace('_', ' ')
+        if 'all' in cat_name:
+            cat = None
+        else:
+            cat = int(cat_name.split(' ')[-1])
         name = '-'.join(folder_name.split('-')[:-1])
     else:
+        cat_name = None
         cat = None
         name = folder_name
     # Load niftis and txt files and keep them
@@ -208,7 +213,7 @@ def get_results_from_path(pred_params_path, subjects, predictors_names, correcto
         category=cat
     )
 
-    return name, cat, pred_parameters, corr_parameters, processor
+    return name, cat_name, pred_parameters, corr_parameters, processor
 
 
 def compute_fitting_scores(processor_instance, method_name, method_func, pparams, cparams, cluster_size,

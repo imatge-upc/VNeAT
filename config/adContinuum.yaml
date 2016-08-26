@@ -33,9 +33,8 @@ model:
   # If there is no category identifier for this study, put No
   category_identifier: 'diag'
 
-  # List of identifiers that should be used as predictors
-  predictors_identifiers:
-    - 'AD_CSF_Index_ttau'
+  # Identifier that should be used as a predictor
+  predictor_identifier: 'AD_CSF_Index_ttau'
 
   # List of identifiers that should be used as correctors
   correctors_identifiers:

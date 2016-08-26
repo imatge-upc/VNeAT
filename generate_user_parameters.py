@@ -34,7 +34,7 @@ if __name__ == '__main__':
         subjects = data_loader.get_subjects()
         predictors_names = data_loader.get_predictors_names()
         correctors_names = data_loader.get_correctors_names()
-        predictors = data_loader.get_predictors()
+        predictors = data_loader.get_predictor()
         correctors = data_loader.get_correctors()
         processing_parameters = data_loader.get_processing_parameters()
         affine_matrix = data_loader.get_template_affine()

@@ -69,7 +69,7 @@ class DataLoader(object):
         category_identifier = self._conf['model']['category_identifier']  # Category identifier
         fields_names = []
         fields_names = fields_names + list(self._conf['model']['correctors_identifiers'])  # Correctors
-        fields_names = fields_names + list(self._conf['model']['predictors_identifiers'])  # Predictors
+        fields_names = fields_names + [self._conf['model']['predictor_identifier']]        # Predictors
 
         # Load excel file
         xls = ExcelSheet(excel_file)
@@ -168,7 +168,7 @@ class DataLoader(object):
         gm_values = map(lambda subject: nib.load(subject.gmfile).get_data(), subjects)
         return np.asarray(gm_values)
 
-    def get_predictors(self, start=None, end=None, use_cache=True):
+    def get_predictor(self, start=None, end=None, use_cache=True):
         """
         Returns the predictors of the study for all the subjects between "start" and "end" [start, end)
 
@@ -198,7 +198,7 @@ class DataLoader(object):
             self._end = end
 
         # Get predictors
-        predictors_names = self._conf['model']['predictors_identifiers']
+        predictors_names = [self._conf['model']['predictor_identifier']]
         predictors = map(lambda subject: subject.get_parameters(predictors_names), subjects)
         return np.asarray(predictors)
 
@@ -236,7 +236,7 @@ class DataLoader(object):
         correctors = map(lambda subject: subject.get_parameters(correctors_names), subjects)
         return np.asarray(correctors)
 
-    def get_predictors_names(self):
+    def get_predictor_name(self):
         """
         Returns the names of the predictors of this study
 
@@ -245,7 +245,7 @@ class DataLoader(object):
         List<String>
             List of predictors' names
         """
-        return self._conf['model']['predictors_identifiers']
+        return [self._conf['model']['predictor_identifier']]
 
     def get_correctors_names(self):
         """
