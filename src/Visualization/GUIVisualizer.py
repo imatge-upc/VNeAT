@@ -5,9 +5,9 @@ from matplotlib.lines import Line2D as mplline
 
 
 class GUIVisualizer(object):
-
-    def __init__(self, template, num_points=50, template_cmap='gray'):
+    def __init__(self, template, affine, num_points=100, template_cmap='gray'):
         self._template = (template - np.min(template)).astype(float) / (np.max(template) - np.min(template))
+        self._affine = affine
         self._num_points = num_points
         self._template_cmap = template_cmap
         self._images = []
@@ -37,13 +37,18 @@ class GUIVisualizer(object):
         self._images.append((image, colormap))
         return self
 
-    def add_curve_processor(self, processor, prediction_parameters, label=None):
+    def add_curve_processor(self, processor, prediction_parameters, correction_parameters, label=None):
         if prediction_parameters.shape[1:] != self._template.shape:
             raise ValueError("The shape of the prediction parameters " + str(
                 prediction_parameters.shape[1:]) + " must match that of the template " + str(self._template.shape))
+        if correction_parameters.shape[1:] != self._template.shape:
+            raise ValueError("The shape of the correction parameters {} must match that of the template {}".format(
+                correction_parameters.shape[1:],
+                self._template.shape
+            ))
         if label is None:
-            label = 'Curve ' + str(len(self._processors) + 1)
-        self._processors.append((processor, prediction_parameters, label))
+            label = 'Curve {}'.format(len(self._processors) + 1)
+        self._processors.append((processor, prediction_parameters, correction_parameters, label))
         return self
 
     def set_corrected_data_processor(self, processor, correction_parameters):
@@ -136,15 +141,18 @@ class GUIVisualizer(object):
 
         colors = ['r', 'c', 'g', 'm', 'y', 'k']
 
-        try:
+        if self._correction_processor is not None:
             correction_processor, correction_parameters = self._correction_processor
             cdata = correction_processor.corrected_values(correction_parameters,
                                                           x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1)
             self._ax[1, 1].plot(correction_processor.predictors[:, 0], cdata[:, 0, 0, 0], 'bo')
-        except AttributeError:
-            pass
 
-        for processor, prediction_parameters, label in self._processors:
+        for processor, prediction_parameters, correction_parameters, label in self._processors:
+            cdata = processor.corrected_values(correction_parameters,
+                                               x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1
+                                               )
+            self._ax[1, 1].plot(processor.predictors[:, 0], cdata[:, 0, 0, 0], 'bo', color=colors[0])
+
             axis, curve = processor.curve(prediction_parameters,
                                           x1=x, x2=x + 1, y1=y, y2=y + 1, z1=z, z2=z + 1, tpoints=self._num_points
                                           )
@@ -157,6 +165,12 @@ class GUIVisualizer(object):
 
         if len(self._processors) > 0 or hasattr(self, '_correction_processor'):
             self._ax[1, 1].legend()
+
+        # Compute mm coordinates with affine
+        c_voxel = [new_voxel[0], new_voxel[1], new_voxel[2], 1]
+        c_voxel = np.array(c_voxel, dtype=np.float32)
+        mm_coords = self._affine.dot(c_voxel)[:-1]
+        self._figure.canvas.set_window_title('Coordinates {}, {}, {}'.format(*mm_coords))
 
         self._figure.canvas.draw()
 

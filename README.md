@@ -25,6 +25,7 @@ evaluate the fitting results, such as:
 - R squared (r2)
 - F statistic (fstat)
 - F test (ftest)
+- Akaike Information Criterion (aic)
 - Penalized Residual Sum of Squares (prss)
 - Variance normalized - Penalized Residual Sum of Squares (vnprss)
 
