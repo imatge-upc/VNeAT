@@ -1,4 +1,3 @@
-data/*
 .idea
 *.pyc
 .DS_STORE
@@ -7,8 +6,16 @@ data/*
 *.csv
 !requirements.txt
 *.sh
-*backup*
-nonlinear2/FPMAlfa_GAM.py
-*tmp.py
+!test.sh
 user_paths.py
-GAMFIT/*
+
+# Nosetests XUnit reports
+nosetests.xml
+
+# Coverage plugin for Nosetests
+coverage.xml
+.coverage
+cover
+
+# Linting files from pep8
+pep8.log

@@ -2,7 +2,7 @@ from abc import ABCMeta
 
 import numpy as np
 
-from src.FitScores.FitEvaluation_v2 import evaluation_function as eval_func
+from src.FitScores.FitEvaluation import evaluation_function as eval_func
 from src.Utils.Documentation import docstring_inheritor
 
 

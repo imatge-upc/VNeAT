@@ -91,6 +91,7 @@ class DataLoader(object):
 
         # Load the predictors and correctors for all subjects
         subjects = []
+        end = end if end is None else end + 1
         for row in xls.get_rows(start=start, end=end, fieldstype=fields):
             # The subjects must have a non-empty ID
             if row[id_identifier] != "":

@@ -227,7 +227,7 @@ def compute_fitting_scores(processor_instance, method_name, method_func, pparams
         Instance of a MixedProcessor
     method_name : String
         Name of the method to compute the fitting scores (e.g f_stat)
-    method_func : src.FitScores.FitEvaluation_v2.evaluation_function
+    method_func : src.FitScores.FitEvaluation.evaluation_function
         Evaluation function that computes the fitting scores
     pparams : np.array
         Array with prediction parameters

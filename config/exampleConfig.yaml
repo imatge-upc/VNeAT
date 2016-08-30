@@ -3,13 +3,13 @@ input:
 
   # Path to the Excel file containing the metadata of the study. See README.md for
   # further details about the accepted file format
-  excel_file: '/home/user/my_excel.xls'
+  excel_file: '../tests/mock_data/mock_excel.xls'
 
   # Path to the folder containing the NIFTI files with the grey matter values for each subject
-  data_folder: '/home/user/my_data_folder/'
+  data_folder: '../tests/mock_data/niftis'
 
   # Path to the Nifti file containing the template used to register the subjects of these study
-  template_file: '/home/user/my_data_folder/template.nii'
+  template_file: '../tests/mock_data/template.nii'
 
   # Study prefix, that is, prefix used in every greymatter file (NIFTI) before the identifier.
   # (e.g: if prefix is 'study1_' and a subject has id 'subject1', the corresponding greymatter file would be located
@@ -26,20 +26,20 @@ model:
 
   # Identifier used in the excel file for the column that contains the ID of the subject and type of data used to
   # express this identifier (String, Number)
-  id_identifier: 'Subject_ID'
-  id_type: 'String'
+  id_identifier: 'ID'
+  id_type: 'Number'
 
   # Identifier used in the excel file for the column that contains the category/class of the subject.
   # If there is no category identifier for this study, put No
-  category_identifier: 'Subject_Category'
+  category_identifier: 'category'
 
   # Identifier that should be used as a predictor
-  predictor_identifier: 'Age'
+  predictor_identifier: 'biomarker'
 
   # List of identifiers that should be used as correctors
   correctors_identifiers:
-    - 'Sex'
-    - 'Education'
+    - 'age'
+    - 'sex'
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -92,7 +92,7 @@ processing_params:
 
   # Number of processes spanned to perform computational-heavy tasks, such as fitting.
   # Default value: 4
-  n_jobs: 4
+  n_jobs: 2
 
   # Total amount of memory in MB used to get Chunks of gray matter data from all subjects
   # (as memory increases so does the number of voxels used in one chunck)
@@ -110,5 +110,5 @@ processing_params:
 output:
 
   # Path to the folder where all results will be stored
-  output_path: '/home/users/results/'
+  output_path: '../tests/mock_data/results'
 

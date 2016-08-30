@@ -188,7 +188,6 @@ if __name__ == '__main__':
                 )
                 # Next color
                 color_counter = color_counter + 1 if ((color_counter + 1) % len(AVAILABLE_COLORS)) != 0 else 0
-                # TODO: Add optional lowess curve
                 # Plot info
                 plt.legend(fontsize='xx-large')
                 plt.xlabel(predictors_names[0], fontsize='xx-large')

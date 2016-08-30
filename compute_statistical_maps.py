@@ -7,7 +7,7 @@ from os import path
 import nibabel as nib
 
 from src import helper_functions
-from src.FitScores.FitEvaluation_v2 import aic, fstat, ftest, mse, prss, r2, vnprss
+from src.FitScores.FitEvaluation import aic, fstat, ftest, mse, prss, r2, vnprss
 
 if __name__ == '__main__':
 
