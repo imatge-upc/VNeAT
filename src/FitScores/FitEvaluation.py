@@ -555,7 +555,7 @@ def r2(self):
     # prediction_error = corrected_data - prediction
     prediction_error = corrected_data - self.predicted_data()
 
-    error_variance = ((prediction_error - prediction_error.mean(axis=0)) ** 2).sum(axis=0)
+    error_variance = (prediction_error ** 2).sum(axis=0)
     # We don't divide it by N-1 because the final ratio will eliminate this factor
 
     return 1 - error_variance / correction_variance

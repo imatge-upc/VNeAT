@@ -1,13 +1,11 @@
+# Jetbrains products
 .idea
+
+# Pyc
 *.pyc
+
+# MAC DS_STORE
 .DS_STORE
-*.nii
-*.txt
-*.csv
-!requirements.txt
-*.sh
-!test.sh
-user_paths.py
 
 # Nosetests XUnit reports
 nosetests.xml
@@ -19,3 +17,4 @@ cover
 
 # Linting files from pep8
 pep8.log
+

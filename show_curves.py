@@ -39,7 +39,7 @@ if __name__ == '__main__':
                                                             'results directory specified in the '
                                                             'configuration file from which the '
                                                             'parameters should be loaded.')
-    arguments_parser.add_argument('--compare', const=True, nargs='?',
+    arguments_parser.add_argument('--compare', default=True, nargs='?',
                                   help='Plots the curves in the same figure so that you are able '
                                        'to compare the different curves. The program does not '
                                        'recognize whether the data has been corrected with the '
@@ -211,13 +211,13 @@ if __name__ == '__main__':
                     mng.frame.Maximize(True)
 
                 # Show current curve in tight mode if compare mode is off
-                if compare is None:
+                if not compare:
                     plt.tight_layout()
                     plt.show()
                     print()
 
             # Show all curves in tight mode if compare mode is on
-            if compare is not None:
+            if compare:
                 plt.tight_layout()
                 plt.show()
                 print()
