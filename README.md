@@ -55,7 +55,9 @@ compared statistical maps, and also a map with the labels of the maps that had t
 
 - Absolute difference: absolute difference between 2 statistical maps
 
-- MSE: mean squared error between 2 statistical maps
+- SE: squared error between 2 statistical maps
+
+![RGB comparison map](./assets/map_comparison_rgb.png)
 
 #### Curve visualization
 
@@ -111,8 +113,9 @@ TODO
 
 ## Usage instructions
 
-The interaction between the user and the software is currently implemented with CLI scripts, which are going 
-to be described with detail in this section:
+The interaction between the user and the software currently uses a Command Line Interface (CLI). 
+The scripts that implement each feature of the toolbox are going to be described with detail in this section:
+
 
 ##### compute_fitting.py
 
