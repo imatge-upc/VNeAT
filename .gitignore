@@ -1,15 +1,19 @@
-data/*
+# Jetbrains products
 .idea
+
+# Pyc
 *.pyc
+
+# MAC DS_STORE
 .DS_STORE
-*.nii
-*.nii.gz
-*.txt
-*.csv
-!requirements.txt
-*.sh
-*backup*
-nonlinear2/FPMAlfa_GAM.py
-*tmp.py
-user_paths.py
-GAMFIT/*
+
+# Nosetests XUnit reports
+nosetests.xml
+
+# Coverage plugin for Nosetests
+coverage.xml
+.coverage
+cover
+
+# Linting files from pep8
+pep8.log
