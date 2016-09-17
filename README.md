@@ -29,18 +29,22 @@ evaluate the fitting results, such as:
 - R squared (r2)
 
     ![R2 formula](./assets/r2.png)
+    
 - Penalized Residual Sum of Squares (prss)
 
     ![PRSS formula](./assets/prss.png)
+    
 - Variance normalized - Penalized Residual Sum of Squares (vnprss)
     
     ![VNPRSS formula](./assets/vnprss.png)
+    
 - F statistic (fstat)
 
     ![F statistic formula](./assets/f_stat.png)
 - F test (ftest)
 
     ![F test formula](./assets/f_test.png)
+    
 - Akaike Information Criterion (aic)
 
     ![AIC formula](./assets/aic.png)
