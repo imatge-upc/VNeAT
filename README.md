@@ -41,6 +41,7 @@ evaluate the fitting results, such as:
 - F statistic (fstat)
 
     ![F statistic formula](./assets/f_stat.png)
+    
 - F test (ftest)
 
     ![F test formula](./assets/f_test.png)
@@ -51,6 +52,7 @@ evaluate the fitting results, such as:
 
 #### Methods to compare between statistical maps
 You can also compare between statistical maps with up to four different techniques:
+
 - RGB: each map is put as RGB channel, so you can compare between 2 and 3 maps by looking at the colour of the 
 resulting map at each region
 
