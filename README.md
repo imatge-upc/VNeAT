@@ -18,8 +18,6 @@ dynamics of grey-matter and study the statistical significance of such dynamics.
 |**[PMF (Pasqual Maragall Foundation)](https://fpmaragall.org/en/)** | ![UPC-ETSETB logo](./assets/pasqual_maragall_foundation.png) |
 
 
-
-
 ## What does this software offer?
 
 #### Fitters
@@ -257,8 +255,6 @@ using a grid search approach and using several error functions*
 | --iterations, -i | Yes | Integer | 5 | The number of iterations to perform |
 | --voxels, -v | Yes | Integer | 100 | The number of voxels to be used to compute the error and therefore find the optimal hyperparameters. In general, more voxels used may imply better generalization, but also more computation time and use of resources |
 | --voxel-offset | Yes | Integer | 10 | Number of voxels that will not be taken into account in all directions, both at the beginning and at the end. That is, for a voxel offset of v, and volumes with dimensions (x_dim, y_dim, z_dim), only the following voxels will be taken into account: [v:x_dim-v, v:y_dim-v, v:z_dim-v] |
-| --gm_threshold | Yes | Float | 0.1 | Mean grey-matter lower threshold |
-| --labels | Yes | Boolean | True | Produce a map that has one label per cluster |
 
 #### nln-show_curves.py
 
