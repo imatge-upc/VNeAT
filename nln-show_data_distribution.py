@@ -28,10 +28,10 @@ if __name__ == '__main__':
     arguments_parser.add_argument('configuration_file', help="Path to the YAML configuration file"
                                                              " used to load the data for this study.")
     arguments_parser.add_argument('plot', choices=AVAILABLE_PLOTS,
-                                  help='Type of plot to be used. For the categorical_boxplot it is'
-                                       ' assumed that the dirs specified belong to different categories'
-                                       ' of the data. Otherwise, only the last data retrieved from a'
-                                       ' a specific category will be taken into account.')
+                                  help='Type of plot to be used. For the categorical_boxplot it is '
+                                       'assumed that the dirs specified belong to different categories '
+                                       'of the data. Otherwise, only the last data retrieved from a '
+                                       'specific category will be taken into account.')
     arguments_parser.add_argument('--dirs', nargs='+', help='Specify one or several directories within the '
                                                             'results directory specified in the '
                                                             'configuration file from which the '

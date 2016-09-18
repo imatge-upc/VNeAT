@@ -22,16 +22,16 @@ if __name__ == '__main__':
                                   help='Path relative to the output directory specified in the configuration file'
                                        'to the statistical map to be loaded')
 
+    arguments_parser.add_argument('dirs', nargs="+",
+                                  help='Specify one or more directories within the results directory specified in the '
+                                       'configuration file from which the fitting parameters should be loaded.')
+
     arguments_parser.add_argument('--colormap', choices=['hot', 'rainbow'], default='hot',
                                   help="Color map used to paint the statistical maps' values. By default it is 'hot',"
                                        "useful for statistical based measures (F-stat, p-values, Z-scores, etc.),"
                                        "but you can use 'rainbow' for labeled maps")
 
-    arguments_parser.add_argument('dirs', nargs="+",
-                                  help='Specify one or more directories within the results directory specified in the '
-                                       'configuration file from which the fitting parameters should be loaded.')
-
-    arguments_parser.add_argument('--n_points', default=100, type=int,
+    arguments_parser.add_argument('--n-points', default=100, type=int,
                                   help='Number of points used to plot the curves. More points means a smoother curve '
                                        'but requires more computational resources')
 

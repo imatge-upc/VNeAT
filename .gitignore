@@ -17,3 +17,10 @@ cover
 
 # Linting files from pep8
 pep8.log
+
+# Distutils
+build
+MANIFEST
+
+# Pyinstaller
+*.spec

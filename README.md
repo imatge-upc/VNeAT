@@ -1,7 +1,16 @@
 # Non-linear analysis toolbox for neuroimaging
 
-This software provides the tools to analyze linear and potentially non-linear
+This toolbox written in Python provides the tools to analyze the linear and non-linear
 dynamics of grey-matter and study the statistical significance of such dynamics.
+
+| Asier Aduriz Berasategui | Santiago Puch Giner | Adrià Casamitjana Díaz | Verónica Vilaplana Besler |
+| :---: | :---: | :---: | :---: |
+| Author | Author | Contributor | Advisor |
+
+Institution: [Universitat Politècnica de Catalunya](http://www.upc.edu).
+
+![Universitat Politècnica de Catalunya](./assets/upc_etsetb.jpg)
+
 
 ## What does this software offer?
 
@@ -146,28 +155,143 @@ In order for this toolbox to properly parse and obtain the data to be processed 
     ![yaml configuration file example](./assets/config_file_example.png)
    
 
-## How can I install it?
+## How can I use it?
 
-TODO
+The interaction between the user and the software is done through a Command Line Interface (CLI). 
 
-## Usage instructions
+As the toolbox is written in Python you must have **python 2.7** previously 
+installed in order to use it (instructions on how to install python can be found 
+[here](https://www.python.org/downloads/)).
 
-The interaction between the user and the software currently uses a Command Line Interface (CLI). 
-The scripts that implement each feature of the toolbox are going to be described with detail in this section:
+First you just have to clone this repository:
+```
+$ git clone https://santi-puch@bitbucket.org/imatge-upc/neuroimatge.git
+$ cd Neuroimatge
+```
+After that you must install all the dependencies, specified in the __requirements.txt__ file:
+```
+$ pip install -r requirements.txt
+```
+After all that is done you can execute the scripts using the python executable. 
+This is the pattern that you'll be using to execute the scripts:
+```
+$ python nln-script.py --options
+```
 
+## CLI documentation
 
-##### compute_fitting.py
+#### nln-compute_fitting.py
 
-##### generate_user_parameters.py
+*Computes the fitting parameters for the data provided in the configuration file. 
+This fitting parameters can be computed for all subjects in the study (default behaviour)
+or you can specify for which categories should the parameters be computed* 
 
-##### compute_statistical_maps.py
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| --categories | Yes | Space-separated integers | None  | Category or categories (as they are represented in the Excel file) for which the fitting parameters should be computed |
+| --parameters | Yes | Path | None | Path to the txt file within the results directory that contains the user defined parameters to load a pre-configured correction and prediction processor |
+| --prefix | Yes | String | Empty string | Prefix used in the result files |
 
-##### compare_statistical_maps.py
+#### nln-generate_user_parameters.py
 
-##### search_hyperparameters.py
+*Generates user defined parameters for a specific correction and prediction processor
+so you can use them in compute_fitting.py using the --parameters option* 
 
-##### show_curves.py
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| --prefix | Yes | String | Empty string | Prefix used in the result files |
 
-##### show_visualizer.py
+#### nln-compute_statistical_maps.py
 
-##### show_data_distribution.py
+*Computes statistical maps for the fitting results computed by compute_fitting.py. 
+By default uses all computed parameters inside the results folder specified 
+in the configuration file.* 
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| --method | Yes | mse, r2, fstat, ftest, aic, prss, vnprss | ftest | Method to evaluate the fitting score per voxel and create a statistical map out of these fitting scores |
+| --dirs | Yes | Space-separated paths | All computed parameters within the results directory | Specify one or several directories within the results directory from which the parameters should be loaded |
+| --cluster_size | Yes | Integer | 100 | Value of the minimum cluster size (in voxels) that should survive after thresholding |
+| --p_thresholds | Yes | Space-separated floats | 0.01 0.005 0.001 | One or more values representing the maximum acceptable p-value, so that all voxels with greater p-value are put to the default value |
+| --gamma | Yes | Float | 5e-3 | Value of the percentile used to determine the upper threshold for PRSS and vnPRSS methods |
+| --gm_threshold | Yes | Float | 0.1 | Mean grey-matter lower threshold |
+| --labels | Yes | Boolean | True | Produce a map that has one label per cluster |
+
+#### nln-compare_statistical_maps.py
+
+*Compares statistical maps generated by compute_statistical_maps.py using four possible 
+techniques: RGB map, best-fitting map, absolute difference or squared error. 
+You must specify the specific maps to compare and ensure that they 
+are comparable (Z-score map vs Z-score map, p-value map vs p-value map, etc.)*
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| files | No | Space-separated paths | - | Specify two or more files within the results directory to be compared |
+| --method | Yes | best, rgb, absdiff, se | best | Method to compare the fitting score per voxel and create a new statistical map out of this comparison |
+| --name | Yes | String | Empty string | Name to be prepended to the output file |
+
+#### nln-search_hyperparameters.py
+
+*Finds the hyper parameters of the PolySVR or GaussianSVR 
+using a grid search approach and using several error functions*
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| fitter | No | PolySVR, GaussianSVR | - | The fitter for which the hyperparameters should be found |
+| --categories | Yes | Space-separated integers | None  | Category or categories (as they are represented in the Excel file) for which the hyperparameters should be found |
+| --prefix | Yes | String | Empty string | Prefix used in the result files |
+| --error | Yes | mse, anova, Cp | anova | Error function to be minimized in order to find the optimal hyperparameters |
+| --iterations, -i | Yes | Integer | 5 | The number of iterations to perform |
+| --voxels, -v | Yes | Integer | 100 | The number of voxels to be used to compute the error and therefore find the optimal hyperparameters. In general, more voxels used may imply better generalization, but also more computation time and use of resources |
+| --voxel-offset | Yes | Integer | 10 | Number of voxels that will not be taken into account in all directions, both at the beginning and at the end. That is, for a voxel offset of v, and volumes with dimensions (x_dim, y_dim, z_dim), only the following voxels will be taken into account: [v:x_dim-v, v:y_dim-v, v:z_dim-v] |
+| --gm_threshold | Yes | Float | 0.1 | Mean grey-matter lower threshold |
+| --labels | Yes | Boolean | True | Produce a map that has one label per cluster |
+
+#### nln-show_curves.py
+
+*Shows the curves for the fitting results computed by compute_fitting.py. 
+By default shows all computed parameters inside the results folder specified in the 
+configuration file*
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| --dirs | Yes | Space-separated paths | All computed parameters within the results directory | Specify one or several directories within the results directory from which the parameters should be loaded |
+| --compare | Yes | Boolean | True | Plots the curves in the same figure so that you are able to compare the different curves. The program does not recognize whether the data has been corrected with the same fitter or not, so you must ensure this to have coherent results |
+
+#### nln-show_visualizer.py
+
+*Shows the graphical visualizer to display a statistical 
+map and the curves for the selected voxel*
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| map | No | Path | - | Path relative to the output directory specified in the configuration file to the statistical map to be loaded |
+| dirs | No | Space-separated paths | - | Specify one or more directories within the results directory specified in the configuration file from which the fitting parameters should be loaded |
+| --colormap | Yes | hot, rainbow | hot | Color map used to paint the statistical maps' values. By default it is 'hot', useful for statistical based measures (F-stat, p-values, Z-scores, etc.), but you can use 'rainbow' for labeled maps |
+| --n-points | Yes | Integer | 100 | Number of points used to plot the curves. More points means a smoother curve but requires more computational resources |
+
+#### nln-show_data_distribution.py
+
+*Shows the data distribution of the observations, the predictors, 
+the correctors and the residuals*
+
+| Parameter name | Optional | Possible value/s | Default value | Description |
+| :---: | :---: | :---: | :---: |  :---: |
+| configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
+| plot | No | univariate_density, bivariate_density, boxplot, categorical_boxplot | - | Type of plot to be used. For the categorical_boxplot it is assumed that the dirs specified belong to different categories of the data. Otherwise, only the last data retrieved from a specific category will be taken into account |
+| --dirs | Yes | Space-separated paths | All computed parameters within the results directory | Specify one or several directories within the results directory from which the parameters should be loaded |
+
+____
+You can get help about the required parameters using the `--help` option, which is supported by all the scripts.
+
+For example, if you want to know how to execute the *nln-show_visualizer.py* script, you can use:
+```
+$ python nln-show_visualizer.py --help
+```

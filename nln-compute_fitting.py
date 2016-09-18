@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import os
 import os.path as path
-import sys
 from argparse import ArgumentParser
 
 import nibabel as nib
