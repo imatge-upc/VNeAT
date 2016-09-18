@@ -111,7 +111,40 @@ ___
 
 ## Requirements
 
-TODO
+In order for this toolbox to properly parse and obtain the data to be processed there are some requirements that should
+ be fullfilled. These requirements are the following: 
+
+- **Excel file (.xls)** with all the metadata
+    This file should contain the unique identifier for each subject, an optional 
+    categorical value for each subject, and one or several fields with metadata to be used as predictor and/or correctors.
+    The data must be enclosed in the first sheet of the xls book, and this sheet must have the first row as a header with 
+    the names identifying the fields to be used. 
+    An example of a Excel file with the required format can be found in `tests/mock_data/mock_excel.xls`.
+
+    ![Excel file format](./assets/excel_format_example.png)
+    
+
+- **Folder** containing all the **NIFTIs** (gzipped or not)
+    This folder must containt one NIFTI file for each subject, and it should be identified with the unique
+    identifier specified in the excel file, with the option to have a study prefix for everyone of them.
+    
+    ![Nifti folder example](./assets/nifti_folder_example.png)
+    
+- **Template** file in NIFTI format
+    The template into which all the subjects have been registered to compute the VBM
+    (e.g. MNI template)
+    
+    ![Template example](./assets/template_example.png)
+
+- **Configuration file (.yaml)** for this study
+    In this configuration file you specify where to find your previous requirements (Excel, data folder and template),
+    where to store the results, the model (predictor and correctors), and other parameters, such as the processing
+    parameters and the configuration parameters for the _GridSearch_.
+    
+    You can find a template of this configuration file in `config/exampleConfig.yaml`.
+    
+    ![yaml configuration file example](./assets/config_file_example.png)
+   
 
 ## How can I install it?
 
