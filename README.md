@@ -3,13 +3,21 @@
 This toolbox written in Python provides the tools to analyze the linear and non-linear
 dynamics of grey-matter and study the statistical significance of such dynamics.
 
-| Asier Aduriz Berasategui | Santiago Puch Giner | Adrià Casamitjana Díaz | Verónica Vilaplana Besler |
-| :---: | :---: | :---: | :---: |
-| Author | Author | Contributor | Advisor |
+#### Authors
+| Name | Position / Role |
+| :---: | :---: |
+| Asier Aduriz Berasategi | Author |
+| Santiago Puch Giner | Author |
+| Adrià Casamitjana Díaz | Contributor |
+| Verónica Vilaplana Besler | Advisor (UPC) |
+| Juan Domingo Gispert | Advisor (PMF) |
 
-Institution: [Universitat Politècnica de Catalunya](http://www.upc.edu).
+#### Institutions
+| [UPC (Universitat Politècnica de Catalunya)](http://www.upc.edu) | ![UPC-ETSETB logo](./assets/upc_etsetb.jpg) |
+| :---: | :---: |
+|**[PMF (Pasqual Maragall Foundation)](https://fpmaragall.org/en/)** | ![UPC-ETSETB logo](./assets/pasqual_maragall_foundation.png) |
 
-![Universitat Politècnica de Catalunya](./assets/upc_etsetb.jpg)
+
 
 
 ## What does this software offer?
