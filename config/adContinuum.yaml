@@ -55,7 +55,7 @@ hyperparameters_finding:
   epsilon_values:
     spacing: linear
     method: deterministic
-    N: 15
+    N: 10
     start: 0.01
     end: 0.2
 
@@ -70,10 +70,10 @@ hyperparameters_finding:
     method: random
     N: 10
     start: 0
-    end: 3
+    end: 1
 
   # Find gamma hyperparameter (can be used for GaussianSVR only) ?
-  gamma: Yes
+  gamma: No
 
   # If gamma is used, use the start and end values specified below.
   # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic

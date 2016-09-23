@@ -1,7 +1,7 @@
-# Non-linear analysis toolbox for neuroimaging
+# Nonlinear analysis toolbox for neurodegenerative disease and aging
 
 This toolbox written in Python provides the tools to analyze the linear and non-linear
-dynamics of grey-matter and study the statistical significance of such dynamics.
+dynamics of gray-matter and study the statistical significance of such dynamics at the voxel level.
 
 #### Authors
 | Name | Position / Role |
@@ -122,7 +122,12 @@ data or the residuals, as well as box plots, both for all subjects or to compare
 
 ![Categorical boxplot](./assets/boxplot.png)
 
-___
+
+#### Categorical comparison
+
+The toolbox allows the user to separate the predictor by categories in order
+to compute one vs all statistical tests. 
+
 
 ## Requirements
 

@@ -1,13 +1,12 @@
 from __future__ import print_function
 
+import os
 from argparse import ArgumentParser
 
-import os
-
 from src import helper_functions
-from src.Processors.SVRProcessing import GaussianSVRProcessor, PolySVRProcessor
 from src.CrossValidation.GridSearch import GridSearch
 from src.CrossValidation.score_functions import anova_error, mse, statisticC_p
+from src.Processors.SVRProcessing import GaussianSVRProcessor, PolySVRProcessor
 
 if __name__ == '__main__':
 
@@ -68,6 +67,7 @@ if __name__ == '__main__':
     hyperparams_dict = helper_functions.load_hyperparams_from_config_file(config_file, fitter_name)
 
     """ PROCESSING """
+    udp = ()
     if categories is not None:
         for category in categories:
             print()
@@ -83,7 +83,10 @@ if __name__ == '__main__':
                                                        predictors,
                                                        correctors,
                                                        processing_parameters,
-                                                       category=category)
+                                                       category=category,
+                                                       user_defined_parameters=udp)
+            udp = processor.user_defined_parameters
+
             """ RESULTS DIRECTORY """
             cat_str = 'category_{}'.format(category)
             output_folder_name = '{}-{}-{}-{}'.format(
@@ -139,4 +142,3 @@ if __name__ == '__main__':
         grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
         grid_search.store_results('optimal_hyperparameters')
         grid_search.plot_error('error_plot')
-

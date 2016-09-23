@@ -4,7 +4,7 @@ import numpy as np
 
 from src.Fitters.CurveFitting import CombinedFitter
 from src.Processors.GAMProcessing import GAMProcessor
-from src.Processors.GLMProcessing import GLMProcessor, PolyGLMProcessor
+from src.Processors.GLMProcessing import PolyGLMProcessor
 from src.Processors.Processing import Processor
 from src.Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
 
@@ -17,7 +17,6 @@ class MixedProcessor(Processor):
 
     # Available processors
     _mixedprocessor_processor_list = [
-        GLMProcessor,
         PolyGLMProcessor,
         GAMProcessor,
         PolySVRProcessor,
@@ -25,11 +24,10 @@ class MixedProcessor(Processor):
     ]
 
     _mixedprocessor_processor_options = {
-        'GLM': 0,
-        'Poly GLM': 1,
-        'GAM': 2,
-        'Poly SVR': 3,
-        'Gaussian SVR': 4
+        'Poly GLM': 0,
+        'GAM': 1,
+        'Poly SVR': 2,
+        'Gaussian SVR': 3
     }
 
     def __fitter__(self, user_defined_parameters):
@@ -71,7 +69,7 @@ class MixedProcessor(Processor):
             ]
             self._processor_correctors_names += [
                 original_predictor_name + ' (category {})'.format(cat) for cat in cat_corrector
-            ]
+                ]
 
         # Create correction processor
         self._correction_processor = MixedProcessor._mixedprocessor_processor_list[
@@ -135,7 +133,7 @@ class MixedProcessor(Processor):
                 ]
                 corrector_names += [
                     original_predictor_name + ' (category {})'.format(cat) for cat in cat_corrector
-                ]
+                    ]
 
         # Correction fitter
         keys = MixedProcessor._mixedprocessor_processor_options.keys()
@@ -235,15 +233,14 @@ class MixedProcessor(Processor):
                               fitting_results):
         # Restrictive bound data assignment: only if both processors are instances of the same class call their
         # specific implementation of __assign_bound_data__
-        bound_functions = []
         if self._correction_processor.__class__ == self._prediction_processor.__class__:
-            bound_functions = self._prediction_processor.__assign_bound_data__(observations,
-                                                                               predictors,
-                                                                               prediction_parameters,
-                                                                               correctors,
-                                                                               correction_parameters,
-                                                                               fitting_results
-                                                                               )
+            return self._prediction_processor.__assign_bound_data__(observations,
+                                                                    predictors,
+                                                                    prediction_parameters,
+                                                                    correctors,
+                                                                    correction_parameters,
+                                                                    fitting_results
+                                                                    )
         else:
             return super(MixedProcessor, self).__assign_bound_data__(observations,
                                                                      predictors,
@@ -252,8 +249,6 @@ class MixedProcessor(Processor):
                                                                      correction_parameters,
                                                                      fitting_results
                                                                      )
-
-        return bound_functions
 
     def get_name(self):
         corrector_name = 'correction_{}'.format(self._correction_processor.get_name())

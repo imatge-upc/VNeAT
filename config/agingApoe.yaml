@@ -48,7 +48,7 @@ model:
 hyperparameters_finding:
 
   # Find epsilon hyperparameter (can be used for PolySVR and GaussianSVR) ?
-  epsilon: No
+  epsilon: Yes
 
   # If epsilon is used, use the start and end values specified below.
   # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
@@ -57,9 +57,9 @@ hyperparameters_finding:
   epsilon_values:
     spacing: linear
     method: deterministic
-    N: 10
-    start: 0.05
-    end: 0.15
+    N: 20
+    start: 0.005
+    end: 0.1
 
   # Find C (regularization) hyperparameter (can be used for PolySVR and GaussianSVR) ?
   C: No
@@ -84,10 +84,10 @@ hyperparameters_finding:
   # Available methods: deterministic and random
   gamma_values:
     spacing: linear
-    method: random
-    N: 5
+    method: deterministic
+    N: 10
     start: 0.1
-    end: 0.5
+    end: 1
 
 # --------------------------------------------------------------------------------------------------------------------
 
