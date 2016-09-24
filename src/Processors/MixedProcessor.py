@@ -111,7 +111,7 @@ class MixedProcessor(Processor):
             separate_predictors_by_category = MixedProcessor.__getyesorno__(
                 default_value=False,
                 try_ntimes=3,
-                show_text='\nMixedProcessor: Do you want to separate the predictors by categories? (Y/N, default N): '
+                show_text='\nMixedProcessor: Do you want to separate the predictor by categories? (Y/N, default N): '
             )
             if separate_predictors_by_category:
                 # Ask which category should remain in predictors
