@@ -6,15 +6,12 @@ from argparse import ArgumentParser
 from src import helper_functions
 from src.CrossValidation.GridSearch import GridSearch
 from src.CrossValidation.score_functions import anova_error, mse, statisticC_p
-from src.Processors.SVRProcessing import GaussianSVRProcessor, PolySVRProcessor
+from src.Processors.MixedProcessor import MixedProcessor
 
 if __name__ == '__main__':
 
     """ CONSTANTS """
-    AVAILABLE_FITTERS = {
-        'PolySVR': PolySVRProcessor,
-        'GaussianSVR': GaussianSVRProcessor
-    }
+    AVAILABLE_FITTERS_NAMES = ['PolySVR', 'GaussianSVR']
 
     AVAILABLE_SCORES = {
         'mse': mse,
@@ -23,13 +20,15 @@ if __name__ == '__main__':
     }
 
     """ PARSE ARGUMENTS FROM CLI """
-    arg_parser = ArgumentParser(description='Finds the hyper parameters of the PolySVR or GaussianSVR'
+    arg_parser = ArgumentParser(description='Finds the hyperparameters of the PolySVR or GaussianSVR'
                                             ' using a grid search approach and using several error'
                                             ' functions.')
     arg_parser.add_argument('configuration_file', help='Path to the YAML configuration file'
                                                        ' used to load the data for this study.')
-    arg_parser.add_argument('fitter', choices=AVAILABLE_FITTERS.keys(),
-                            help='The fitter for which the hyperparameters should be found.')
+    arg_parser.add_argument('--parameters', help='Path to the txt file within the results directory '
+                                                 'that contains the user defined '
+                                                 'parameters to load a pre-configured '
+                                                 'correction and prediction processor')
     arg_parser.add_argument('--error', choices=AVAILABLE_SCORES.keys(), default='anova',
                             help='Error function to be minimized in order to find the optimal '
                                  'hyperparameters.')
@@ -53,8 +52,9 @@ if __name__ == '__main__':
 
     arguments = arg_parser.parse_args()
     config_file = arguments.configuration_file
+    parameters = arguments.parameters
+    error = arguments.error
     error_func = AVAILABLE_SCORES[arguments.error]
-    fitter_name = arguments.fitter
     N = arguments.iterations
     m = arguments.voxels
     voxel_offset = arguments.voxel_offset
@@ -64,10 +64,58 @@ if __name__ == '__main__':
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
     affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
-    hyperparams_dict = helper_functions.load_hyperparams_from_config_file(config_file, fitter_name)
+
+    if parameters:
+        # Load user defined parameters
+        try:
+            parameters_path = os.path.normpath(os.path.join(output_dir, parameters))
+            with open(parameters_path, 'rb') as f:
+                udp = eval(f.read())
+                print()
+                print('User defined parameters have been successfully loaded.')
+        except IOError as ioe:
+            print()
+            print('The provided parameters file, ' + ioe.filename + ', does not exist.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+        except SyntaxError:
+            print()
+            print('The provided parameters file is not properly formatted.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+        except:
+            print()
+            print('An unexpected error happened.')
+            print('Standard input will be used to configure the correction and prediction processors instead.')
+            print()
+            udp = ()
+    else:
+        udp = ()
+
+    """ INITIALIZE PROCESSOR """
+    processor = MixedProcessor(
+        subjects,
+        predictors_names,
+        correctors_names,
+        predictors,
+        correctors,
+        processing_parameters,
+        user_defined_parameters=udp
+    )
+
+    # Check if prediction processor is available for grid searching
+    prediction_fitter_name = processor.prediction_processor.get_name()
+    udp = processor.user_defined_parameters
+    if prediction_fitter_name not in AVAILABLE_FITTERS_NAMES:
+        print('The selected prediction processor is not available for hyperparameters searching.')
+        print('Use one of the following: {}'.format(', '.join(AVAILABLE_FITTERS_NAMES)))
+        exit(1)
+
+    hyperparams_dict = helper_functions.load_hyperparams_from_config_file(config_file, prediction_fitter_name)
 
     """ PROCESSING """
-    udp = ()
     if categories is not None:
         for category in categories:
             print()
@@ -77,68 +125,80 @@ if __name__ == '__main__':
             print()
 
             # Create MixedProcessor instance
-            processor = AVAILABLE_FITTERS[fitter_name](subjects,
-                                                       predictors_names,
-                                                       correctors_names,
-                                                       predictors,
-                                                       correctors,
-                                                       processing_parameters,
-                                                       category=category,
-                                                       user_defined_parameters=udp)
-            udp = processor.user_defined_parameters
+            processor = MixedProcessor(subjects,
+                                       predictors_names,
+                                       correctors_names,
+                                       predictors,
+                                       correctors,
+                                       processing_parameters,
+                                       category=category,
+                                       user_defined_parameters=udp)
 
             """ RESULTS DIRECTORY """
             cat_str = 'category_{}'.format(category)
             output_folder_name = '{}-{}-{}-{}'.format(
                 prefix,
                 'hyperparameters',
-                fitter_name,
+                prediction_fitter_name,
                 cat_str
             ) if prefix else '{}-{}-{}'.format(
                 'hyperparameters',
-                fitter_name,
+                prediction_fitter_name,
                 cat_str
             )
             output_folder = os.path.join(output_dir, output_folder_name)
+
+            # Gridsearch
+            grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
+                                     n_jobs=processing_parameters['n_jobs'])
+            grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
 
             # Check if directory exists
             if not os.path.isdir(output_folder):
                 # Create directory
                 os.makedirs(output_folder)
 
-            # Gridsearch
-            grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
-                                     n_jobs=processing_parameters['n_jobs'])
-            grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
+            # Save user defined parameters
+            with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
+                f.write(str(udp) + '\n')
+
             grid_search.store_results('optimal_hyperparameters')
             grid_search.plot_error('error_plot')
 
     else:
-        processor = AVAILABLE_FITTERS[fitter_name](subjects,
-                                                   predictors_names,
-                                                   correctors_names,
-                                                   predictors,
-                                                   correctors,
-                                                   processing_parameters)
+        processor = MixedProcessor(subjects,
+                                   predictors_names,
+                                   correctors_names,
+                                   predictors,
+                                   correctors,
+                                   processing_parameters,
+                                   user_defined_parameters=udp)
         """ RESULTS DIRECTORY """
-        output_folder_name = '{}-{}-{}'.format(
+        output_folder_name = '{}-{}-{}-{}'.format(
             prefix,
             'hyperparameters',
-            fitter_name,
-        ) if prefix else '{}-{}'.format(
+            error,
+            prediction_fitter_name,
+        ) if prefix else '{}-{}-{}'.format(
             'hyperparameters',
-            fitter_name,
+            error,
+            prediction_fitter_name,
         )
         output_folder = os.path.join(output_dir, output_folder_name)
+
+        # Gridsearch
+        grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
+                                 n_jobs=processing_parameters['n_jobs'])
+        grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
 
         # Check if directory exists
         if not os.path.isdir(output_folder):
             # Create directory
             os.makedirs(output_folder)
 
-        # Gridsearch
-        grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
-                                 n_jobs=processing_parameters['n_jobs'])
-        grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
+        # Save user defined parameters
+        with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
+            f.write(str(udp) + '\n')
+
         grid_search.store_results('optimal_hyperparameters')
         grid_search.plot_error('error_plot')
