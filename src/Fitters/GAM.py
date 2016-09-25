@@ -425,9 +425,12 @@ class PolynomialSmoother(Smoother):
         self._name = name
         self._N = len(xdata)
 
-    def fit(self, ydata, sample_weight=None, num_threads=-1):
-
-        curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=num_threads)
+    def fit(self, ydata, sample_weight=None, *args, **kwargs):
+        try:
+            n_jobs = kwargs['n_jobs']
+        except KeyError:
+            n_jobs = -1
+        curve = LR(fit_intercept=False, normalize=False, copy_X=False, n_jobs=n_jobs)
 
         xdata = np.array([np.squeeze(self.xdata) ** i for i in range(self.order + 1)]).T
         curve.fit(xdata, ydata, sample_weight)

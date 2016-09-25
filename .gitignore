@@ -8,7 +8,7 @@
 .DS_STORE
 
 # Configuration files except example and test
-*.yaml
+**/*.yaml
 !exampleConfig.yaml
 !config*_category.yaml
 

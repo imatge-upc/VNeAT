@@ -181,7 +181,13 @@ class GAMProcessor(Processor):
         return gam.predict(predictors=predictors, prediction_parameters=prediction_parameters)
 
     def get_name(self):
-        return 'GAM'
+        if self._gamprocessor_smoother_parameters[0] == 1:
+            smoother_name = 'Poly'
+        elif self._gamprocessor_smoother_parameters[0] == 2:
+            smoother_name = 'Spline'
+        else:
+            smoother_name = ''
+        return '{}GAM'.format(smoother_name)
 
 
 GAMProcessor._gamprocessor_perp_norm_options = {GAMProcessor._gamprocessor_perp_norm_options_names[i]: i for i in

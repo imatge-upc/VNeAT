@@ -253,7 +253,7 @@ using a grid search approach and using several error functions*
 | Parameter name | Optional | Possible value/s | Default value | Description |
 | :---: | :---: | :---: | :---: |  :---: |
 | configuration_file | No | Path  | - | YAML configuration file for the study, as specified in the requirements section |
-| fitter | No | PolySVR, GaussianSVR | - | The fitter for which the hyperparameters should be found |
+| --parameters | Yes | Path | None | Path to the txt file within the results directory that contains the user defined parameters to load a pre-configured correction and prediction processor |
 | --categories | Yes | Space-separated integers | None  | Category or categories (as they are represented in the Excel file) for which the hyperparameters should be found |
 | --prefix | Yes | String | Empty string | Prefix used in the result files |
 | --error | Yes | mse, anova, Cp | anova | Error function to be minimized in order to find the optimal hyperparameters |
