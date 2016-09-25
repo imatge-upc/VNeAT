@@ -148,11 +148,6 @@ if __name__ == '__main__':
             )
             output_folder = os.path.join(output_dir, output_folder_name)
 
-            # Gridsearch
-            grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
-                                     n_jobs=processing_parameters['n_jobs'])
-            grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
-
             # Check if directory exists
             if not os.path.isdir(output_folder):
                 # Create directory
@@ -161,6 +156,16 @@ if __name__ == '__main__':
             # Save user defined parameters
             with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
                 f.write(str(udp) + '\n')
+
+            # Gridsearch
+            grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
+                                     n_jobs=processing_parameters['n_jobs'])
+            grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
+
+            # Double check if directory exists
+            if not os.path.isdir(output_folder):
+                # Create directory
+                os.makedirs(output_folder)
 
             grid_search.store_results('optimal_hyperparameters')
             grid_search.plot_error('error_plot')
@@ -186,11 +191,6 @@ if __name__ == '__main__':
         )
         output_folder = os.path.join(output_dir, output_folder_name)
 
-        # Gridsearch
-        grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
-                                 n_jobs=processing_parameters['n_jobs'])
-        grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
-
         # Check if directory exists
         if not os.path.isdir(output_folder):
             # Create directory
@@ -199,6 +199,16 @@ if __name__ == '__main__':
         # Save user defined parameters
         with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
             f.write(str(udp) + '\n')
+
+        # Gridsearch
+        grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
+                                 n_jobs=processing_parameters['n_jobs'])
+        grid_search.fit(hyperparams_dict, N=N, m=m, score=error_func, filename='error_values')
+
+        # Double check if directory exists
+        if not os.path.isdir(output_folder):
+            # Create directory
+            os.makedirs(output_folder)
 
         grid_search.store_results('optimal_hyperparameters')
         grid_search.plot_error('error_plot')

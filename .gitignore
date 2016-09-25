@@ -8,8 +8,8 @@
 .DS_STORE
 
 # Configuration files except example and test
-**/*.yaml
-!exampleConfig.yaml
+config/**
+!config/exampleConfig.yaml
 !config*_category.yaml
 
 # Nosetests XUnit reports
