@@ -267,8 +267,6 @@ class GLMProcessor(Processor):
                              '(Y/N, default N): '.format(reg)
             if super(GLMProcessor, self).__getyesorno__(default_value=False,
                                                         show_text=submodels_text):
-                # TODO: create a __getmultipleyesorno__ method that allows to check that at least 1 has been selected
-                # TODO: create a __getmultipleoneof__ method that allows to check for arbitrary restrictions
                 for j in xrange(degrees[i]):
                     submodels.append(
                         GLMProcessor._glmprocessor_submodels_options[super(GLMProcessor, self).__getoneof__(

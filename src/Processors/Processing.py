@@ -302,17 +302,14 @@ class Processor(object):
         """
         raise NotImplementedError
 
-    # TODO Document
     def __processor_update_progress(self, prog_inc):
         """
+        Updates the progress of the processing and prints it to stdout
 
         Parameters
         ----------
-        prog_inc
-
-        Returns
-        -------
-
+        prog_inc : int
+            Amount of increased progress
         """
         self._processor_progress += prog_inc
         print '\r  ' + str(int(self._processor_progress) / 100.0) + '%',
@@ -540,50 +537,69 @@ class Processor(object):
 
         return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
 
-    # TODO: Document
     def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
         """
+        [Private method]
+        Computes the corrected values for the observations with the given fitter and correction parameters
 
         Parameters
         ----------
-        fitter
-        observations
-        correction_parameters
+        fitter : Fitters.CurveFitting.CurveFitter
+            The fitter used to correct the observations
+        observations : ndarray
+            Array with the observations to be corrected
+        correction_parameters : ndarray
+            Array with the correction parameters for the specified fitter
         args
         kwargs
 
         Returns
         -------
-
+        ndarray
+            Array with the corrected observations
         """
         return fitter.correct(observations=observations, correction_parameters=correction_parameters)
 
-    # TODO: Document
     def corrected_values(self, correction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, origx=0, origy=0,
                          origz=0, *args, **kwargs):
         """
+        Computes the corrected values for the observations with the given fitter and correction parameters
+
+        Parameters
+        ----------
+        correction_parameters : ndarray
+            Array with the computed correction parameters
+        x1 : int
+            Relative coordinate to origx of the starting voxel in the x-dimension
+        x2 : int
+            Relative coordinate to origx of the ending voxel in the x-dimension
+        y1 : int
+            Relative coordinate to origy of the starting voxel in the y-dimension
+        y2 : int
+            Relative coordinate to origy of the ending voxel in the y-dimension
+        z1 : int
+            Relative coordinate to origz of the starting voxel in the z-dimension
+        z2 : int
+            Relative coordinate to origz of the ending voxel in the z-dimension
+        origx : int
+            Absolute coordinate where the observations start in the x-dimension
+        origy : int
+            Absolute coordinate where the observations start in the y-dimension
+        origz : int
+            Absolute coordinate where the observations start in the z-dimension
+        args : List
+        kwargs : Dictionary
+
+        Notes
+        -----
         x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
         in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
         which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond
 
-        Parameters
-        ----------
-        correction_parameters
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
-        origx
-        origy
-        origz
-        args
-        kwargs
-
         Returns
         -------
-
+        ndarray
+            Array with the corrected observations
         """
         if x2 is None:
             x2 = correction_parameters.shape[-3]
@@ -627,23 +643,29 @@ class Processor(object):
 
         return corrected_data
 
-    # TODO Document
     def gm_values(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None):
         """
-
+        Returns the original (non-corrected) observations
 
         Parameters
         ----------
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
+        x1 : int
+            Voxel in the x-axis from where the retrieval begins
+        x2 : int
+            Voxel in the x-axis where the retrieval ends
+        y1 : int
+            Voxel in the y-axis from where the retrieval begins
+        y2 : int
+            Voxel in the y-axis where the retrieval ends
+        z1 : int
+            Voxel in the z-axis from where the retrieval begins
+        z2 : int
+            Voxel in the z-axis where the retrieval ends
 
         Returns
         -------
-
+        ndarray
+            Array with the original observations
         """
         chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
                         mem_usage=self._processor_processing_params['mem_usage'])
@@ -669,16 +691,22 @@ class Processor(object):
     def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
                               fitting_results):
         """
-
+        Computes and binds the generic requirements for all fit evaluation functions
 
         Parameters
         ----------
-        observations
-        predictors
-        prediction_parameters
-        correctors
-        correction_parameters
-        fitting_results
+        observations : ndarray
+            Array with the original observations
+        predictors : ndarray
+            Array with the predictor of the model
+        prediction_parameters : ndarray
+            Array with computed prediction parameters
+        correctors : ndarray
+            Array with the correctors of the model
+        correction_parameters : ndarray
+            Array with the computed correction parameters
+        fitting_results : Object
+            Object that stores the bound data for the fit evaluation function
 
         Returns
         -------
@@ -724,36 +752,53 @@ class Processor(object):
 
         return ['corrected_data', 'predicted_data', 'df_correction', 'df_prediction', 'curve', 'xdiff']
 
-    # TODO Document
     def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0,
                      y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
                      default_value=0.0, *args, **kwargs):
         """
-
+        Evaluates the goodness of the fit for a particular fit evaluation metric
 
         Parameters
         ----------
-        evaluation_function
-        correction_parameters
-        prediction_parameters
-        x1
-        x2
-        y1
-        y2
-        z1
-        z2
-        origx
-        origy
-        origz
-        gm_threshold
-        filter_nans
-        default_value
-        args
-        kwargs
+        evaluation_function : FitScores.FitEvaluation function
+            Fit evaluation function
+        correction_parameters : ndarray
+            Array with the correction parameters
+        prediction_parameters : ndarray
+            Array with the prediction parameters
+        x1 : int
+            Relative coordinate to origx of the starting voxel in the x-dimension
+        x2 : int
+            Relative coordinate to origx of the ending voxel in the x-dimension
+        y1 : int
+            Relative coordinate to origy of the starting voxel in the y-dimension
+        y2 : int
+            Relative coordinate to origy of the ending voxel in the y-dimension
+        z1 : int
+            Relative coordinate to origz of the starting voxel in the z-dimension
+        z2 : int
+            Relative coordinate to origz of the ending voxel in the z-dimension
+        origx : int
+            Absolute coordinate where the observations start in the x-dimension
+        origy : int
+            Absolute coordinate where the observations start in the y-dimension
+        origz : int
+            Absolute coordinate where the observations start in the z-dimension
+        gm_threshold : float
+            Float that specifies the minimum value of mean gray matter (across subjects) that a voxel must have.
+            All voxels that don't fulfill this requirement have their fitting score filtered out
+        filter_nans : Boolean
+            Whether to filter the values that are not numeric or not
+        default_value : float
+            Default value for the voxels that have mean gray matter below the threshold or have NaNs in the
+            fitting scores
+        args : List
+        kwargs : Dictionary
 
         Returns
         -------
-
+        ndarray
+            Array with the fitting scores of the specified evaluation function
         """
         # Evaluate fitting from pre-processed parameters
 
@@ -849,24 +894,32 @@ class Processor(object):
 
         return fitting_scores
 
-    # TODO Document
     @staticmethod
     def clusterize(fitting_scores, default_value=0.0, fit_lower_threshold=None, fit_upper_threshold=None,
                    cluster_threshold=None, produce_labels=False):
         """
+        Clusters the fitting scores using Strongly Connected Components
 
         Parameters
         ----------
-        fitting_scores
-        default_value
-        fit_lower_threshold
-        fit_upper_threshold
-        cluster_threshold
-        produce_labels
+        fitting_scores : ndarray
+            Array with the computed fitting scores
+        default_value : float
+            Default value for all voxels that are not inside a cluster
+        fit_lower_threshold : float
+            Minimum fit score that a voxel must have to be clustered
+        fit_upper_threshold : float
+            Maximum fit score that a voxel must have to be clustered
+        cluster_threshold : int
+            Minimum number of voxels that a cluster must have
+        produce_labels : Boolean
+            Whether to return an array with labeled clusters
 
         Returns
         -------
-
+        ndarray or ndarray, ndarray
+            If produce_labels is False, the clustered fitting scores are returned
+            If produce_labels is True, the clustered fitting scores and the cluster labels are returned
         """
 
         fitscores = np.ones(fitting_scores.shape, dtype=np.float64) * default_value
@@ -892,24 +945,30 @@ class Processor(object):
         else:
             return fitscores
 
-    # TODO Document
     @staticmethod
     def __processor_get__(obtain_input_from, apply_function, try_ntimes, default_value, show_text, show_error_text):
         """
-
+        Generic method to ask for user input
 
         Parameters
         ----------
-        obtain_input_from
-        apply_function
-        try_ntimes
-        default_value
-        show_text
-        show_error_text
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
+        apply_function : Function
+            Function applied to the input if it is correct.
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        default_value : built-in type
+            Default value to be used if the user does not provide a correct value
+        show_text : String
+            Text to be shown to the user when asking for input
+        show_error_text : String
+            Error text to be shown when the user fails to input a correct value
 
         Returns
         -------
-
+        built-in type
+            Value that the user has inputted or default value if user failed to input a correct value
         """
         if try_ntimes <= 0:
             try_ntimes = -1
@@ -939,7 +998,6 @@ class Processor(object):
 
         return default_value
 
-    # TODO Document
     @staticmethod
     def __getint__(default_value=None,
                    try_ntimes=3,
@@ -949,20 +1007,27 @@ class Processor(object):
                    obtain_input_from=raw_input,
                    ):
         """
-
+        Static method to ask the user for an integer
 
         Parameters
         ----------
-        default_value
-        try_ntimes
-        lower_limit
-        upper_limit
-        show_text
-        obtain_input_from
+        default_value : int
+            The default value to be returned if the user does not provide a correct value
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        lower_limit : int
+            Lowest accepted integer
+        upper_limit : int
+            Greatest accepted integer
+        show_text : String
+            Text to be shown to the user when asking for input
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
 
         Returns
         -------
-
+        int
+            The inputted integer, or alternatively the default value if the user does not provide a correct input.
         """
 
         def nit(s, lower=lower_limit, upper=upper_limit):
@@ -982,7 +1047,6 @@ class Processor(object):
             lambda e: 'Could not match input with integer number: ' + str(e)
         )
 
-    # TODO Document
     @staticmethod
     def __getfloat__(default_value=None,
                      try_ntimes=3,
@@ -992,20 +1056,27 @@ class Processor(object):
                      obtain_input_from=raw_input,
                      ):
         """
-
+        Static method to ask the user for a float
 
         Parameters
         ----------
-        default_value
-        try_ntimes
-        lower_limit
-        upper_limit
-        show_text
-        obtain_input_from
+        default_value : int
+            The default value to be returned if the user does not provide a correct value
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        lower_limit : int
+            Lowest accepted integer
+        upper_limit : int
+            Greatest accepted integer
+        show_text : String
+            Text to be shown to the user when asking for input
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
 
         Returns
         -------
-
+        float
+            The input that the user provided or the default value if the user does not provide a correct input.
         """
 
         def olfat(s, lower=lower_limit, upper=upper_limit):
@@ -1025,7 +1096,6 @@ class Processor(object):
             lambda e: 'Could not match input with real number: ' + str(e)
         )
 
-    # TODO Document
     @staticmethod
     def __getoneof__(option_list,
                      default_value=None,
@@ -1034,19 +1104,25 @@ class Processor(object):
                      obtain_input_from=raw_input,
                      ):
         """
-
+        Static method to ask the user to select one option out of several
 
         Parameters
         ----------
-        option_list
-        default_value
-        try_ntimes
-        show_text
-        obtain_input_from
+        option_list : List
+            List of options provided to the user to pick one out of it
+        default_value : int
+            The default value to be returned if the user does not provide a correct value
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        show_text : String
+            Text to be shown to the user when asking for input
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
 
         Returns
         -------
-
+        built-in type
+            The selected option or the default value if the user does not provide a correct selection
         """
         opt_list = list(option_list)
         lol = len(opt_list)
@@ -1077,7 +1153,6 @@ class Processor(object):
 
         return opt_list[index]
 
-    # TODO Document
     @staticmethod
     def __getoneinrange__(start,
                           end,
@@ -1088,21 +1163,31 @@ class Processor(object):
                           obtain_input_from=raw_input
                           ):
         """
-
+        Static method to ask the user for a number in between a specific range
 
         Parameters
         ----------
-        start
-        end
-        step
-        default_value
-        try_ntimes
-        show_text
-        obtain_input_from
+        start : float
+            Start value
+        end : float
+            End value
+        step : float
+            Value of the steps between start and end. If 0, no steps are applied, and any inputted float between
+            start and end is returned. If step > 0, the inputted float between start and end is rounded to the nearest
+            step value
+        default_value : float
+            The default value to be returned if the user does not provide a correct value
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        show_text : String
+            Text to be shown to the user when asking for input
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
 
         Returns
         -------
-
+        float
+            The provided input or the default value if the user does not provide a correct value
         """
         if show_text == 'Please, enter a number in the range':
             show_text += ' [' + str(start) + ', ' + str(end) + ')'
@@ -1129,7 +1214,6 @@ class Processor(object):
             lambda e: 'Could not read input value: ' + str(e)
         )
 
-    # TODO Document
     @staticmethod
     def __getyesorno__(default_value=None,
                        try_ntimes=3,
@@ -1137,18 +1221,23 @@ class Processor(object):
                        obtain_input_from=raw_input
                        ):
         """
-
+        Static method to ask the user for a yes or no decision
 
         Parameters
         ----------
-        default_value
-        try_ntimes
-        show_text
-        obtain_input_from
+        default_value : Boolean
+            The default value to be returned if the user does not provide a correct value
+        try_ntimes : int
+            Number of times that the user is allowed to provide an incorrect value
+        show_text : String
+            Text to be shown to the user when asking for input
+        obtain_input_from : function
+            Function used to ask for use input. Default: raw_input
 
         Returns
         -------
-
+        Boolean
+            True if Y, False if N, or the default value if the user does not provide a correct value
         """
 
         def yesorno(s2):
