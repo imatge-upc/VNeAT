@@ -221,6 +221,7 @@ if __name__ == '__main__':
                     cat_boxplot_feature = True
 
                 """ STATISTICAL PLOTS """
+                sns.set(font_scale=2)
                 cat = processors[i].category
                 label = 'Category {}'.format(cat) if cat is not None else 'All categories'
                 if plot_name == 'univariate_density':
