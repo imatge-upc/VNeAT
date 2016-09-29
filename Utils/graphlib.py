@@ -175,9 +175,9 @@ class Graph(object):
             self.t_index = index
 
 
-class UndirectedClusterization3DGraph(Graph):
+class UndirectedClustering3DGraph(Graph):
     def __init__(self, data, not_fulfilling_element):
-        super(UndirectedClusterization3DGraph, self).__init__()
+        super(UndirectedClustering3DGraph, self).__init__()
         self.dims = data.shape
         new_dims = map(lambda d: d + 2, self.dims[:3])
         self.default = not_fulfilling_element
@@ -234,7 +234,7 @@ class UndirectedClusterization3DGraph(Graph):
                 yield scc
 
 
-class NiftiGraph(UndirectedClusterization3DGraph):
+class NiftiGraph(UndirectedClustering3DGraph):
     def __init__(self, data, lower_threshold=None, upper_threshold=None):
         self.lt = lower_threshold
         self.ut = upper_threshold
