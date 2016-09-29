@@ -95,6 +95,11 @@ if __name__ == '__main__':
         udp = ()
 
     """ INITIALIZE PROCESSOR """
+    try:
+        dummy_cat = categories[0]
+    except TypeError:
+        dummy_cat = None
+
     processor = MixedProcessor(
         subjects,
         predictors_names,
@@ -102,7 +107,8 @@ if __name__ == '__main__':
         predictors,
         correctors,
         processing_parameters,
-        user_defined_parameters=udp
+        user_defined_parameters=udp,
+        category=dummy_cat
     )
 
     # Check if prediction processor is available for grid searching
@@ -136,13 +142,15 @@ if __name__ == '__main__':
 
             """ RESULTS DIRECTORY """
             cat_str = 'category_{}'.format(category)
-            output_folder_name = '{}-{}-{}-{}'.format(
+            output_folder_name = '{}-{}-{}-{}-{}'.format(
                 prefix,
                 'hyperparameters',
+                error,
                 prediction_fitter_name,
                 cat_str
-            ) if prefix else '{}-{}-{}'.format(
+            ) if prefix else '{}-{}-{}-{}'.format(
                 'hyperparameters',
+                error,
                 prediction_fitter_name,
                 cat_str
             )
