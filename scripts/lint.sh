@@ -1,3 +1,3 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 pep8 --max-line-length=120 ./src > pep8.log

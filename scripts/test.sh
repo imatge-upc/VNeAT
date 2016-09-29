@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Test with HTML coverage
 nosetests -w tests --with-coverage --cover-html --cover-package=src
