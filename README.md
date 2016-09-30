@@ -132,7 +132,7 @@ to compute one vs all statistical tests.
 ## Requirements
 
 In order for this toolbox to properly parse and obtain the data to be processed there are some requirements that should
- be fullfilled. These requirements are the following: 
+ be fulfilled. These requirements are the following: 
 
 - **Excel file (.xls)** with all the metadata
     This file should contain the unique identifier for each subject, an optional 
