@@ -1,0 +1,14 @@
+language: python
+python:
+- '2.7'
+before_install:
+- sudo apt-get update
+- sudo apt-get install -y python-dev python-pip python-scipy python-setuptools
+install:
+- pip install -r requirements.txt
+- pip install .
+script:
+- cd tests/ && pytest --cov=src
+notifications:
+  slack:
+    secure: YxW5hWIg+EOxYPf/AcyQ1L01VlsEunLeqAIl0pd8kKFulAOuP1rAXbw3nRpjA7vGk6fOBkop8GMBkSYDCKabVjzkSZlLQHRhTfuEkWWDNaXXXARqwbBXIjg0TxvV+lCLagceSejIP1YWLp4VR1rZPxwwd1iw7zp6ZiogS7vASqJ5WUO2xQ0xZ6hCF8AWBIsq3GowAVASkvWoRpaaliVpR3ebWW7xSbw1F2maXbQayYHdZeUoZUTomQva0YH+6GLLdt3aYajACIiWHZq2Zt0UTrfzmjc48iqhaK5Zk4lCff/abxrwBqK3lO9dHop4NMJpPhPQ3CGpR/IBO/QJwHrqw7X0iWlRrRv8j5Dq/ug8hOt4DLnH7HqUiBKWy9qTPctLld19B1VbIUfv5yn6Y8Rr0e4zOJJe2050bHNuwrJJO05o7GtQBekD8kw3ZoXYc8Wpbr5MhWFo+I2Qur6h56g51NyaxaSzDWGHu8p9LM0V29BIi0vUpYAU5ARGpqOgUNO7x7EOe6drSD3EvSKekYrnd3ULQP32UBLoNddGeSYXYDf2gr5neVVPQyJuezlQpY7tpyxqYRsGEQ6rcm5v9uhQbQVJC03OKIKDc3XfCRbYB6lGZ+X5wLY4+Huv5SDWnCIS8dQHOB4JlFfn+91bTU5ef8H44t121NaXnheUOUJpNgQ=
