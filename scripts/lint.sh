@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pep8 --max-line-length=120 ./src > pep8.log
+pep8 --max-line-length=120 src/ > pep8.log

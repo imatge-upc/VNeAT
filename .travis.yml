@@ -1,0 +1,19 @@
+language: python
+python:
+  - "2.7"
+
+# System dependencies
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y python-dev python-pip python-scipy python-setuptools
+
+# Install dependencies
+install:
+  - pip install -r requirements.txt
+  - pip install .
+
+# Lint (PEP8) and test (pytest)
+script:
+  - pep8 --max-line-length=120 src/
+  - cd tests/
+  - pytest --cov=src

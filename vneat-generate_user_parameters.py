@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os
 
 from argparse import ArgumentParser

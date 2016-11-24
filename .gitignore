@@ -29,3 +29,7 @@ MANIFEST
 
 # Pyinstaller
 *.spec
+tests/__pycache__/
+
+# Cache
+.cache/
