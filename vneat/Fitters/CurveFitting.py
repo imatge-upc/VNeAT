@@ -2,8 +2,8 @@ from abc import ABCMeta
 
 import numpy as np
 
-from src.FitScores.FitEvaluation import evaluation_function as eval_func
-from src.Utils.Documentation import docstring_inheritor
+from vneat.FitScores.FitEvaluation import evaluation_function as eval_func
+from vneat.Utils.Documentation import docstring_inheritor
 
 
 class abstractstatic(staticmethod):

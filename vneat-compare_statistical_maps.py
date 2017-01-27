@@ -7,7 +7,7 @@ from os import path
 import nibabel as nib
 import numpy as np
 
-from src.Utils.DataLoader import DataLoader
+from vneat.Utils.DataLoader import DataLoader
 
 
 if __name__ == '__main__':

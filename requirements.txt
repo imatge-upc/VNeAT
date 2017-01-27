@@ -17,8 +17,8 @@ pytest-cov==2.3.1
 python-dateutil==2.4.2
 pytz==2015.7
 PyYAML==3.11
-scikit-learn==0.17.1
-scipy==0.9.0
+scikit-learn==0.18.1
+scipy>=0.17.0
 seaborn==0.7.0
 six==1.10.0
 statsmodels==0.6.1

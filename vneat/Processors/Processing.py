@@ -3,10 +3,10 @@ from sys import stdout
 
 import numpy as np
 
-from src.FitScores.FitEvaluation import evaluation_function as eval_func, FittingResults
-from src.Utils.Documentation import docstring_inheritor
-from src.Utils.Subject import Chunks
-from src.Utils.graphlib import NiftiGraph
+from vneat.FitScores.FitEvaluation import evaluation_function as eval_func, FittingResults
+from vneat.Utils.Documentation import docstring_inheritor
+from vneat.Utils.Subject import Chunks
+from vneat.Utils.graphlib import NiftiGraph
 
 
 class Processor(object):

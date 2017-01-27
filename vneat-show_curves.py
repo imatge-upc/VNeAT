@@ -8,7 +8,7 @@ from os import path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src import helper_functions
+from vneat import helper_functions
 
 if __name__ == '__main__':
 

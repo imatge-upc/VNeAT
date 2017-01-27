@@ -4,8 +4,8 @@ import nibabel as nib
 import numpy as np
 from scipy.stats import norm
 
-from src.Processors.MixedProcessor import MixedProcessor
-from src.Utils.DataLoader import DataLoader
+from vneat.Processors.MixedProcessor import MixedProcessor
+from vneat.Utils.DataLoader import DataLoader
 
 
 def load_data_from_config_file(config_file):

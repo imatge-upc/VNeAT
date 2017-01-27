@@ -2,11 +2,11 @@ from collections import Counter
 
 import numpy as np
 
-from src.Fitters.CurveFitting import CombinedFitter
-from src.Processors.GAMProcessing import GAMProcessor
-from src.Processors.GLMProcessing import PolyGLMProcessor
-from src.Processors.Processing import Processor
-from src.Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
+from vneat.Fitters.CurveFitting import CombinedFitter
+from vneat.Processors.GAMProcessing import GAMProcessor
+from vneat.Processors.GLMProcessing import PolyGLMProcessor
+from vneat.Processors.Processing import Processor
+from vneat.Processors.SVRProcessing import PolySVRProcessor, GaussianSVRProcessor
 
 
 class MixedProcessor(Processor):

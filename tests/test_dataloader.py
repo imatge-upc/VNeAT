@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from src.Utils.DataLoader import DataLoader
+from vneat.Utils.DataLoader import DataLoader
 
 
 class TestDataLoader(unittest.TestCase):

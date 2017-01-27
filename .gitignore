@@ -33,3 +33,6 @@ tests/__pycache__/
 
 # Cache
 .cache/
+
+# Debug files
+debug/

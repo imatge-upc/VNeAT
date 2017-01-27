@@ -8,8 +8,8 @@ from os import path
 import nibabel as nib
 import numpy as np
 
-from src import helper_functions
-from src.Visualization.GUIVisualizer import GUIVisualizer
+from vneat import helper_functions
+from vneat.Visualization.GUIVisualizer import GUIVisualizer
 
 if __name__ == '__main__':
 

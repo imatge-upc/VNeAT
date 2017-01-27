@@ -7,8 +7,8 @@ from argparse import ArgumentParser
 
 import nibabel as nib
 
-from src import helper_functions
-from src.Processors.MixedProcessor import MixedProcessor
+from vneat import helper_functions
+from vneat.Processors.MixedProcessor import MixedProcessor
 
 if __name__ == '__main__':
 

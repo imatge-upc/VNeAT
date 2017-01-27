@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from src import helper_functions
+from vneat import helper_functions
 
 if __name__ == '__main__':
 

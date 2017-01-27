@@ -4,8 +4,8 @@ import yaml
 
 from os.path import join
 from Subject import Subject
-from src.Utils.ExcelIO import ExcelSheet
-from src.Utils.niftiIO import NiftiReader
+from vneat.Utils.ExcelIO import ExcelSheet
+from vneat.Utils.niftiIO import NiftiReader
 
 
 class DataLoader(object):

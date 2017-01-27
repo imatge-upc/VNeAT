@@ -1,6 +1,6 @@
 import unittest
 
-from src.Utils.Subject import Subject
+from vneat.Utils.Subject import Subject
 
 
 class TestSubject(unittest.TestCase):

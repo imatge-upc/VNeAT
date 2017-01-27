@@ -8,9 +8,9 @@ from joblib import Parallel, delayed
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
-from src.Fitters.CurveFitting import AdditiveCurveFitter
-from src.Fitters.CurveFitting import CurveFitter
-from src.Utils.Transforms import polynomial
+from vneat.Fitters.CurveFitting import AdditiveCurveFitter
+from vneat.Fitters.CurveFitting import CurveFitter
+from vneat.Utils.Transforms import polynomial
 
 
 class LinSVR(AdditiveCurveFitter):
