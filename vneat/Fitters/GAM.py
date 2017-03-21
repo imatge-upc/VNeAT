@@ -1,20 +1,20 @@
 from abc import abstractmethod
+from warnings import warn
 
 import numpy as np
 from numpy import float64
 from scipy.interpolate import UnivariateSpline
 from scipy.interpolate import splev
-# import matplotlib.pyplot as plt
-from warnings import warn
 from sklearn.linear_model import LinearRegression as LR
 from statsmodels.sandbox.nonparametric import kernels
+
 from vneat.Fitters.CurveFitting import AdditiveCurveFitter
 
 
 class GAM(AdditiveCurveFitter):
-    '''
-    Additive model with non-parametric, smoothed components
-    '''
+    """
+    Generalized Additive Model with non-parametric, smoothed components
+    """
 
     def __init__(self, corrector_smoothers=None, predictor_smoothers=None,
                  intercept=AdditiveCurveFitter.PredictionIntercept):
@@ -251,7 +251,6 @@ class SplinesSmoother(Smoother):
         # Spline parameters coding: TYPE_SMOOTHER, ParameterLenght, SmoothingFactor,
         #                           n_Knots, Knots, n_Coeff, Coeff, 1, Order
 
-
         if smoothing_factor is None:
             smoothing_factor = len(xdata)
         self.smoothing_factor = smoothing_factor
@@ -274,8 +273,13 @@ class SplinesSmoother(Smoother):
         if parameters is not None:
             self.set_parameters(parameters)
 
+        std_estimation = np.std(ydata)
+        if std_estimation == 0:
+            weights = None
+        else:
+            weights = 1 / std_estimation * np.ones(len(ydata))
         spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
-                                  w=1 / np.std(ydata) * np.ones(len(ydata)))
+                                  w=weights)
         return len(spline.get_coeffs())
 
     def df_resid(self, ydata, parameters=None):
@@ -296,8 +300,14 @@ class SplinesSmoother(Smoother):
         if ydata.ndim == 1:
             ydata = ydata[:, None]
 
+        std_estimation = np.std(ydata)
+        if std_estimation == 0:
+            weights = None
+        else:
+            weights = 1 / std_estimation * np.ones(len(ydata))
+
         spline = UnivariateSpline(self.xdata, ydata[self.index_xdata], k=self.order, s=self.smoothing_factor,
-                                  w=1 / np.std(ydata) * np.ones(len(ydata)))
+                                  w=weights)
         # / (max(ydata) * np.sqrt(len(ydata))) * np.ones(len(ydata))
         self.spline_parameters = spline._eval_args  # spline.get_knots(),spline.get_coeffs(),self.order
 
@@ -313,7 +323,8 @@ class SplinesSmoother(Smoother):
         if spline_parameters is None:
             if self.spline_parameters is None:
                 warn(
-                    "Spline parameters are not specified, you should either fit a model or specify them. Output is set to 0")
+                    "Spline parameters are not specified, you should either fit a model or specify them. "
+                    "Output is set to 0")
                 return np.zeros((xdata.shape[0], 1))
             else:
                 spline_parameters = self.spline_parameters
@@ -369,12 +380,19 @@ class SplinesSmoother(Smoother):
 
     def compute_smoothing_factor(self, ydata, df_target, xdata=None):
 
+        # Check if std of data is 0 to avoid unnecessary computations
+        if np.std(ydata) == 0:
+            return len(ydata)
+
         found = False
         change = True
         tol = 1e-6
-        s = 129.0
+        s = 100
         step = 20.0
+        max_iter = 50
+        n_iter = 0
         while not found:
+            n_iter += 1
             df = self.df_model(ydata, parameters=[1, s, self.order])
             if df == df_target:
                 found = True
@@ -390,8 +408,14 @@ class SplinesSmoother(Smoother):
                 s = s + step
             if step < tol:
                 warn(
-                    "WARNING: Couldn't find a curve with the desired number of degrees of freedom. (Df - 1) has been chosen")
+                    "WARNING: Couldn't find a curve with the desired number of degrees of freedom. "
+                    "(Df - 1) has been chosen")
                 s = self.compute_smoothing_factor(ydata, df_target - 1, xdata=xdata)
+                found = True
+            if n_iter >= max_iter:
+                warn(
+                    "WARNING: Reached maximum number of iterations. "
+                    "df={} has been chosen".format(df))
                 found = True
 
         return s
@@ -445,7 +469,9 @@ class PolynomialSmoother(Smoother):
         if coefficients is None:
             if self.coefficients is None:
                 warn(
-                    "Polynomial coefficients are not specified, you should either fit a model or specify them. Output is set to 0")
+                    "Polynomial coefficients are not specified, you should either fit a model or specify them. "
+                    "Output is set to 0"
+                )
                 return np.zeros((xdata.shape[0], 1))
             else:
                 coefficients = self.coefficients
