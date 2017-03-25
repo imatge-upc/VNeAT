@@ -20,6 +20,30 @@ the voxel level.
 | :---: | :---: |
 |**[PMF (Pasqual Maragall Foundation)](https://fpmaragall.org/en/)** | ![UPC-ETSETB logo](./assets/pasqual_maragall_foundation.png) |
 
+#### Publication
+
+This work has been accepted at the [NIPS 2016 Workshop on Machine Learning for Health](http://www.nipsml4hc.ws/posters).
+
+The workshop paper is available on [arXiv](https://arxiv.org/abs/161.00667), and the associated poster is available [here](https://drive.google.com/open?id=0ByrI9_WaU23FbmJtR09DT0xsWGs).
+
+
+In order to cite this work please use the following BibTeX code:
+```
+@article{Puch_2016_NIPS4H,
+   author = {{Puch}, S. and {Aduriz}, A. and {Casamitjana}, A. and {Vilaplana}, V. and 
+	{Petrone}, P. and {Operto}, G. and {Cacciaglia}, R. and {Skouras}, S. and 
+	{Falcon}, C. and {Molinuevo}, J.~L. and {Domingo Gispert}, J.
+	},
+    title = "{Voxelwise nonlinear regression toolbox for neuroimage analysis: Application to aging and neurodegenerative disease modeling}",
+    journal = {ArXiv e-prints},
+    archivePrefix = "arXiv",
+    eprint = {1612.00667},
+    primaryClass = "stat.ML",
+    keywords = {Statistics - Machine Learning, Computer Science - Computer Vision and Pattern Recognition, Computer           Science - Learning, Quantitative Biology - Neurons and Cognition, Statistics - Applications},
+    year = 2016,
+    month = dec
+}
+```
 
 ## What does this software offer?
 
