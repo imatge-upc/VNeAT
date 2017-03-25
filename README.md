@@ -39,7 +39,6 @@ In order to cite this work please use the following BibTeX code:
     archivePrefix = "arXiv",
     eprint = {1612.00667},
     primaryClass = "stat.ML",
-    keywords = {Statistics - Machine Learning, Computer Science - Computer Vision and Pattern Recognition, Computer           Science - Learning, Quantitative Biology - Neurons and Cognition, Statistics - Applications},
     year = 2016,
     month = dec
 }
