@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     """ PARSE ARGUMENTS FROM CLI """
     arg_parser = ArgumentParser(description='Computes the fitting parameters for the data '
-                                            'provided in the configuration file. This fitting parameters'
+                                            'provided in the configuration file. These fitting parameters'
                                             ' can be computed for all subjects in the study (default behaviour)'
                                             ' or you can specify for which categories should the parameters be'
                                             ' computed ')
