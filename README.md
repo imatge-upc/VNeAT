@@ -2,15 +2,15 @@
 
 [![Build Status](https://travis-ci.com/imatge-upc/VNeAT.svg?token=YFLyw5anRKL6kDtHyQ5n&branch=master)](https://travis-ci.com/imatge-upc/VNeAT)
 
-**VNeAT** (Voxel-wise Neuroimaging Analysis Toolbox) is a toolbox written in Python that provides the tools to analyze 
+**VNeAT** (Voxel-wise Neuroimaging Analysis Toolbox) is a command-line toolbox written in Python that provides the tools to analyze 
 the linear and non-linear dynamics of a particular tissue and study the statistical significance of such dynamics at 
 the voxel level.
 
 #### Authors
 | Name | Position / Role |
 | :---: | :---: |
+| Santi Puch Giner | Author |
 | Asier Aduriz Berasategi | Author |
-| Santiago Puch Giner | Author |
 | Adrià Casamitjana Díaz | Contributor |
 | Verónica Vilaplana Besler | Advisor (UPC) |
 | Juan Domingo Gispert | Advisor (PMF) |
@@ -92,8 +92,8 @@ visually compare them.
 
 #### Graphical curve visualization
 
-On top of the previously mentioned curve visualization tool this software offers an FSLView-like tool: with this 
-visualization tool you can load any statistical map and several of the fitting results you may have previously 
+On top of the previously mentioned curve visualization functionality this software offers an FSLView-like tool:  
+you can load any statistical map and several of the fitting results you may have previously 
 computed, and it shows you the curves for the selected voxel, allowing you to navigate through the statistical map
 and see the curves for each voxel. 
 
@@ -137,7 +137,8 @@ to compute one vs all statistical tests.
 In order for this toolbox to properly parse and obtain the data to be processed there are some requirements that should
  be fulfilled. These requirements are the following: 
 
-- **Excel file (.xls)** with all the metadata
+- **Excel file (.xls)** with all the metadata.
+
     This file should contain the unique identifier for each subject, an optional 
     categorical value for each subject, and one or several fields with metadata to be used as predictor and/or correctors.
     The data must be enclosed in the first sheet of the xls book, and this sheet must have the first row as a header with 
@@ -147,19 +148,22 @@ In order for this toolbox to properly parse and obtain the data to be processed 
     ![Excel file format](./assets/excel_format_example.png)
     
 
-- **Folder** containing all the **NIFTIs** (gzipped or not)
+- **Folder** containing all the **NIFTIs** (gzipped or not).
+
     This folder must containt one NIFTI file for each subject, and it should be identified with the unique
     identifier specified in the excel file, with the option to have a study prefix for everyone of them.
     
     ![Nifti folder example](./assets/nifti_folder_example.png)
     
-- **Template** file in NIFTI format
-    The template into which all the subjects have been registered to compute the VBM
-    (e.g. MNI template)
+- **Template** file in NIFTI format.
+
+    The template into which all the subjects have been registered (for instance, to compute the VBM
+    in MNI space).
     
     ![Template example](./assets/template_example.png)
 
-- **Configuration file (.yaml)** for this study
+- **Configuration file (.yaml)** for this study.
+
     In this configuration file you specify where to find your previous requirements (Excel, data folder and template),
     where to store the results, the model (predictor and correctors), and other parameters, such as the processing
     parameters and the configuration parameters for the _GridSearch_.
@@ -189,7 +193,7 @@ $ pip install -r requirements.txt
 After all that is done you can execute the scripts using the python executable. 
 This is the pattern that you'll be using to execute the scripts:
 ```
-$ python vneat-script.py --options
+$ python vneat-script.py config_file --options
 ```
 
 ## CLI documentation
@@ -197,7 +201,7 @@ $ python vneat-script.py --options
 #### vneat-compute_fitting.py
 
 *Computes the fitting parameters for the data provided in the configuration file. 
-This fitting parameters can be computed for all subjects in the study (default behaviour)
+These fitting parameters can be computed for all subjects in the study (default behaviour)
 or you can specify for which categories should the parameters be computed* 
 
 | Parameter name | Optional | Possible value/s | Default value | Description |
