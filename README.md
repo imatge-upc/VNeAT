@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/imatge-upc/VNeAT.svg?token=YFLyw5anRKL6kDtHyQ5n&branch=master)](https://travis-ci.com/imatge-upc/VNeAT)
 
 **VNeAT** (Voxel-wise Neuroimaging Analysis Toolbox) is a command-line toolbox written in Python that provides the tools to analyze 
-the linear and non-linear dynamics of a particular tissue and study the statistical significance of such dynamics at 
+the linear and nonlinear dynamics of a particular tissue and study the statistical significance of such dynamics at 
 the voxel level.
 
 #### Authors
