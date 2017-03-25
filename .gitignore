@@ -36,3 +36,6 @@ tests/__pycache__/
 
 # Debug files
 debug/
+
+# Distribution files
+dist/
