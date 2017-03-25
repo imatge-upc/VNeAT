@@ -399,23 +399,22 @@ class SplinesSmoother(Smoother):
             elif df < df_target:
                 if change is True:
                     change = False
-                    step = step - step / 2
-                s = s - step
+                    step -= step / 2
+                s -= step
             else:
                 if change is False:
                     change = True
-                    step = step - step / 2
-                s = s + step
+                    step -= step / 2
+                s += step
             if step < tol:
-                warn(
-                    "WARNING: Couldn't find a curve with the desired number of degrees of freedom. "
-                    "(Df - 1) has been chosen")
+                warning_msg = "WARNING: Couldn't find a curve with the desired number of degrees of freedom. " \
+                              "(Df - 1) has been chosen"
+                warn(warning_msg)
                 s = self.compute_smoothing_factor(ydata, df_target - 1, xdata=xdata)
                 found = True
             if n_iter >= max_iter:
-                warn(
-                    "WARNING: Reached maximum number of iterations. "
-                    "df={} has been chosen".format(df))
+                warning_msg = "WARNING: Reached maximum number of iterations. df={} has been chosen".format(df)
+                warn(warning_msg)
                 found = True
 
         return s
