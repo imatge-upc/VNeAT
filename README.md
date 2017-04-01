@@ -44,6 +44,15 @@ In order to cite this work please use the following BibTeX code:
 }
 ```
 
+## Table of Contents
+- [How can I use it?](#usage)
+- [Requirements](#requirements)
+- [What does this software offer?](#description)
+- [CLI documentation](#cli)
+
+
+<div id='usage'/>
+
 ## How can I use it?
 
 The interaction between the user and the software is done through a Command Line Interface (CLI). 
@@ -66,6 +75,8 @@ This is the pattern that you'll be using to execute the scripts:
 ```
 $ python vneat-script.py config_file --options
 ```
+
+<div id='requirements'/>
 
 ## Requirements
 
@@ -107,6 +118,8 @@ In order for this toolbox to properly parse and obtain the data to be processed 
     
     ![yaml configuration file example](./assets/config_file_example.png)
 
+
+<div id='description'/>
 
 ## What does this software offer?
 
@@ -217,7 +230,9 @@ data or the residuals, as well as box plots, both for all subjects or to compare
 
 The toolbox allows the user to separate the predictor by categories in order
 to compute one vs all statistical tests. 
+
   
+<div id='cli'/>  
 
 ## CLI documentation
 
