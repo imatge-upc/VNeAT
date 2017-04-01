@@ -44,6 +44,70 @@ In order to cite this work please use the following BibTeX code:
 }
 ```
 
+## How can I use it?
+
+The interaction between the user and the software is done through a Command Line Interface (CLI). 
+
+As the toolbox is written in Python you must have **python 2.7** previously 
+installed in order to use it (instructions on how to install python can be found 
+[here](https://www.python.org/downloads/)).
+
+First you just have to clone this repository:
+```
+$ git clone https://github.com/imatge-upc/VNeAT.git
+$ cd VNeAT
+```
+After that you must install all the dependencies, specified in the __requirements.txt__ file:
+```
+$ pip install -r requirements.txt
+```
+After all that is done you can execute the scripts using the python executable. 
+This is the pattern that you'll be using to execute the scripts:
+```
+$ python vneat-script.py config_file --options
+```
+
+## Requirements
+
+In order for this toolbox to properly parse and obtain the data to be processed there are some requirements that should
+ be fulfilled. These requirements are the following: 
+
+- **Excel file (.xls)** with all the metadata.
+
+    This file should contain the unique identifier for each subject, an optional 
+    categorical value for each subject, and one or several fields with metadata to be used as predictor and/or correctors.
+    The data must be enclosed in the first sheet of the xls book, and this sheet must have the first row as a header with 
+    the names identifying the fields to be used. 
+    An example of a Excel file with the required format can be found in `tests/mock_data/mock_excel.xls`.
+
+    ![Excel file format](./assets/excel_format_example.png)
+    
+
+- **Folder** containing all the **NIFTIs** (gzipped or not).
+
+    This folder must containt one NIFTI file for each subject, and it should be identified with the unique
+    identifier specified in the excel file, with the option to have a study prefix for everyone of them.
+    
+    ![Nifti folder example](./assets/nifti_folder_example.png)
+    
+- **Template** file in NIFTI format.
+
+    The template into which all the subjects have been registered (for instance, to compute the VBM
+    in MNI space).
+    
+    ![Template example](./assets/template_example.png)
+
+- **Configuration file (.yaml)** for this study.
+
+    In this configuration file you specify where to find your previous requirements (Excel, data folder and template),
+    where to store the results, the model (predictor and correctors), and other parameters, such as the processing
+    parameters and the configuration parameters for the _GridSearch_.
+    
+    You can find a template of this configuration file in `config/exampleConfig.yaml`.
+    
+    ![yaml configuration file example](./assets/config_file_example.png)
+
+
 ## What does this software offer?
 
 #### Fitters
@@ -153,71 +217,7 @@ data or the residuals, as well as box plots, both for all subjects or to compare
 
 The toolbox allows the user to separate the predictor by categories in order
 to compute one vs all statistical tests. 
-
-
-## Requirements
-
-In order for this toolbox to properly parse and obtain the data to be processed there are some requirements that should
- be fulfilled. These requirements are the following: 
-
-- **Excel file (.xls)** with all the metadata.
-
-    This file should contain the unique identifier for each subject, an optional 
-    categorical value for each subject, and one or several fields with metadata to be used as predictor and/or correctors.
-    The data must be enclosed in the first sheet of the xls book, and this sheet must have the first row as a header with 
-    the names identifying the fields to be used. 
-    An example of a Excel file with the required format can be found in `tests/mock_data/mock_excel.xls`.
-
-    ![Excel file format](./assets/excel_format_example.png)
-    
-
-- **Folder** containing all the **NIFTIs** (gzipped or not).
-
-    This folder must containt one NIFTI file for each subject, and it should be identified with the unique
-    identifier specified in the excel file, with the option to have a study prefix for everyone of them.
-    
-    ![Nifti folder example](./assets/nifti_folder_example.png)
-    
-- **Template** file in NIFTI format.
-
-    The template into which all the subjects have been registered (for instance, to compute the VBM
-    in MNI space).
-    
-    ![Template example](./assets/template_example.png)
-
-- **Configuration file (.yaml)** for this study.
-
-    In this configuration file you specify where to find your previous requirements (Excel, data folder and template),
-    where to store the results, the model (predictor and correctors), and other parameters, such as the processing
-    parameters and the configuration parameters for the _GridSearch_.
-    
-    You can find a template of this configuration file in `config/exampleConfig.yaml`.
-    
-    ![yaml configuration file example](./assets/config_file_example.png)
-   
-
-## How can I use it?
-
-The interaction between the user and the software is done through a Command Line Interface (CLI). 
-
-As the toolbox is written in Python you must have **python 2.7** previously 
-installed in order to use it (instructions on how to install python can be found 
-[here](https://www.python.org/downloads/)).
-
-First you just have to clone this repository:
-```
-$ git clone https://github.com/imatge-upc/VNeAT.git
-$ cd VNeAT
-```
-After that you must install all the dependencies, specified in the __requirements.txt__ file:
-```
-$ pip install -r requirements.txt
-```
-After all that is done you can execute the scripts using the python executable. 
-This is the pattern that you'll be using to execute the scripts:
-```
-$ python vneat-script.py config_file --options
-```
+  
 
 ## CLI documentation
 
