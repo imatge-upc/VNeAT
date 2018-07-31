@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
-    affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
+    affine_matrix, output_dir, results_io, type_data = helper_functions.load_data_from_config_file(config_file)
 
     # Lists to store the necessary data to show the curves
     names = []
@@ -94,8 +94,12 @@ if __name__ == '__main__':
     """ ASK USER FOR VOXEL """
     while True:
         try:
-            entry = raw_input('Write a tuple of mm coordinates (in MNI space) to display its curve '
-                              '(or press Ctrl+D to exit): ')
+            if type_data == 'vol':
+                entry = input('Write a tuple of mm coordinates (in MNI space) to display its curve '
+                                  '(or press Ctrl+D to exit): ')
+            else:
+                entry = input('Write a tuple of vertex (in fsaverage space) to display its curve '
+                                  '(or press Ctrl+D to exit): ')
         except EOFError:
             print()
             print('Program has finished.')
@@ -107,11 +111,19 @@ if __name__ == '__main__':
             print()
             continue
         try:
-            x, y, z = map(float, eval(entry))
+            if type_data == 'vol':
+                x, y, z = map(float, eval(entry))
+            else:
+                x = map(float, eval(entry))
+
         except (NameError, TypeError, ValueError, EOFError):
             print('[ERROR] Input was not recognized')
-            print('To display the voxel with coordinates (x, y, z), please enter \'x, y, z\'')
-            print('e.g., for voxel (57, 49, 82), type \'57, 49, 82\' (without inverted commas) as input')
+            if type_data == 'vol':
+                print('To display the voxel with coordinates (x, y, z), please enter \'x, y, z\'')
+                print('e.g., for voxel (57, 49, 82), type \'57, 49, 82\' (without inverted commas) as input')
+            else:
+                print('To display the vertex with coordinates (x,), please enter \'x\'')
+                print('e.g., for voxel (57,), type \'57\' (without inverted commas) as input')
             print()
             continue
         except Exception as e:
@@ -124,17 +136,21 @@ if __name__ == '__main__':
 
         try:
             # Transform mm coordinates -> voxel coordinates using affine
-            mm_coordinates = np.array([x, y, z, 1])
-            voxel_coordinates = map(int, np.round(np.linalg.inv(affine_matrix).dot(mm_coordinates)))
-            # Get rounded mm coordinates in MNI space (due to 1.5 mm spacing)
-            mm_coordinates_prima = affine_matrix.dot(voxel_coordinates)
-            # Final voxel coordinates
-            x = voxel_coordinates[0]
-            y = voxel_coordinates[1]
-            z = voxel_coordinates[2]
+            if type_data == 'vol':
+                mm_coordinates = np.array([x, y, z, 1])
+                voxel_coordinates = map(int, np.round(np.linalg.inv(affine_matrix).dot(mm_coordinates)))
+                # Get rounded mm coordinates in MNI space (due to 1.5 mm spacing)
+                mm_coordinates_prima = affine_matrix.dot(voxel_coordinates)
+                # Final voxel coordinates
+                x = voxel_coordinates[0]
+                y = voxel_coordinates[1]
+                z = voxel_coordinates[2]
 
-            title = 'Voxel {}, {}, {}'.format(*mm_coordinates_prima[:-1])
-            print('Voxel coordinates: {}, {}, {}'.format(x, y, z))
+                title = 'Voxel {}, {}, {}'.format(*mm_coordinates_prima[:-1])
+                print('Voxel coordinates: {}, {}, {}'.format(x, y, z))
+            else:
+                title = 'Vertex {}'.format(x)
+                print('Vertex coordinates: {}'.format(x))
 
             # Define a selected option for categorical boxplot, so that when the user selects a
             # feature in the first loop it is remembered for the following loops
@@ -153,25 +169,39 @@ if __name__ == '__main__':
                     print('Processor {} ({} of {})'.format(processors[i].get_name(), i+1, len(processors)))
 
                 # Available x and y data
-                options = {
-                    'Observations': np.ravel(processors[i].gm_values(
-                        x1=x,
-                        x2=x + 1,
-                        y1=y,
-                        y2=y + 1,
-                        z1=z,
-                        z2=z + 1
-                    )),
-                    'Residuals': np.ravel(processors[i].corrected_values(
-                        correction_parameters[i],
-                        x1=x,
-                        x2=x + 1,
-                        y1=y,
-                        y2=y + 1,
-                        z1=z,
-                        z2=z + 1
-                    ))
-                }
+                if type_data == 'vol':
+
+                    options = {
+                        'Observations': np.ravel(processors[i].gm_values(
+                            x1=x,
+                            x2=x + 1,
+                            y1=y,
+                            y2=y + 1,
+                            z1=z,
+                            z2=z + 1
+                        )),
+                        'Residuals': np.ravel(processors[i].corrected_values(
+                            correction_parameters[i],
+                            x1=x,
+                            x2=x + 1,
+                            y1=y,
+                            y2=y + 1,
+                            z1=z,
+                            z2=z + 1
+                        ))
+                    }
+                else:
+                    options = {
+                        'Observations': np.ravel(processors[i].gm_values(
+                            x1=x,
+                            x2=x + 1,
+                        )),
+                        'Residuals': np.ravel(processors[i].corrected_values(
+                            correction_parameters[i],
+                            x1=x,
+                            x2=x + 1,
+                        ))
+                    }
                 for ind, p_name in enumerate(predictors_names):
                     options[p_name] = processors[i].predictors[:, ind]
                 for ind, c_name in enumerate(correctors_names):
@@ -192,7 +222,7 @@ if __name__ == '__main__':
                         print(key)
                     print()
                     while True:
-                        x_option_input = raw_input('Selected option: ')
+                        x_option_input = input('Selected option: ')
                         if x_option_input in options:
                             break
                         else:
@@ -209,7 +239,7 @@ if __name__ == '__main__':
                     for key in options:
                         print(key)
                     while True:
-                        y_option_input = raw_input('Selected option: ')
+                        y_option_input = input('Selected option: ')
                         if y_option_input in options:
                             break
                         else:

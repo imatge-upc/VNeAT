@@ -182,8 +182,8 @@ class UndirectedClustering3DGraph(Graph):
         self.dims = data.shape
         new_dims = map(lambda d: d + 2, self.dims[:3])
         self.default = not_fulfilling_element
-        l = [self.default for _ in xrange(self.dims[2] + 2)]
-        mat = [l for _ in xrange(self.dims[1] + 2)]
+        l = [self.default for _ in range(self.dims[2] + 2)]
+        mat = [l for _ in range(self.dims[1] + 2)]
         self.data = [mat] + [[l] + [[self.default] + list(l) + [self.default] for l in mat] + [l] for mat in data] + [
             mat]
 
@@ -192,7 +192,7 @@ class UndirectedClustering3DGraph(Graph):
         raise NotImplementedError
 
     def nodes(self):
-        return ((i, j, k) for i in xrange(self.dims[0]) for j in xrange(self.dims[1]) for k in xrange(self.dims[2]))
+        return ((i, j, k) for i in range(self.dims[0]) for j in range(self.dims[1]) for k in range(self.dims[2]))
 
     def neighbours(self, node):
         x, y, z = map(lambda c: c + 1, node)
@@ -215,7 +215,7 @@ class UndirectedClustering3DGraph(Graph):
             graph and thus the same path in reverse order also exists).
         '''
 
-        visited = [[[False for _ in xrange(self.dims[2])] for _ in xrange(self.dims[1])] for _ in xrange(self.dims[0])]
+        visited = [[[False for _ in range(self.dims[2])] for _ in range(self.dims[1])] for _ in range(self.dims[0])]
         for i, j, k in self.nodes():
             if not visited[i][j][k]:
                 scc = [(i, j, k)]
@@ -229,6 +229,9 @@ class UndirectedClustering3DGraph(Graph):
                     i, j, k = v
                     for w in self.neighbours(v):
                         x, y, z = w
+                        if x >= self.dims[0] or y >= self.dims[1] or z >= self.dims[2] or x<0 or y<0 or z<0:
+                            break
+
                         if not visited[x][y][z]:
                             visited[x][y][z] = True
                             scc.append(w)  # queue.push(w)

@@ -3,21 +3,21 @@ input:
 
   # Path to the Excel file containing the metadata of the study. See README.md for
   # further details about the accepted file format
-  excel_file: '../tests/mock_data/mock_excel.xls'
+  excel_file: 'tests/mock_data/mock_excel.xls'
 
   # Path to the folder containing the NIFTI files with the grey matter values for each subject
-  data_folder: '../tests/mock_data/niftis'
+  data_folder: 'tests/mock_data/niftis'
 
   # Path to the Nifti file containing the template used to register the subjects of these study
-  template_file: '../tests/mock_data/template.nii'
+  template_file: 'tests/mock_data/template/template.nii'
 
-  # Study prefix, that is, prefix used in every greymatter file (NIFTI) before the identifier.
+  # Study prefix, that is, prefix used in every imaging file before the identifier.
   # (e.g: if prefix is 'study1_' and a subject has id 'subject1', the corresponding greymatter file would be located
   # inside the folder pointed by data_folder and would be named 'study1_subject1.nii' or 'study1_subject1.nii.gz'
-  study_prefix: 'study1_'
+  study_prefix: 'patch1_'
 
-  # Are NIFTI files gzipped (nii.gz)?
-  gzip_nifti: No
+  # File extension (str): '.nii', '.nii.gz', 'mgh', '.mgz', '.thickness'
+  extension: '.nii'
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -34,12 +34,11 @@ model:
   category_identifier: 'category'
 
   # Identifier that should be used as a predictor
-  predictor_identifier: 'biomarker'
+  predictor_identifier:
+    - 'biomarker'
 
   # List of identifiers that should be used as correctors
   correctors_identifiers:
-    - 'age'
-    - 'sex'
 
 # --------------------------------------------------------------------------------------------------------------------
 
@@ -110,5 +109,6 @@ processing_params:
 output:
 
   # Path to the folder where all results will be stored
-  output_path: '../tests/mock_data/results'
+  output_path: 'tests/mock_data/results/volume'
+  extension: '.nii.gz'
 

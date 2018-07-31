@@ -11,6 +11,7 @@
 config/**
 !config/exampleConfig.yaml
 !config*_category.yaml
+!*_surface.yaml
 
 # Nosetests XUnit reports
 nosetests.xml
@@ -39,3 +40,6 @@ debug/
 
 # Distribution files
 dist/
+
+#Test results
+tests/mock_data/results/

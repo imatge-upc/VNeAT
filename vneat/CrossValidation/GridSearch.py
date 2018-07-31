@@ -9,8 +9,8 @@ import matplotlib.pyplot as plot
 import numpy as np
 from matplotlib import cm
 
-import score_functions
-
+from vneat.CrossValidation import score_functions
+plot.switch_backend('Agg')
 
 class GridSearch(object):
     """
@@ -102,7 +102,7 @@ class GridSearch(object):
         self._m = m
 
         # Map parameters into two lists
-        for key, value in grid_parameters.iteritems():
+        for key, value in grid_parameters.items():
             self._param_names.append(key)
             self._param_values.append(value)
             self._total_computations *= len(value)
@@ -193,7 +193,7 @@ class GridSearch(object):
                 self._errors_vector[iteration].append(tmp_error)
 
                 # Save scores
-                l_params = map(lambda x: round(x, 2), list(params))
+                l_params = list(map(lambda x: round(x, 2), list(params)))
                 errors.append(
                     ['#{} / {}'.format(iteration + 1, current_progress_percentage)] +
                     l_params +
@@ -209,7 +209,7 @@ class GridSearch(object):
             print(current_progress_percentage)
 
         # Save scores to file if required
-        with open(join(self._results_dir, filename + '.csv'), 'wb') as f:
+        with open(join(self._results_dir, filename + '.csv'), 'w') as f:
             writer = csv.writer(f, delimiter=";")
             for row in errors:
                 writer.writerow(row)
@@ -240,12 +240,12 @@ class GridSearch(object):
             " ---------- ",
             ""
         ]
-        for key, value in self._optimal_params.iteritems():
+        for key, value in self._optimal_params.items():
             string.append('{} --> {}'.format(key, value))
 
         # Store results
         with open(join(self._results_dir, filename + ".txt"), 'wb') as f:
-            f.write("\n".join(string))
+            f.write("\n".join(string).encode('utf-8'))
 
         print()
         print()

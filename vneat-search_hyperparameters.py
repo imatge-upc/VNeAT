@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
-    affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
+    affine_matrix, output_dir, results_io, type_data = helper_functions.load_data_from_config_file(config_file)
 
     if parameters:
         # Load user defined parameters
@@ -109,7 +109,8 @@ if __name__ == '__main__':
         correctors,
         processing_parameters,
         user_defined_parameters=udp,
-        category=dummy_cat
+        category=dummy_cat,
+        type_data=type_data
     )
 
     # Check if prediction processor is available for grid searching
@@ -139,7 +140,8 @@ if __name__ == '__main__':
                                        correctors,
                                        processing_parameters,
                                        category=category,
-                                       user_defined_parameters=udp)
+                                       user_defined_parameters=udp,
+                                       type_data=type_data)
 
             """ RESULTS DIRECTORY """
             cat_str = 'category_{}'.format(category)
@@ -164,7 +166,8 @@ if __name__ == '__main__':
 
             # Save user defined parameters
             with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
-                f.write(str(udp) + '\n')
+                f.write(str(udp).encode('utf-8'))
+                f.write(b'\n')
 
             # Gridsearch
             grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,
@@ -186,7 +189,8 @@ if __name__ == '__main__':
                                    predictors,
                                    correctors,
                                    processing_parameters,
-                                   user_defined_parameters=udp)
+                                   user_defined_parameters=udp,
+                                   type_data=type_data)
         """ RESULTS DIRECTORY """
         output_folder_name = '{}-{}-{}-{}'.format(
             prefix,
@@ -207,7 +211,8 @@ if __name__ == '__main__':
 
         # Save user defined parameters
         with open(os.path.join(output_folder, 'user_defined_parameters.txt'), 'wb') as f:
-            f.write(str(udp) + '\n')
+            f.write(str(udp).encode('utf-8'))
+            f.write(b'\n')
 
         # Gridsearch
         grid_search = GridSearch(processor, output_folder, voxel_offset=voxel_offset,

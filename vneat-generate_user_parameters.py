@@ -4,6 +4,7 @@ import os
 from argparse import ArgumentParser
 from os import path
 
+from vneat import helper_functions
 from vneat.Utils.DataLoader import DataLoader
 from vneat.Processors.MixedProcessor import MixedProcessor
 
@@ -25,8 +26,8 @@ if __name__ == '__main__':
     try:
         data_loader = DataLoader(config_file)
     except IOError as e:
-        print
-        print e.filename + ' does not exist.'
+        print()
+        print(e.filename + ' does not exist.')
         data_loader = None
         exit(1)
 
@@ -40,14 +41,16 @@ if __name__ == '__main__':
         processing_parameters = data_loader.get_processing_parameters()
         affine_matrix = data_loader.get_template_affine()
         output_dir = data_loader.get_output_dir()
+        type_data = helper_functions.volume_or_surface(data_loader.get_extension())
+
     except KeyError:
-        print
-        print 'Configuration file does not have the specified format.'
-        print 'See config/exampleConfig.yaml for further information about the format of configuration ' \
-              'files'
+        print()
+        print('Configuration file does not have the specified format.')
+        print('See config/exampleConfig.yaml for further information about the format of configuration ' \
+              'files')
         subjects = predictors = correctors = None
         predictors_names = correctors_names = None
-        processing_parameters = affine_matrix = output_dir = None
+        processing_parameters = affine_matrix = output_dir = type_data = None
         exit(1)
 
     # Create MixedProcessor instance
@@ -56,18 +59,19 @@ if __name__ == '__main__':
                                correctors_names,
                                predictors,
                                correctors,
-                               processing_parameters)
+                               processing_parameters,
+                               type_data=type_data)
     # Processor name
     processor_name = processor.get_name()
 
     # User defined parameters
     udp = processor.user_defined_parameters
-
-    print
-    print 'Storing user defined parameters...'
+    print(udp)
+    print()
+    print('Storing user defined parameters...')
     output_folder_name = '{}-{}'.format(prefix, processor_name) if prefix else processor_name
     output_folder = path.join(output_dir, output_folder_name)
-
+    print(output_folder)
     # Check if directory exists
     if not path.isdir(output_folder):
         # Create directory
@@ -77,8 +81,9 @@ if __name__ == '__main__':
     udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
 
     with open(path.join(output_folder, udp_file), 'wb') as f:
-        f.write(str(udp) + '\n')
+        f.write(str(udp).encode('utf-8'))
+        f.write(b'\n')
 
-    print 'Done'
+    print('Done')
 
 

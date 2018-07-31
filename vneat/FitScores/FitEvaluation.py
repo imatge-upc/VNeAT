@@ -14,7 +14,6 @@ class FittingResults(object):
     """
     pass
 
-
 class dictlike(type):
     class _bound_generic_evaluation_function(object):
         def __init__(self, target, parent):
@@ -33,7 +32,7 @@ class dictlike(type):
             return self
 
         def unbind(self, method_name):
-            for i in xrange(len(self._set)):
+            for i in range(len(self._set)):
                 if self._set[i] == method_name:
                     del self._set[i]
                     exec ('del self.' + method_name)
@@ -88,8 +87,8 @@ class dictlike(type):
         return "<class 'evaluation_function'>"
 
 
-class evaluation_function(object):
-    __metaclass__ = dictlike
+class evaluation_function(object, metaclass = dictlike):
+    # __metaclass__ = dictlike
 
     class RequirementDescriptor:
         def __init__(self, name, description, default=UNBOUND):
@@ -115,10 +114,10 @@ class evaluation_function(object):
             self._target = target
             self._evaluate = self._parent._evaluate
             self._requirements = [evaluation_function.RequirementDescriptor(name, desc, UNBOUND) for (name, desc) in
-                                  self._parent._requirements.iteritems()]
-            self._implicit = map(lambda rd: evaluation_function.RequirementDescriptor(rd.name, rd.description,
+                                  self._parent._requirements.items()]
+            self._implicit = list(map(lambda rd: evaluation_function.RequirementDescriptor(rd.name, rd.description,
                                                                                       types.MethodType(rd.value, self)),
-                                 self._parent._implicit.itervalues())
+                                 self._parent._implicit.values()))
             self._dependencies = self._parent._dependencies
 
             self._forced = []
@@ -151,7 +150,7 @@ class evaluation_function(object):
 
             # Freeze all dependencies so that their bindings are accessible as attributes
             if not status:
-                for (alias, eval_func) in self._dependencies.iteritems():
+                for (alias, eval_func) in self._dependencies.items():
                     try:
                         # Copy the binding of the target and the evaluation function on which the current one depends,
                         # freeze such copy and set it as an attribute of this binding
@@ -189,7 +188,7 @@ class evaluation_function(object):
                     # Check each ancestor (in order), to see whether they explicitly bound the required method
                     # for this test
                     # or if, at least, they declared such method generally for all tests.
-                    for i in xrange(len(mro)):
+                    for i in range(len(mro)):
                         found = False
                         try:
                             provider = self._parent._bindings[mro[i]]
@@ -220,6 +219,7 @@ class evaluation_function(object):
                         setattr(self, ReqDescriptor.name,
                                 types.MethodType(inherited_method, self))  # Bind it to this instance
                         inherited.append((ReqDescriptor.name, provider))
+                        print('[FitEvaluation _frost_and_inherit DONE for ]' + ReqDescriptor.name)
                         break
                     else:  # bad news... :(
                         if not status:  # ...unless we are checking the status, in which case there's no problem
@@ -256,7 +256,7 @@ class evaluation_function(object):
             return self
 
         def bind(self, method_name, method, force=False):
-            reqs = map(lambda rd: rd.name, self._requirements + self._implicit)
+            reqs = list(map(lambda rd: rd.name, self._requirements + self._implicit))
             if not (method_name in reqs):
                 if force:
                     self._forced.append(method_name)
@@ -274,13 +274,13 @@ class evaluation_function(object):
                 if rd.name == method_name:
                     setattr(self, rd.name, rd.value)
 
-                    for i in xrange(len(self._frozen)):
+                    for i in range(len(self._frozen)):
                         if self._frozen[i][0] == rd.name:
                             del self._frozen[i]
                             break
 
                     return self
-            for i in xrange(len(self._forced)):
+            for i in range(len(self._forced)):
                 if self._forced[i] == method_name:
                     exec ('del self.' + method_name)
                     del self._forced[i]
@@ -312,15 +312,16 @@ class evaluation_function(object):
 
                 self.fitting_results = fitting_results
 
+
             inherited, frosted = self._frost_and_inherit()
 
             # all clear, do the job!
-            try:
-                retval = self._evaluate(self, *args, **kwargs)
-            except Exception as e:
+            # try:
+            retval = self._evaluate(self, *args, **kwargs)
+            # except Exception as e:
                 # oops! something went wrong; rollback and re-raise
-                self._revert_inheritance_and_defrost(inherited, frosted)
-                raise e
+                # self._revert_inheritance_and_defrost(inherited, frosted)
+                # raise e
 
             # everything fine, undo inheritance and return the result
             self._revert_inheritance_and_defrost(inherited, frosted)
@@ -395,7 +396,7 @@ class evaluation_function(object):
             if len(self._dependencies) == 0:
                 s += ' None'
             s += '\n'
-            for (alias, eval_func) in self._dependencies.iteritems():
+            for (alias, eval_func) in self._dependencies.items():
                 salias = str(alias)
                 s += ' ' * (13 - len(salias)) + '[' + salias + ']  ' + (
                     'None\n' if eval_func._evaluate.__doc__ is None else eval_func._evaluate.__doc__) + '\n'
@@ -568,6 +569,51 @@ r2.requires('corrected_data',
 r2.requires('predicted_data',
             'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the corrected '
             'observations, where N is the number of subjects/samples and M = X1*...*Xn the number of variables.')
+
+@evaluation_function
+def tstat(self):
+    """
+    Evaluates the significance of the parameters as regards the behaviour of the observations by computing
+    the value of the T-statistic for a test in which the null hypothesis states that each parameter has no relevance
+    to the final result (i.e. B=0).
+    """
+    corrected_data = self.corrected_data()
+
+    # Get the error obtained when using the full model (correctors + predictors)
+    predictors = self.predictors()
+
+    # prediction_error = corrected_data - prediction
+    prediction_error = corrected_data - self.predicted_data()
+
+    # Residual Sum of Squares for full model
+    rss1 = (prediction_error ** 2).sum(axis=0)
+
+    # Degrees of freedom
+    dfp = self.df_prediction()
+
+    n = corrected_data.shape[0]
+    df1 = n - dfp  # degrees of freedom
+
+    # Compute t-scores
+    std1 = np.sqrt( rss1 / df1 * (np.linalg.inv(np.dot(predictors.T,predictors)).diagonal()))
+    t_score = self.coefs / std1
+    return t_score
+
+tstat.requires('corrected_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the observations after having subtracted the '
+               'contribution of the correctors, where N is the number of subjects/samples and M = X1*...*Xn '
+               'the number of variables.')
+tstat.requires('predicted_data',
+               'Matrix of shape (N, X1, ..., Xn) that contains the prediction performed by the fitter on the '
+               'corrected observations, where N is the number of subjects/samples and M = X1*...*Xn the number '
+               'of variables.')
+tstat.requires('df_prediction',
+               'Constant or matrix of shape (X1, ..., Xn) indicating the degrees of freedom of the prediction '
+               'model alone (without the correctors) for all variables (constant case) or each variable (matrix case).')
+tstat.requires('predictors',
+               'Predictors of shape (N, R).')
+tstat.requires('coefs',
+               'Coefficients of (PolLinear regression (N, R).')
 
 
 @evaluation_function
@@ -756,3 +802,108 @@ def vnprss(self, gamma):
 
 
 vnprss.uses(prss, 'prss')
+
+
+""" Latent models measures """
+
+@evaluation_function
+def effect_strength(self):
+    """
+    Evaluates the goodness of fit by means of the Penalized Residual Sum of Squares.
+    In particular, this method
+    computes the following expression: PRSS = MSE + gamma*sum(d2(curve)/d(x2)), that is, the Mean Squared Error
+    plus a penalization parameter (gamma) times an indicator of the abruptness of the curve (i.e., the integral
+    of the second derivative of the curve in the region of interest).
+    """
+
+    dims_x_score = self.x_scores().shape
+    num_components = self.num_components()
+    num_subjects = dims_x_score[1]
+    dims = dims_x_score[2:]
+
+    if num_components == 0:
+        return 0
+
+    x_scores = np.reshape(self.x_scores(),(num_components, num_subjects, -1))
+    y_scores = np.reshape(self.y_scores(),(num_components, num_subjects, -1))
+    effect_strength = np.zeros((num_components,np.prod(dims)))
+    for it_nc in range(num_components):
+        effect_strength[it_nc] = np.diag(np.dot(x_scores[it_nc].T, y_scores[it_nc]) / (num_subjects - 1)) / (np.std(y_scores[it_nc], axis=0) * np.std(x_scores[it_nc], axis=0))
+
+    return effect_strength.reshape((num_components,) + dims)
+
+
+effect_strength.requires('x_scores','Latent patterns from predictors X.')
+effect_strength.requires('y_scores', 'Latent patterns from response variables Y.')
+effect_strength.requires('num_components', 'Number of components of the latent model')
+
+@evaluation_function
+def effect_strength_value(self, hyp_value, num_permutations=1000):
+
+    fitter = self.fitter()
+    predictors = self.predictors()
+    obs = self.corrected_data()
+    obs_shape = obs.shape
+    num_subjects = obs_shape[0]
+    dims = obs_shape[1:]
+    num_voxels = np.prod(dims)
+    num_components = self.num_components()
+
+    if num_components == 0:
+        return 1
+
+    effect_strength = hyp_value.reshape((num_components, -1))
+    effect_strength_permutation = np.zeros((num_components, num_permutations, num_voxels))
+
+
+    for n in range(num_permutations):
+        print(n)
+        if np.mod(n*10,num_permutations) == 0:
+            print('----> ' + str(100*n/num_permutations) + ' %')
+
+        index_permutation = np.random.choice(num_subjects, num_subjects, replace=False)
+        fitter.fit(obs[index_permutation])
+        x_scores, y_scores = fitter.transform(predictors, fitter.prediction_parameters, obs[index_permutation])
+        x_scores = x_scores.reshape((num_components, num_subjects, -1))
+        y_scores = y_scores.reshape((num_components, num_subjects, -1))
+
+        for it_nc in range(num_components):
+            effect_strength_permutation[it_nc, n] = np.diag(1.0*np.dot(x_scores[it_nc].T, y_scores[it_nc]) / (num_subjects - 1)) / (np.std(y_scores[it_nc], axis=0) * np.std(x_scores[it_nc], axis=0))
+
+
+    p_value_one_way = np.zeros((num_components, num_voxels))
+    for it_voxel in range(num_voxels):
+        for it_component in range(num_components):
+            print('Pemrutation'+str(effect_strength_permutation[it_component, :, it_voxel]))
+            print('Observed'+str(effect_strength[it_component, it_voxel]))
+            p_value_one_way[it_component, it_voxel] = 1.0*len(np.where(effect_strength_permutation[it_component, :, it_voxel] > effect_strength[it_component, it_voxel])[0])/num_permutations
+
+    p_value = p_value_one_way.reshape((num_components,) + dims)
+    return p_value
+
+effect_strength_value.requires('predictors','Latent patterns from predictors X with shape (N, R).')
+effect_strength_value.requires('corrected_data', 'Data corrected with shape (N, X1, ..., Xn)')
+effect_strength_value.requires('fitter', 'Instance of Latent Model fitter.')
+effect_strength_value.requires('num_components', 'Number of components of the latent model')
+
+
+
+@evaluation_function
+def effect_type(self):
+    num_components = self.num_components()
+    if num_components == 0:
+        return 0
+    else:
+        return self.x_rotations()
+effect_type.requires('x_rotations',
+                     'Matrix of shape (T, ... ) maps any input vector to the latent subspace.')
+effect_type.requires('num_components', 'Number of components of the latent model')
+
+@evaluation_function
+def curve_confidence_intervals(self):
+    corrected_data = self.corrected_data()
+
+    # Get the error obtained when using the full model (correctors + predictors)
+    prediction_error = corrected_data - self.predicted_data()
+    # Residual Sum of Squares for full model
+    rss2 = (prediction_error ** 2).sum(axis=0)

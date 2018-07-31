@@ -1,0 +1,116 @@
+# SECTION 1: INPUT
+input:
+
+  # Path to the Excel file containing the metadata of the study. See README.md for
+  # further details about the accepted file format
+  excel_file: 'tests/mock_data/mock_excel.xls'
+
+  # Path to the folder containing the NIFTI files with the grey matter values for each subject
+  data_folder: 'tests/mock_data/niftis'
+
+  # Path to the Nifti file containing the template used to register the subjects of these study
+  template_file: 'tests/mock_data/template/template.nii'
+
+  # Study prefix, that is, prefix used in every greymatter file (NIFTI) before the identifier.
+  # (e.g: if prefix is 'study1_' and a subject has id 'subject1', the corresponding greymatter file would be located
+  # inside the folder pointed by data_folder and would be named 'study1_subject1.nii' or 'study1_subject1.nii.gz'
+  study_prefix: 'study1_'
+
+  # File extension (str): '.nii', '.nii.gz', 'mgh', '.mgz', '.thickness'
+  extension: '.nii'
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 2: MODEL
+model:
+
+  # Identifier used in the excel file for the column that contains the ID of the subject and type of data used to
+  # express this identifier (String, Number)
+  id_identifier: 'ID'
+  id_type: 'Number'
+
+  # Identifier used in the excel file for the column that contains the category/class of the subject.
+  # If there is no category identifier for this study, put No
+  category_identifier: 'category'
+
+  # Identifier that should be used as a predictor
+  predictor_identifier:
+    - 'biomarker'
+
+  # List of identifiers that should be used as correctors
+  correctors_identifiers:
+    - 'age'
+    - 'sex'
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 3: CONFIGURATION FOR FINDING HYPERPARAMETERS
+hyperparameters_finding:
+
+  # Find epsilon hyperparameter (can be used for PolySVR and GaussianSVR) ?
+  epsilon: Yes
+
+  # If epsilon is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  epsilon_values:
+    spacing: linear
+    method: deterministic
+    N: 15
+    start: 0.01
+    end: 0.2
+
+  # Find C (regularization) hyperparameter (can be used for PolySVR and GaussianSVR) ?
+  C: Yes
+
+  # If C is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  C_values:
+    spacing: logarithmic
+    method: random
+    N: 10
+    start: 0
+    end: 3
+
+  # Find gamma hyperparameter (can be used for GaussianSVR only) ?
+  gamma: Yes
+
+  # If gamma is used, use the start and end values specified below.
+  # Note that if linear spacing is used, the search spane will be [start, end], but if logarithmic
+  # spacing is used, the search span will be [10 ^ start, 10 ^ end]
+  gamma_values:
+    spacing: linear
+    method: random
+    N: 20
+    start: 0.1
+    end: 0.5
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 4: PROCESSING PARAMETERS
+processing_params:
+
+  # Number of processes spanned to perform computational-heavy tasks, such as fitting.
+  # Default value: 4
+  n_jobs: 2
+
+  # Total amount of memory in MB used to get Chunks of gray matter data from all subjects
+  # (as memory increases so does the number of voxels used in one chunck)
+  # Default value: 512
+  mem_usage: 512
+
+  # Total amount of memory in MB used to cache the Gramm matrices used in SVR fitting
+  # (more memory implies a speed up in the SVR fitting process)
+  # Default value: 1024
+  cache_size: 1024
+
+# --------------------------------------------------------------------------------------------------------------------
+
+# SECTION 5: OUTPUT
+output:
+
+  # Path to the folder where all results will be stored
+  output_path: 'tests/mock_data/results'
+  extension: '.nii.gz'
+

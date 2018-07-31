@@ -23,7 +23,6 @@ if __name__ == '__main__':
         'vnprss': vnprss
     }
 
-    Nifti = nib.Nifti1Image
 
     """ CLI ARGUMENTS """
     arguments_parser = ArgumentParser(description='Computes statistical maps for the fitting results '
@@ -83,15 +82,16 @@ if __name__ == '__main__':
 
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
-    affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
+    affine_matrix, output_dir, results_io, type_data = helper_functions.load_data_from_config_file(config_file)
 
     """ LOAD RESULTS DATA """
     if dirs is None:
         # Find prediction parameters inside results folder
-        pathname = path.join(output_dir, '**', '*prediction_parameters.nii.gz')
+        pathname = path.join(output_dir, '**', '*prediction_parameters'+results_io.extension)
         for p in glob(pathname):
             n, category, pred_p, corr_p, proc = helper_functions.get_results_from_path(
-                p, subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters
+                p, results_io, subjects, predictors_names, correctors_names, predictors, correctors,
+                processing_parameters, type_data
             )
             print()
             print('Computing fitting results for {} '.format(n), end="")
@@ -109,20 +109,21 @@ if __name__ == '__main__':
             print('Storing fitting results')
             folder_name = path.split(p)[0]
             for name, data in results:
-                full_file_path = path.join(folder_name, name)
-                niiImg = Nifti(data, affine_matrix)
-                nib.save(niiImg, full_file_path)
+                full_file_path = path.join(folder_name, name+results_io.extension)
+                res_writer = results_io.writer(data, affine_matrix)
+                res_writer.save(full_file_path)
     else:
         for directory in dirs:
             full_path = path.join(output_dir, directory)
-            pathname = glob(path.join(full_path, '*prediction_parameters.nii.gz'))
+            pathname = glob(path.join(full_path, '*prediction_parameters'+results_io.extension))
             # If there is no coincidence, ignore this directory
             if len(pathname) == 0:
                 print('{} does not exist or contain any result.'.format(full_path))
                 continue
+
             n, category, pred_p, corr_p, proc = helper_functions.get_results_from_path(
-                pathname[0], subjects, predictors_names, correctors_names, predictors, correctors,
-                processing_parameters
+                pathname[0], results_io, subjects, predictors_names, correctors_names, predictors, correctors,
+                processing_parameters, type_data
             )
             print()
             print('Computing fitting results for {} '.format(n), end="")
@@ -142,8 +143,8 @@ if __name__ == '__main__':
             print('Storing fitting results')
             folder_name = path.split(pathname[0])[0]
             for name, data in results:
-                full_file_path = path.join(folder_name, name)
-                niiImg = Nifti(data, affine_matrix)
-                nib.save(niiImg, full_file_path)
+                full_file_path = path.join(folder_name, name+results_io.extension)
+                res_writer = results_io.writer(data, affine_matrix)
+                res_writer.save(full_file_path)
     print()
     print('Done.')

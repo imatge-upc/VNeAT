@@ -34,3 +34,13 @@ def docstring_inheritor(superclass=type):
             return superclass.__new__(meta, name, bases, clsdict)
 
     return DocStringInheritor
+
+
+
+class Debugger(object):
+    def __init__(self, debug_flag=True):
+        self.debug_flag = debug_flag
+
+    def write(self,msg):
+        if self.debug_flag == 'True':
+            print(msg)

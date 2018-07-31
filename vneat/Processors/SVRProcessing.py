@@ -13,9 +13,9 @@ class PolySVRProcessor(Processor):
     """
     _psvrprocessor_perp_norm_options_names = [
         'Normalize all',
-        'Normalize predictor',
+        'Normalize predictors',
         'Normalize correctors',
-        'Use correctors and predictor as they are'
+        'Use correctors and/or predictors as they are'
     ]
 
     _psvrprocessor_perp_norm_options_list = [
@@ -27,9 +27,9 @@ class PolySVRProcessor(Processor):
 
     _psvrprocessor_perp_norm_options = {
         'Normalize all': 0,
-        'Normalize predictor': 1,
+        'Normalize predictors': 1,
         'Normalize correctors': 2,
-        'Use correctors and predictor as they are': 3
+        'Use correctors and/or predictor as they are': 3
     }
 
     _psvrprocessor_intercept_options_names = [
@@ -81,7 +81,8 @@ class PolySVRProcessor(Processor):
         user_params += tuple(self._psvrprocessor_degrees)
         return user_params
 
-    def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+    def __read_user_defined_parameters__(self, predictor_names, corrector_names, perp_norm_option_global=False,
+                                         *args,**kwargs):
         # Intercept term
         # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
         # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
@@ -104,15 +105,29 @@ class PolySVRProcessor(Processor):
             )
         )]
 
-        # Treat data option
-        perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[
-            super(PolySVRProcessor, self).__getoneof__(
-                PolySVRProcessor._psvrprocessor_perp_norm_options_names,
-                default_value='Use correctors and predictor as they are',
-                show_text='PolySVR Processor: How do you want to treat the features? '
-                          '(default: Use correctors and predictor as they are)'
-            )
-        ]
+        # Treat data option: if there is not a global variable, treat it independently for each fitter.
+        if perp_norm_option_global:
+            if len(predictor_names) == 0:
+                default_value = PolySVRProcessor._psvrprocessor_perp_norm_options_names[3]
+                options_names = PolySVRProcessor._psvrprocessor_perp_norm_options_names[2:4]
+            elif len(corrector_names) == 0:
+                default_value = PolySVRProcessor._psvrprocessor_perp_norm_options_names[3]
+                options_names = PolySVRProcessor._psvrprocessor_perp_norm_options_names[1:2] + \
+                                PolySVRProcessor._psvrprocessor_perp_norm_options_names[3:4]
+            else:
+                default_value = PolySVRProcessor._psvrprocessor_perp_norm_options_names[3]
+                options_names = PolySVRProcessor._psvrprocessor_perp_norm_options_names
+
+            perp_norm_option = PolySVRProcessor._psvrprocessor_perp_norm_options[
+                super(PolySVRProcessor, self).__getoneof__(
+                    options_names,
+                    default_value=default_value,
+                    show_text='PolySVR Processor: How do you want to treat the features? (default: ' +
+                              default_value + ')'
+                )]
+
+        else:
+            perp_norm_option = 3
 
         # C regularization parameter
         C = super(PolySVRProcessor, self).__getfloat__(
@@ -151,7 +166,7 @@ class PolySVRProcessor(Processor):
 
         return (intercept, perp_norm_option, C, epsilon) + tuple(degrees)
 
-    def __curve__(self, fitter, predictor, prediction_parameters):
+    def __curve__(self, fitter, predictor, prediction_parameters, *args, **kwargs):
         # Create a new PolySVR fitter to return the curve prediction
         psvr = PolySVR(predictor, degrees=self._psvrprocessor_degrees[:1], intercept=self._psvrprocessor_intercept)
         PolySVRProcessor._psvrprocessor_perp_norm_options_list[self._psvrprocessor_perp_norm_option](psvr)
@@ -239,7 +254,8 @@ class GaussianSVRProcessor(Processor):
         user_params += (self._gsvrprocessor_C, self._gsvrprocessor_epsilon, self._gsvrprocessor_gamma)
         return user_params
 
-    def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+    def __read_user_defined_parameters__(self, predictor_names, corrector_names, perp_norm_option_global=False,
+                                         *args, **kwargs):
         # Intercept term
         # If there are no predictor names, show only options NoIntercept and CorrectionIntercept,
         # and if there are no corrector names, show only NoIntercept and PredictionIntercept. Otherwise,
@@ -262,14 +278,29 @@ class GaussianSVRProcessor(Processor):
                 )
             )]
 
-        # Treat data option
-        perp_norm_option = GaussianSVRProcessor._gsvrprocessor_perp_norm_options[
-            super(GaussianSVRProcessor, self).__getoneof__(
-                GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names,
-                default_value='Use correctors and predictor as they are',
-                show_text='GaussianSVR Processor: How do you want to treat the features? '
-                          '(default: Use correctors and predictor as they are)'
-            )]
+        # Treat data option: if there is not a global variable, treat it independently for each fitter.
+        if perp_norm_option_global:
+            if len(predictor_names) == 0:
+                default_value = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[3]
+                options_names = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[2:4]
+            elif len(corrector_names) == 0:
+                default_value = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[3]
+                options_names = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[1:2] + \
+                                GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[3:4]
+            else:
+                default_value = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names[3]
+                options_names = GaussianSVRProcessor._gsvrprocessor_perp_norm_options_names
+
+            perp_norm_option = GaussianSVRProcessor._gsvrprocessor_perp_norm_options[
+                super(GaussianSVRProcessor, self).__getoneof__(
+                    options_names,
+                    default_value=default_value,
+                    show_text='GaussianSVR Processor: How do you want to treat the features? (default: ' +
+                              default_value + ')'
+                )]
+
+        else:
+            perp_norm_option = 3
 
         # C regularization parameter
         C = super(GaussianSVRProcessor, self).__getfloat__(

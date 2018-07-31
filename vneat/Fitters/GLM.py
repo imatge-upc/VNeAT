@@ -147,17 +147,16 @@ class GLM(AdditiveCurveFitter):
     def num_estimated_parameters(self, correction_parameters, prediction_parameters):
         return correction_parameters.shape[0] + prediction_parameters.shape[0] + 1
 
-    def max_loglikelihood_value(self, observations, predictors, prediction_parameters,
-                                correctors, correction_parameters):
+    def max_loglikelihood_value(self, corrected_data, predictors, prediction_parameters):
         # Compute residuals
-        corrected_values = self.correct(observations, correctors, correction_parameters)
-        residuals = corrected_values - self.predict(predictors, prediction_parameters)
+        # corrected_values = self.correct(observations, correctors, correction_parameters)
+        residuals = corrected_data - self.predict(predictors, prediction_parameters)
 
         # Compute residual sum of squares
         rss = np.sum(np.square(residuals), axis=0)
 
         # Number of samples N
-        n = observations.shape[0]
+        n = corrected_data.shape[0]
 
         return (-n / 2) * (np.log(2 * np.pi) + np.log(rss) - np.log(n) + 1)
 
@@ -236,7 +235,7 @@ class PolyGLM(GLM):
         '''
         correctors = []
         predictors = []
-        for index in xrange(len(self._pglm_is_predictor)):
+        for index in range(len(self._pglm_is_predictor)):
             for p in polynomial(self._pglm_degrees[index], [self._pglm_features[index]]):
                 if self._pglm_is_predictor[index]:
                     predictors.append(p)
@@ -259,14 +258,14 @@ class PolyGLM(GLM):
     def lin_correctors(self):
         '''Matrix containing the linear terms of the features that are interpreted as correctors in the model.
         '''
-        r = [self._pglm_features[i] for i in xrange(len(self._pglm_is_predictor)) if not self._pglm_is_predictor[i]]
+        r = [self._pglm_features[i] for i in range(len(self._pglm_is_predictor)) if not self._pglm_is_predictor[i]]
         return np.array(r).copy().T
 
     @property
     def lin_predictors(self):
         '''Matrix containing the linear terms of the features that are interpreted as predictors in the model.
         '''
-        r = [self._pglm_features[i] for i in xrange(len(self._pglm_is_predictor)) if self._pglm_is_predictor[i]]
+        r = [self._pglm_features[i] for i in range(len(self._pglm_is_predictor)) if self._pglm_is_predictor[i]]
         return np.array(r).copy().T
 
     def set_predictors(self, predictors):

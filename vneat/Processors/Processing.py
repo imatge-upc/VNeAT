@@ -2,12 +2,15 @@ from abc import ABCMeta, abstractmethod
 from sys import stdout
 
 import numpy as np
+from scipy.stats.distributions import  t
 
-from vneat.FitScores.FitEvaluation import evaluation_function as eval_func, FittingResults
+from vneat.FitScores.FitEvaluation import evaluation_function as eval_func, FittingResults, \
+    effect_strength as eff_size_eval, effect_strength_value as eff_size_value_eval, effect_type as eff_type_eval
 from vneat.Utils.Documentation import docstring_inheritor
 from vneat.Utils.Subject import Chunks
 from vneat.Utils.graphlib import NiftiGraph
 
+import warnings
 
 class Processor(object):
     """
@@ -36,8 +39,1048 @@ class Processor(object):
                                                            repr(self._prediction_parameters).split('\n'))
             return s
 
+
+    class VolumeProcessor:
+
+        @staticmethod
+        def process(processor, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, *args, **kwargs):
+            """
+            Processes all the data from coordinates x1, y1, z1 to x2, y2, z2
+
+            Parameters
+            ----------
+            x1 : int
+                Voxel in the x-axis from where the processing begins
+            x2 : int
+                Voxel in the x-axis where the processing ends
+            y1 : int
+                Voxel in the y-axis from where the processing begins
+            y2 : int
+                Voxel in the y-axis where the processing ends
+            z1 : int
+                Voxel in the z-axis from where the processing begins
+            z2 : int
+                Voxel in the z-axis where the processing ends
+            args : List
+            kwargs : Dict
+
+            Returns
+            -------
+            Processor.Results instance
+                Object with two properties: correction_parameters and prediction_parameters
+            """
+            chunks = Chunks(
+                processor._processor_subjects,
+                x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                mem_usage=processor._processor_processing_params['mem_usage']
+            )
+            dims = chunks.dims
+
+            # Initialize progress
+            processor._processor_progress = 0.0
+            total_num_voxels = dims[-3] * dims[-2] * dims[-1]
+            prog_inc = 10000. / total_num_voxels
+
+            # Add processing parameters to kwargs
+            kwargs['n_jobs'] = processor._processor_processing_params['n_jobs']
+            kwargs['cache_size'] = processor._processor_processing_params['cache_size']
+
+            # Get the results of the first chunk to initialize dimensions of the solution matrices
+            # Get first chunk and fit the parameters
+            chunk = next(chunks)
+
+            processor._processor_fitter.fit(chunk.data, *args, **kwargs)
+
+            # Get the parameters and the dimensions of the solution matrices
+            cparams = processor._processor_fitter.correction_parameters
+            pparams = processor._processor_fitter.prediction_parameters
+            cpdims = tuple(cparams.shape[:-3] + dims)
+            rpdims = tuple(pparams.shape[:-3] + dims)
+
+            # Initialize solution matrices
+            correction_parameters = np.zeros(cpdims, dtype=np.float64)
+            prediction_parameters = np.zeros(rpdims, dtype=np.float64)
+
+            # Assign first chunk's solutions to solution matrices
+            dx, dy, dz = cparams.shape[-3:]
+            correction_parameters[:, :dx, :dy, :dz] = cparams
+            prediction_parameters[:, :dx, :dy, :dz] = pparams
+
+            # Update progress
+            processor._processor_update_progress(prog_inc * dx * dy * dz)
+
+            # Now do the same for the rest of the Chunks
+            for chunk in chunks:
+                # Get relative (to the solution matrices) coordinates of the chunk
+                x, y, z = chunk.coords
+                x -= x1
+                y -= y1
+                z -= z1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx, dy, dz = cdata.shape[-3:]
+
+                # Fit the parameters to the data in the chunk
+                processor._processor_fitter.fit(cdata, *args, **kwargs)
+
+                # Get the optimal parameters and insert them in the solution matrices
+                correction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = processor._processor_fitter.correction_parameters
+                prediction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = processor._processor_fitter.prediction_parameters
+
+                # Update progress
+                processor._processor_update_progress(prog_inc * dx * dy * dz)
+
+            if processor.progress != 100.0:
+                processor._processor_update_progress(10000.0 - processor._processor_progress)
+
+            # Call post_processing routine
+            return processor.__post_process__(prediction_parameters, correction_parameters)
+
+        @staticmethod
+        def curve(processor, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None,
+                  t2=None, tpoints=50,*args, **kwargs):
+
+            """
+            Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
+            a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
+            one predictor)
+
+            Parameters
+            ----------
+            prediction_parameters : ndarray
+                Prediction parameters obtained for this processor by means of the process() method
+            x1 : int
+                Voxel in the x-axis from where the curve computation begins
+            x2 : int
+                Voxel in the x-axis where the curve computation ends
+            y1 : int
+                Voxel in the y-axis from where the curve computation begins
+            y2 : int
+                Voxel in the y-axis where the curve computation ends
+            z1 : int
+                Voxel in the z-axis from where the curve computation begins
+            z2 : int
+                Voxel in the z-axis where the curve computation ends
+            t1 : float
+                Value in the axis of the predictor from where the curve computation starts
+            t2 : float
+                Value in the axis of the predictor from where the curve computation ends
+            tpoints : int
+                Number of points used to compute the curve, using a linear spacing between t1 and t2
+
+            Returns
+            -------
+            ndarray
+                4D array with the curve values for the tpoints in each voxel from x1, y1, z1 to x2, y2, z2
+            """
+            if x2 is None:
+                x2 = prediction_parameters.shape[-3]
+            if y2 is None:
+                y2 = prediction_parameters.shape[-2]
+            if z2 is None:
+                z2 = prediction_parameters.shape[-1]
+
+            if t1 is None:
+                t1 = processor.predictors.min(axis=0)
+            if t2 is None:
+                t2 = processor.predictors.max(axis=0)
+
+            R = processor.predictors.shape[1]
+            pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
+
+
+            if tpoints == -1:
+                preds = np.zeros((processor.predictors.shape[0], R), dtype=np.float64)
+                for i in range(R):
+                    preds[:, i] = np.sort(processor.predictors[:, i])
+            else:
+                preds = np.zeros((tpoints, R), dtype=np.float64)
+                step = (t2 - t1).astype('float') / (tpoints - 1)
+                t = t1
+                for i in range(tpoints):
+                    preds[i] = t
+                    t += step
+
+            return preds.T, processor.__curve__(processor._processor_fitter, preds, pparams, *args, **kwargs)
+
+        @staticmethod
+        def curve_confidence_intervals(processor, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None,
+                                       origx=0,origy=0, origz=0,t1=None, t2=None, tpoints=50, *args, **kwargs):
+
+            """
+            Computes confidence interval of the curve in the axis of the predictor from t1 to t2 by using the results of
+            a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
+            one predictor)
+
+            Parameters
+            ----------
+            observations : ndarray
+                orrected data to compute de sum of squared residuals.
+            prediction_parameters : ndarray
+                Prediction parameters obtained for this processor by means of the process() method
+            x1 : int
+                Voxel in the x-axis from where the curve computation begins
+            x2 : int
+                Voxel in the x-axis where the curve computation ends
+            y1 : int
+                Voxel in the y-axis from where the curve computation begins
+            y2 : int
+                Voxel in the y-axis where the curve computation ends
+            z1 : int
+                Voxel in the z-axis from where the curve computation begins
+            z2 : int
+                Voxel in the z-axis where the curve computation ends
+            t1 : float
+                Value in the axis of the predictor from where the curve computation starts
+            t2 : float
+                Value in the axis of the predictor from where the curve computation ends
+            tpoints : int
+                Number of points used to compute the curve, using a linear spacing between t1 and t2
+
+            Returns
+            -------
+            ndarray
+                4D array with the curve values for the tpoints in each voxel from x1, y1, z1 to x2, y2, z2
+            """
+            if x2 is None:
+                x2 = prediction_parameters.shape[-3]
+            if y2 is None:
+                y2 = prediction_parameters.shape[-2]
+            if z2 is None:
+                z2 = prediction_parameters.shape[-1]
+
+            if t1 is None:
+                t1 = processor.predictors.min(axis=0)
+            if t2 is None:
+                t2 = processor.predictors.max(axis=0)
+
+            R = processor.predictors.shape[1]
+            pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
+
+            preds = np.zeros((processor.predictors.shape[0], R), dtype=np.float64)
+            for i in range(R):
+                preds[:, i] = np.sort(processor.predictors[:, i])
+
+            corrected_data = processor.corrected_values(processor, correction_parameters, x1, x2, y1, y2,z1, z2, origx,
+                                                        origy, origz, *args, **kwargs)
+
+            return preds.T, processor.__curve_confidence_intervals__(corrected_data, processor._processor_fitter, preds,
+                                                                     pparams, *args, **kwargs)
+
+        @staticmethod
+        def corrected_values(processor, correction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, origx=0,
+                             origy=0, origz=0, *args, **kwargs):
+
+            """
+            Computes the corrected values for the observations with the given fitter and correction parameters
+
+            Parameters
+            ----------
+            correction_parameters : ndarray
+                Array with the computed correction parameters
+            x1 : int
+                Relative coordinate to origx of the starting voxel in the x-dimension
+            x2 : int
+                Relative coordinate to origx of the ending voxel in the x-dimension
+            y1 : int
+                Relative coordinate to origy of the starting voxel in the y-dimension
+            y2 : int
+                Relative coordinate to origy of the ending voxel in the y-dimension
+            z1 : int
+                Relative coordinate to origz of the starting voxel in the z-dimension
+            z2 : int
+                Relative coordinate to origz of the ending voxel in the z-dimension
+            origx : int
+                Absolute coordinate where the observations start in the x-dimension
+            origy : int
+                Absolute coordinate where the observations start in the y-dimension
+            origz : int
+                Absolute coordinate where the observations start in the z-dimension
+            args : List
+            kwargs : Dictionary
+
+            Notes
+            -----
+            x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
+            in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
+            which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond
+
+            Returns
+            -------
+            ndarray
+                Array with the corrected observations
+            """
+            if x2 is None:
+                x2 = correction_parameters.shape[-3]
+            if y2 is None:
+                y2 = correction_parameters.shape[-2]
+            if z2 is None:
+                z2 = correction_parameters.shape[-1]
+
+            correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+
+            x1 += origx
+            x2 += origx
+            y1 += origy
+            y2 += origy
+            z1 += origz
+            z2 += origz
+
+            chunks = Chunks(processor._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
+
+            for chunk in chunks:
+                # Get relative (to the solution matrix) coordinates of the chunk
+                x, y, z = chunk.coords
+                x -= x1
+                y -= y1
+                z -= z1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx, dy, dz = cdata.shape[-3:]
+                corrected_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = processor.__corrected_values__(processor._processor_fitter,
+                                                                                                  cdata,
+                                                                                                  correction_parameters[:,
+                                                                                                  x:(x + dx), y:(y + dy),
+                                                                                                  z:(z + dz)], *args,
+                                                                                                  **kwargs)
+
+            return corrected_data
+
+        @staticmethod
+        def gm_values(processor, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None):
+            """
+            Returns the original (non-corrected) observations
+
+            Parameters
+            ----------
+            x1 : int
+                Voxel in the x-axis from where the retrieval begins
+            x2 : int
+                Voxel in the x-axis where the retrieval ends
+            y1 : int
+                Voxel in the y-axis from where the retrieval begins
+            y2 : int
+                Voxel in the y-axis where the retrieval ends
+            z1 : int
+                Voxel in the z-axis from where the retrieval begins
+            z2 : int
+                Voxel in the z-axis where the retrieval ends
+
+            Returns
+            -------
+            ndarray
+                Array with the original observations
+            """
+            chunks = Chunks(processor._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
+
+            for chunk in chunks:
+                # Get relative (to the solution matrix) coordinates of the chunk
+                x, y, z = chunk.coords
+                x -= x1
+                y -= y1
+                z -= z1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx, dy, dz = cdata.shape[-3:]
+
+                gm_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = cdata
+
+            return gm_data
+
+        @staticmethod
+        def evaluate_fit(processor, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None,
+                         y1=0, y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
+                         default_value=0.0, *args, **kwargs):
+
+            """
+            Evaluates the goodness of the fit for a particular fit evaluation metric
+
+            Parameters
+            ----------
+            evaluation_function : FitScores.FitEvaluation function
+                Fit evaluation function
+            correction_parameters : ndarray
+                Array with the correction parameters
+            prediction_parameters : ndarray
+                Array with the prediction parameters
+            x1 : int
+                Relative coordinate to origx of the starting voxel in the x-dimension
+            x2 : int
+                Relative coordinate to origx of the ending voxel in the x-dimension
+            y1 : int
+                Relative coordinate to origy of the starting voxel in the y-dimension
+            y2 : int
+                Relative coordinate to origy of the ending voxel in the y-dimension
+            z1 : int
+                Relative coordinate to origz of the starting voxel in the z-dimension
+            z2 : int
+                Relative coordinate to origz of the ending voxel in the z-dimension
+            origx : int
+                Absolute coordinate where the observations start in the x-dimension
+            origy : int
+                Absolute coordinate where the observations start in the y-dimension
+            origz : int
+                Absolute coordinate where the observations start in the z-dimension
+            gm_threshold : float
+                Float that specifies the minimum value of mean gray matter (across subjects) that a voxel must have.
+                All voxels that don't fulfill this requirement have their fitting score filtered out
+            filter_nans : Boolean
+                Whether to filter the values that are not numeric or not
+            default_value : float
+                Default value for the voxels that have mean gray matter below the threshold or have NaNs in the
+                fitting scores
+            args : List
+            kwargs : Dictionary
+
+            Returns
+            -------
+            ndarray
+                Array with the fitting scores of the specified evaluation function
+            """
+            # Evaluate fitting from pre-processed parameters
+            if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
+                    prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
+                raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
+
+            if x2 is None:
+                x2 = x1 + correction_parameters.shape[-3]
+            if y2 is None:
+                y2 = y1 + correction_parameters.shape[-2]
+            if z2 is None:
+                z2 = z1 + correction_parameters.shape[-1]
+
+            correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+            prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
+
+            x1 += origx
+            x2 += origx
+            y1 += origy
+            y2 += origy
+            z1 += origz
+            z2 += origz
+
+            chunks = Chunks(processor._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            # Initialize solution matrix
+            fitting_scores = np.zeros(dims, dtype=np.float64)
+
+            if gm_threshold is not None:
+                # Instead of comparing the mean to the original gm_threshold,
+                # we compare the sum to such gm_threshold times the number of subjects
+                gm_threshold *= chunks.num_subjects
+                invalid_voxels = np.zeros(fitting_scores.shape, dtype=np.bool)
+
+            # Initialize progress
+            processor._processor_progress = 0.0
+            total_num_voxels = dims[-3] * dims[-2] * dims[-1]
+            prog_inc = 10000. / total_num_voxels
+
+            # Evaluate the fit for each chunk
+            for chunk in chunks:
+                # Get relative (to the solution matrices) coordinates of the chunk
+                x, y, z = chunk.coords
+                x -= x1
+                y -= y1
+                z -= z1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx, dy, dz = cdata.shape[-3:]
+
+                if gm_threshold is not None:
+                    invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
+
+                fitres = FittingResults()
+
+                # Assign the bound data necessary for the evaluation
+                bound_functions = processor.assign_bound_data(
+                    observations=cdata,
+                    correctors=processor._processor_fitter.correctors,
+                    predictors=processor._processor_fitter.predictors,
+                    correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                    prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                    fitting_results=fitres
+                )
+
+                # Bind the functions to the processor instance
+                def bind_function(function_name):
+                    return lambda x: getattr(x.fitting_results, function_name)
+
+                for bound_f in bound_functions:
+                    eval_func[processor].bind(bound_f, bind_function(bound_f))
+
+                # Evaluate the fit for the voxels in this chunk and store them
+                fitting_scores[x:x + dx, y:y + dy, z:z + dz] = evaluation_function[processor].evaluate(fitres, *args, **kwargs)
+
+                # Update progress
+                processor._processor_update_progress(prog_inc * dx * dy * dz)
+
+            if processor.progress != 100.0:
+                processor._processor_update_progress(10000.0 - processor._processor_progress)
+
+            # Filter non-finite elements
+            if filter_nans:
+                fitting_scores[~np.isfinite(fitting_scores)] = default_value
+
+            # Filter by gray-matter threshold
+            if gm_threshold is not None:
+                fitting_scores[invalid_voxels] = default_value
+
+            return fitting_scores
+
+        @staticmethod
+        def evaluate_latent_space(processor, correction_parameters, prediction_parameters, x1=0, x2=None,
+                                  y1=0, y2=None, z1=0, z2=None, origx=0, origy=0, origz=0,
+                                  gm_threshold=None, filter_nans=True, default_value=0.0,
+                                  n_permutations=0, *args, **kwargs):
+            """
+            Evaluates the goodness of the fit for a particular fit evaluation metric
+
+            Parameters
+            ----------
+            correction_parameters : ndarray
+                Array with the correction parameters
+            prediction_parameters : ndarray
+                Array with the prediction parameters
+            x1 : int
+                Relative coordinate to origx of the starting voxel in the x-dimension
+            x2 : int
+                Relative coordinate to origx of the ending voxel in the x-dimension
+            y1 : int
+                Relative coordinate to origy of the starting voxel in the y-dimension
+            y2 : int
+                Relative coordinate to origy of the ending voxel in the y-dimension
+            z1 : int
+                Relative coordinate to origz of the starting voxel in the z-dimension
+            z2 : int
+                Relative coordinate to origz of the ending voxel in the z-dimension
+            origx : int
+                Absolute coordinate where the observations start in the x-dimension
+            origy : int
+                Absolute coordinate where the observations start in the y-dimension
+            origz : int
+                Absolute coordinate where the observations start in the z-dimension
+            gm_threshold : float
+                Float that specifies the minimum value of mean gray matter (across subjects) that a voxel must have.
+                All voxels that don't fulfill this requirement have their fitting score filtered out
+            filter_nans : Boolean
+                Whether to filter the values that are not numeric or not
+            default_value : float
+                Default value for the voxels that have mean gray matter below the threshold or have NaNs in the
+                fitting scores
+            args : List
+            kwargs : Dictionary
+
+            Returns
+            -------
+            ndarray
+                Array with the fitting scores of the specified evaluation function
+            """
+            # Evaluate fitting from pre-processed parameters
+
+            if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
+                    prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
+                raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
+
+            if x2 is None:
+                x2 = x1 + correction_parameters.shape[-3]
+            if y2 is None:
+                y2 = y1 + correction_parameters.shape[-2]
+            if z2 is None:
+                z2 = z1 + correction_parameters.shape[-1]
+
+            correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
+            prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
+
+            x1 += origx
+            x2 += origx
+            y1 += origy
+            y2 += origy
+            z1 += origz
+            z2 += origz
+
+            chunks = Chunks(processor._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            # Initialize solution matrix
+            num_latent_components = int(np.unique(np.sort(prediction_parameters[-1]))[-1])
+            effect_strength = np.zeros((num_latent_components,) + dims, dtype=np.float64)
+            p_value = np.zeros((num_latent_components,) + dims, dtype=np.float64)
+            effect_type = np.zeros((num_latent_components, processor._processor_fitter.predictors.shape[1])
+                                   + dims, dtype=np.float64)
+
+            if gm_threshold is not None:
+                # Instead of comparing the mean to the original gm_threshold,
+                # we compare the sum to such gm_threshold times the number of subjects
+                gm_threshold *= chunks.num_subjects
+                invalid_voxels = np.zeros(dims, dtype=np.bool)
+
+
+            # Initialize progress
+            processor._processor_progress = 0.0
+            total_num_voxels = dims[-3] * dims[-2] * dims[-1]
+            prog_inc = 10000. / total_num_voxels
+
+            # Evaluate the fit for each chunk
+            for chunk in chunks:
+                # Get relative (to the solution matrices) coordinates of the chunk
+                x, y, z = chunk.coords
+                x -= x1
+                y -= y1
+                z -= z1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx, dy, dz = cdata.shape[-3:]
+
+                if gm_threshold is not None:
+                    invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
+
+                fitres = FittingResults()
+
+                # Assign the bound data necessary for the evaluation
+                bound_functions = processor.assign_bound_data(
+                    observations=cdata,
+                    correctors=processor._processor_fitter.correctors,
+                    predictors=processor._processor_fitter.predictors,
+                    correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                    prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
+                    fitting_results=fitres
+                )
+
+                # Bind the functions to the processor instance
+                def bind_function(function_name):
+                    return lambda x: getattr(x.fitting_results, function_name)
+
+                for bound_f in bound_functions:
+                    eval_func[processor].bind(bound_f, bind_function(bound_f))
+
+                # Evaluate the fit for the voxels in this chunk and store them
+
+                effect_strength[:, x:x + dx, y:y + dy, z:z + dz] = eff_size_eval[processor].evaluate(fitres, *args, **kwargs)
+                p_value[:, x:x + dx, y:y + dy, z:z + dz] = 0
+                # p_value[:, x:x + dx, y:y + dy, z:z + dz] = \
+                #     eff_size_value_eval[processor].evaluate(fitres,
+                #                                             hyp_value = effect_strength[:, x:x + dx, y:y + dy, z:z + dz],
+                #                                             num_permutations = n_permutations, *args, **kwargs)
+                effect_type[:, :, x:x + dx, y:y + dy, z:z + dz] = eff_type_eval[processor].evaluate(fitres, *args, **kwargs)
+
+                # Update progress
+                processor._processor_update_progress(prog_inc * dx * dy * dz)
+
+            if processor.progress != 100.0:
+                processor._processor_update_progress(10000.0 - processor._processor_progress)
+
+            # Filter non-finite elements
+            if filter_nans:
+                effect_strength[~np.isfinite(effect_strength)] = default_value
+                p_value[~np.isfinite(effect_strength)] = 1
+
+            # Filter by gray-matter threshold
+            if gm_threshold is not None:
+                effect_strength[:, invalid_voxels] = default_value
+                p_value[:, invalid_voxels] = 1
+                effect_type[:, :, invalid_voxels] = default_value
+
+            return (effect_strength, p_value, effect_type)
+
+    class SurfaceProcessor:
+
+        @staticmethod
+        def process(processor, x1=0, x2=None, *args, **kwargs):
+            """
+            Processes all the data from coordinates x1, y1, z1 to x2, y2, z2
+
+            Parameters
+            ----------
+            x1 : int
+                Voxel in the x-axis from where the processing begins
+            x2 : int
+                Voxel in the x-axis where the processing ends
+            y1 : int
+                Voxel in the y-axis from where the processing begins
+            y2 : int
+                Voxel in the y-axis where the processing ends
+            z1 : int
+                Voxel in the z-axis from where the processing begins
+            z2 : int
+                Voxel in the z-axis where the processing ends
+            args : List
+            kwargs : Dict
+
+            Returns
+            -------
+            Processor.Results instance
+                Object with two properties: correction_parameters and prediction_parameters
+            """
+            chunks = Chunks(
+                processor._processor_subjects,x1=x1, x2=x2,
+                mem_usage=processor._processor_processing_params['mem_usage']
+            )
+            dims = chunks.dims
+
+            # Initialize progress
+            processor._processor_progress = 0.0
+            total_num_voxels = dims[-1]
+            prog_inc = 10000. / total_num_voxels
+
+            # Add processing parameters to kwargs
+            kwargs['n_jobs'] = processor._processor_processing_params['n_jobs']
+            kwargs['cache_size'] = processor._processor_processing_params['cache_size']
+
+            # Get the results of the first chunk to initialize dimensions of the solution matrices
+            # Get first chunk and fit the parameters
+            chunk = next(chunks)
+
+            processor._processor_fitter.fit(chunk.data, *args, **kwargs)
+
+            # Get the parameters and the dimensions of the solution matrices
+            cparams = processor._processor_fitter.correction_parameters
+            pparams = processor._processor_fitter.prediction_parameters
+            cpdims = tuple(cparams.shape[:-1] + dims)
+            rpdims = tuple(pparams.shape[:-1] + dims)
+
+            # Initialize solution matrices
+            correction_parameters = np.zeros(cpdims, dtype=np.float64)
+            prediction_parameters = np.zeros(rpdims, dtype=np.float64)
+
+            # Assign first chunk's solutions to solution matrices
+            dx = cparams.shape[-1]
+            correction_parameters[:, :dx] = cparams
+            prediction_parameters[:, :dx] = pparams
+
+            # Update progress
+            processor._processor_update_progress(prog_inc * dx)
+
+            # Now do the same for the rest of the Chunks
+            for chunk in chunks:
+                # Get relative (to the solution matrices) coordinates of the chunk
+                x = chunk.coords
+                x -= x1
+
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx = cdata.shape[-1:]
+
+                # Fit the parameters to the data in the chunk
+                processor._processor_fitter.fit(cdata, *args, **kwargs)
+
+                # Get the optimal parameters and insert them in the solution matrices
+                correction_parameters[:, x:x + dx] = processor._processor_fitter.correction_parameters
+                prediction_parameters[:, x:x + dx] = processor._processor_fitter.prediction_parameters
+
+                # Update progress
+                processor._processor_update_progress(prog_inc * dx)
+
+            if processor.progress != 100.0:
+                processor._processor_update_progress(10000.0 - processor._processor_progress)
+
+            # Call post_processing routine
+            return processor.__post_process__(prediction_parameters, correction_parameters)
+
+        @staticmethod
+        def curve(processor, prediction_parameters, x1=0, x2=None, t1=None,t2=None, tpoints=50, *args, **kwargs):
+            """
+                Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
+                a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
+                one predictor)
+
+                Parameters
+                ----------
+                prediction_parameters : ndarray
+                    Prediction parameters obtained for this processor by means of the process() method
+                x1 : int
+                    Voxel in the x-axis from where the curve computation begins
+                x2 : int
+                    Voxel in the x-axis where the curve computation ends
+                y1 : int
+                    Voxel in the y-axis from where the curve computation begins
+                y2 : int
+                    Voxel in the y-axis where the curve computation ends
+                z1 : int
+                    Voxel in the z-axis from where the curve computation begins
+                z2 : int
+                    Voxel in the z-axis where the curve computation ends
+                t1 : float
+                    Value in the axis of the predictor from where the curve computation starts
+                t2 : float
+                    Value in the axis of the predictor from where the curve computation ends
+                tpoints : int
+                    Number of points used to compute the curve, using a linear spacing between t1 and t2
+
+                Returns
+                -------
+                ndarray
+                    4D array with the curve values for the tpoints in each voxel from x1, y1, z1 to x2, y2, z2
+                """
+            if x2 is None:
+                x2 = prediction_parameters.shape[-1]
+
+            if t1 is None:
+                t1 = processor.predictors.min(axis=0)
+            if t2 is None:
+                t2 = processor.predictors.max(axis=0)
+
+            R = processor.predictors.shape[1]
+            pparams = prediction_parameters[:, x1:x2]
+
+            if tpoints == -1:
+                preds = np.zeros((processor.predictors.shape[0], R), dtype=np.float64)
+                for i in range(R):
+                    preds[:, i] = np.sort(processor.predictors[:, i])
+            else:
+                preds = np.zeros((tpoints, R), dtype=np.float64)
+                step = (t2 - t1).astype('float') / (tpoints - 1)
+                t = t1
+                for i in range(tpoints):
+                    preds[i] = t
+                    t += step
+
+            return preds.T, processor.__curve__(processor._processor_fitter, preds, pparams, *args, **kwargs)
+
+        @staticmethod
+        def corrected_values(processor, correction_parameters, x1=0, x2=None, origx=0, *args, **kwargs):
+            """
+                Computes the corrected values for the observations with the given fitter and correction parameters
+
+                Parameters
+                ----------
+                correction_parameters : ndarray
+                    Array with the computed correction parameters
+                x1 : int
+                    Relative coordinate to origx of the starting voxel in the x-dimension
+                x2 : int
+                    Relative coordinate to origx of the ending voxel in the x-dimension
+                origx : int
+                    Absolute coordinate where the observations start in the x-dimension
+                args : List
+                kwargs : Dictionary
+
+                Notes
+                -----
+                x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
+                in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
+                which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond
+
+                Returns
+                -------
+                ndarray
+                    Array with the corrected observations
+                """
+            if x2 is None:
+                x2 = correction_parameters.shape[-1]
+
+            correction_parameters = correction_parameters[:, x1:x2]
+
+            x1 += origx
+            x2 += origx
+
+
+            chunks = Chunks(processor._processor_subjects, x1=x1, x2=x2,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+
+
+            dims = chunks.dims
+            corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
+
+            for chunk in chunks:
+                # Get relative (to the solution matrix) coordinates of the chunk
+                x = chunk.coords
+                x -= x1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx = cdata.shape[-1]
+
+
+                corrected_data[:, x:(x + dx)] = processor.__corrected_values__(processor._processor_fitter,
+                    cdata, correction_parameters[:,x:(x + dx)], *args,**kwargs)
+            return corrected_data
+
+        @staticmethod
+        def gm_values(processor, x1=0, x2=None):
+            """
+                Returns the original (non-corrected) observations
+
+                Parameters
+                ----------
+                x1 : int
+                    Voxel in the x-axis from where the retrieval begins
+                x2 : int
+                    Voxel in the x-axis where the retrieval ends
+
+                Returns
+                -------
+                ndarray
+                    Array with the original observations
+                """
+            chunks = Chunks(processor._processor_subjects, x1=x1,
+                            mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
+
+            for chunk in chunks:
+                # Get relative (to the solution matrix) coordinates of the chunk
+                x = chunk.coords
+                x -= x1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx = cdata.shape[-1:]
+
+                gm_data[:, x:(x + dx)] = cdata
+
+            return gm_data
+
+        @staticmethod
+        def evaluate_fit(processor, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None,
+                         origx=0, gm_threshold=None, filter_nans=True, default_value=0.0, *args, **kwargs):
+
+            """
+                Evaluates the goodness of the fit for a particular fit evaluation metric
+
+                Parameters
+                ----------
+                evaluation_function : FitScores.FitEvaluation function
+                    Fit evaluation function
+                correction_parameters : ndarray
+                    Array with the correction parameters
+                prediction_parameters : ndarray
+                    Array with the prediction parameters
+                x1 : int
+                    Relative coordinate to origx of the starting voxel in the x-dimension
+                x2 : int
+                    Relative coordinate to origx of the ending voxel in the x-dimension
+                origx : int
+                    Absolute coordinate where the observations start in the x-dimension
+                gm_threshold : float
+                    Float that specifies the minimum value of mean gray matter (across subjects) that a voxel must have.
+                    All voxels that don't fulfill this requirement have their fitting score filtered out
+                filter_nans : Boolean
+                    Whether to filter the values that are not numeric or not
+                default_value : float
+                    Default value for the voxels that have mean gray matter below the threshold or have NaNs in the
+                    fitting scores
+                args : List
+                kwargs : Dictionary
+
+                Returns
+                -------
+                ndarray
+                    Array with the fitting scores of the specified evaluation function
+                """
+            # Evaluate fitting from pre-processed parameters
+
+            if correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
+                raise ValueError(
+                    'The dimensions of the correction parameters and the prediction parameters do not match')
+
+            if x2 is None:
+                x2 = x1 + correction_parameters.shape[-1]
+
+
+            correction_parameters = correction_parameters[:, x1:x2]
+            prediction_parameters = prediction_parameters[:, x1:x2]
+
+            x1 += origx
+            x2 += origx
+
+
+            chunks = Chunks(processor._processor_subjects, x1=x1,mem_usage=processor._processor_processing_params['mem_usage'])
+            dims = chunks.dims
+
+            # Initialize solution matrix
+            fitting_scores = np.zeros(dims, dtype=np.float64)
+
+            if gm_threshold is not None:
+                # Instead of comparing the mean to the original gm_threshold,
+                # we compare the sum to such gm_threshold times the number of subjects
+                gm_threshold *= chunks.num_subjects
+                invalid_voxels = np.zeros(fitting_scores.shape, dtype=np.bool)
+
+            # Initialize progress
+            processor._processor_progress = 0.0
+            total_num_voxels = dims[-1]
+            prog_inc = 10000. / total_num_voxels
+
+            # Evaluate the fit for each chunk
+            for chunk in chunks:
+                # Get relative (to the solution matrices) coordinates of the chunk
+                x = chunk.coords
+                x -= x1
+
+                # Get chunk data and its dimensions
+                cdata = chunk.data
+                dx = cdata.shape[-1]
+
+                if gm_threshold is not None:
+                    invalid_voxels[x:(x + dx)] = np.sum(cdata, axis=0) < gm_threshold
+
+                fitres = FittingResults()
+
+                # Assign the bound data necessary for the evaluation
+                bound_functions = processor.assign_bound_data(
+                    observations=cdata,
+                    correctors=processor._processor_fitter.correctors,
+                    predictors=processor._processor_fitter.predictors,
+                    correction_parameters=correction_parameters[:, x:(x + dx)],
+                    prediction_parameters=prediction_parameters[:, x:(x + dx)],
+                    fitting_results=fitres
+                )
+
+                # Bind the functions to the processor instance
+                def bind_function(function_name):
+                    return lambda x: getattr(x.fitting_results, function_name)
+
+                for bound_f in bound_functions:
+                    eval_func[processor].bind(bound_f, bind_function(bound_f))
+
+                # Evaluate the fit for the voxels in this chunk and store them
+                fitting_scores[x:x + dx] = evaluation_function[processor].evaluate(fitres, *args, **kwargs)
+
+                # Update progress
+                processor._processor_update_progress(prog_inc * dx)
+
+            if processor.progress != 100.0:
+                processor._processor_update_progress(10000.0 - processor._processor_progress)
+
+            # Filter non-finite elements
+            if filter_nans:
+                fitting_scores[~np.isfinite(fitting_scores)] = default_value
+
+            # Filter by gray-matter threshold
+            if gm_threshold is not None:
+                fitting_scores[invalid_voxels] = default_value
+
+            return fitting_scores
+
+        @staticmethod
+        def evaluate_latent_space(processor, correction_parameters, prediction_parameters, x1=0, x2=None, origx=0,
+                                  gm_threshold=None, filter_nans=True, default_value=0.0, n_permutations=0,
+                                  *args, **kwargs):
+
+            raise ValueError('SurfaceProcessor not yet implemented')
+
+
     def __init__(self, subjects, predictors_names, correctors_names, predictors, correctors,
-                 processing_parameters, user_defined_parameters=(), category=None):
+                 processing_parameters, user_defined_parameters=(), category=None, type_data='vol',
+                 perp_norm_option_global=False):
         """
         Creates a Processor instance
 
@@ -66,10 +1109,13 @@ class Processor(object):
             computed over all subjects.
             Default value: None
         """
+
+        self._type_data = type_data
+
         # Filter subjects by category if needed
         if category is not None:
             all_indices = range(len(subjects))
-            category_indices = filter(lambda index: subjects[index].category == category, all_indices)
+            category_indices = list(filter(lambda index: subjects[index].category == category, all_indices))
             subjects = [subjects[i] for i in category_indices]
             predictors = predictors[category_indices, :]
             correctors = correctors[category_indices, :]
@@ -90,14 +1136,15 @@ class Processor(object):
             self._processor_correctors = np.zeros((len(self._processor_subjects), 0))
 
         self._processor_progress = 0.0
-
         if len(user_defined_parameters) != 0:
             self._processor_fitter = self.__fitter__(user_defined_parameters)
         else:
             self._processor_fitter = self.__fitter__(self.__read_user_defined_parameters__(
                 self._processor_predictors_names,
-                self._processor_correctors_names
+                self._processor_correctors_names,
+                perp_norm_option_global=perp_norm_option_global
             ))
+
 
     @property
     def subjects(self):
@@ -264,7 +1311,7 @@ class Processor(object):
         return self.__user_defined_parameters__(self._processor_fitter)
 
     @abstractmethod
-    def __read_user_defined_parameters__(self, predictor_names, corrector_names):
+    def __read_user_defined_parameters__(self, predictor_names, corrector_names, *args, **kwargs):
         """
         [Abstract method] Read the additional parameters (apart from correctors and predictors)
         necessary to succesfully initialize a new instance of the fitter from the user
@@ -302,7 +1349,7 @@ class Processor(object):
         """
         raise NotImplementedError
 
-    def __processor_update_progress(self, prog_inc):
+    def _processor_update_progress(self, prog_inc):
         """
         Updates the progress of the processing and prints it to stdout
 
@@ -312,104 +1359,17 @@ class Processor(object):
             Amount of increased progress
         """
         self._processor_progress += prog_inc
-        print '\r  ' + str(int(self._processor_progress) / 100.0) + '%',
+        print( '\r  ' + str(int(self._processor_progress) / 100.0) + '%')
         if self._processor_progress == 10000.0:
-            print
+            print()
         stdout.flush()
 
     def process(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, *args, **kwargs):
-        """
-        Processes all the data from coordinates x1, y1, z1 to x2, y2, z2
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.process(self, x1, x2, *args, **kwargs)
+        else:
+            return Processor.VolumeProcessor.process(self, x1, x2, y1, y2, z1, z2, *args, **kwargs)
 
-        Parameters
-        ----------
-        x1 : int
-            Voxel in the x-axis from where the processing begins
-        x2 : int
-            Voxel in the x-axis where the processing ends
-        y1 : int
-            Voxel in the y-axis from where the processing begins
-        y2 : int
-            Voxel in the y-axis where the processing ends
-        z1 : int
-            Voxel in the z-axis from where the processing begins
-        z2 : int
-            Voxel in the z-axis where the processing ends
-        args : List
-        kwargs : Dict
-
-        Returns
-        -------
-        Processor.Results instance
-            Object with two properties: correction_parameters and prediction_parameters
-        """
-        chunks = Chunks(
-            self._processor_subjects,
-            x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-            mem_usage=self._processor_processing_params['mem_usage']
-        )
-        dims = chunks.dims
-
-        # Initialize progress
-        self._processor_progress = 0.0
-        total_num_voxels = dims[-3] * dims[-2] * dims[-1]
-        prog_inc = 10000. / total_num_voxels
-
-        # Add processing parameters to kwargs
-        kwargs['n_jobs'] = self._processor_processing_params['n_jobs']
-        kwargs['cache_size'] = self._processor_processing_params['cache_size']
-
-        # Get the results of the first chunk to initialize dimensions of the solution matrices
-        # Get first chunk and fit the parameters
-        chunk = chunks.next()
-
-        self._processor_fitter.fit(chunk.data, *args, **kwargs)
-
-        # Get the parameters and the dimensions of the solution matrices
-        cparams = self._processor_fitter.correction_parameters
-        pparams = self._processor_fitter.prediction_parameters
-        cpdims = tuple(cparams.shape[:-3] + dims)
-        rpdims = tuple(pparams.shape[:-3] + dims)
-
-        # Initialize solution matrices
-        correction_parameters = np.zeros(cpdims, dtype=np.float64)
-        prediction_parameters = np.zeros(rpdims, dtype=np.float64)
-
-        # Assign first chunk's solutions to solution matrices
-        dx, dy, dz = cparams.shape[-3:]
-        correction_parameters[:, :dx, :dy, :dz] = cparams
-        prediction_parameters[:, :dx, :dy, :dz] = pparams
-
-        # Update progress
-        self.__processor_update_progress(prog_inc * dx * dy * dz)
-
-        # Now do the same for the rest of the Chunks
-        for chunk in chunks:
-            # Get relative (to the solution matrices) coordinates of the chunk
-            x, y, z = chunk.coords
-            x -= x1
-            y -= y1
-            z -= z1
-
-            # Get chunk data and its dimensions
-            cdata = chunk.data
-            dx, dy, dz = cdata.shape[-3:]
-
-            # Fit the parameters to the data in the chunk
-            self._processor_fitter.fit(cdata, *args, **kwargs)
-
-            # Get the optimal parameters and insert them in the solution matrices
-            correction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.correction_parameters
-            prediction_parameters[:, x:x + dx, y:y + dy, z:z + dz] = self._processor_fitter.prediction_parameters
-
-            # Update progress
-            self.__processor_update_progress(prog_inc * dx * dy * dz)
-
-        if self.progress != 100.0:
-            self.__processor_update_progress(10000.0 - self._processor_progress)
-
-        # Call post_processing routine
-        return self.__post_process__(prediction_parameters, correction_parameters)
 
     def __post_process__(self, prediction_parameters, correction_parameters):
         """
@@ -454,7 +1414,7 @@ class Processor(object):
         """
         return prediction_parameters, correction_parameters
 
-    def __curve__(self, fitter, predictor, prediction_parameters):
+    def __curve__(self, fitter, predictor, prediction_parameters, *args, **kwargs):
         """
         Computes a prediction from the predictors and the prediction_parameters. If not overridden, this method
         calls the 'predict' function of the fitter passing as arguments the predictors and prediction parameters
@@ -477,65 +1437,14 @@ class Processor(object):
         """
         return fitter.predict(predictor, prediction_parameters)
 
-    def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None, tpoints=50):
-        """
-        Computes tpoints predicted values in the axis of the predictor from t1 to t2 by using the results of
-        a previous execution for each voxel in the relative region [x1:x2, y1:y2, z1:z2]. (Only valid for
-        one predictor)
-
-        Parameters
-        ----------
-        prediction_parameters : ndarray
-            Prediction parameters obtained for this processor by means of the process() method
-        x1 : int
-            Voxel in the x-axis from where the curve computation begins
-        x2 : int
-            Voxel in the x-axis where the curve computation ends
-        y1 : int
-            Voxel in the y-axis from where the curve computation begins
-        y2 : int
-            Voxel in the y-axis where the curve computation ends
-        z1 : int
-            Voxel in the z-axis from where the curve computation begins
-        z2 : int
-            Voxel in the z-axis where the curve computation ends
-        t1 : float
-            Value in the axis of the predictor from where the curve computation starts
-        t2 : float
-            Value in the axis of the predictor from where the curve computation ends
-        tpoints : int
-            Number of points used to compute the curve, using a linear spacing between t1 and t2
-
-        Returns
-        -------
-        ndarray
-            4D array with the curve values for the tpoints in each voxel from x1, y1, z1 to x2, y2, z2
-        """
-        if x2 is None:
-            x2 = prediction_parameters.shape[-3]
-        if y2 is None:
-            y2 = prediction_parameters.shape[-2]
-        if z2 is None:
-            z2 = prediction_parameters.shape[-1]
-
-        if t1 is None:
-            t1 = self.predictors[:, 0].min()
-        if t2 is None:
-            t2 = self.predictors[:, 0].max()
-
-        pparams = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
-
-        if tpoints == -1:
-            preds = np.sort(np.squeeze(self._processor_predictors))[:, np.newaxis]
+    def curve(self, prediction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, t1=None, t2=None,
+              tpoints=50, *args, **kwargs):
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.curve(self, prediction_parameters, x1=x1, x2=x2, t1=t1, t2=t2,
+                                                    tpoints=tpoints, *args, **kwargs)
         else:
-            preds = np.zeros((tpoints, 1), dtype=np.float64)
-            step = float(t2 - t1) / (tpoints - 1)
-            t = t1
-            for i in xrange(tpoints):
-                preds[i][0] = t
-                t += step
-
-        return preds.T[0], self.__curve__(self._processor_fitter, preds, pparams)
+            return Processor.VolumeProcessor.curve(self, prediction_parameters, x1=x1, x2=x2, y1=y1, y2=y2, z1=z1,
+                                                   z2=z2, t1=t1, t2=t2, tpoints=tpoints, *args, **kwargs)
 
     def __corrected_values__(self, fitter, observations, correction_parameters, *args, **kwargs):
         """
@@ -562,134 +1471,54 @@ class Processor(object):
 
     def corrected_values(self, correction_parameters, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None, origx=0, origy=0,
                          origz=0, *args, **kwargs):
-        """
-        Computes the corrected values for the observations with the given fitter and correction parameters
-
-        Parameters
-        ----------
-        correction_parameters : ndarray
-            Array with the computed correction parameters
-        x1 : int
-            Relative coordinate to origx of the starting voxel in the x-dimension
-        x2 : int
-            Relative coordinate to origx of the ending voxel in the x-dimension
-        y1 : int
-            Relative coordinate to origy of the starting voxel in the y-dimension
-        y2 : int
-            Relative coordinate to origy of the ending voxel in the y-dimension
-        z1 : int
-            Relative coordinate to origz of the starting voxel in the z-dimension
-        z2 : int
-            Relative coordinate to origz of the ending voxel in the z-dimension
-        origx : int
-            Absolute coordinate where the observations start in the x-dimension
-        origy : int
-            Absolute coordinate where the observations start in the y-dimension
-        origz : int
-            Absolute coordinate where the observations start in the z-dimension
-        args : List
-        kwargs : Dictionary
-
-        Notes
-        -----
-        x1, x2, y1, y2, z1 and z2 are relative coordinates to (origx, origy, origz), being the latter coordinates
-        in absolute value (by default, (0, 0, 0)); that is, (origx + x, origy + y, origz + z) is the point to
-        which the correction parameters in the voxel (x, y, z) of 'correction_parameters' correspond
-
-        Returns
-        -------
-        ndarray
-            Array with the corrected observations
-        """
-        if x2 is None:
-            x2 = correction_parameters.shape[-3]
-        if y2 is None:
-            y2 = correction_parameters.shape[-2]
-        if z2 is None:
-            z2 = correction_parameters.shape[-1]
-
-        correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
-
-        x1 += origx
-        x2 += origx
-        y1 += origy
-        y2 += origy
-        z1 += origz
-        z2 += origz
-
-        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                        mem_usage=self._processor_processing_params['mem_usage'])
-        dims = chunks.dims
-
-        corrected_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
-
-        for chunk in chunks:
-            # Get relative (to the solution matrix) coordinates of the chunk
-            x, y, z = chunk.coords
-            x -= x1
-            y -= y1
-            z -= z1
-
-            # Get chunk data and its dimensions
-            cdata = chunk.data
-            dx, dy, dz = cdata.shape[-3:]
-
-            corrected_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = self.__corrected_values__(self._processor_fitter,
-                                                                                              cdata,
-                                                                                              correction_parameters[:,
-                                                                                              x:(x + dx), y:(y + dy),
-                                                                                              z:(z + dz)], *args,
-                                                                                              **kwargs)
-
-        return corrected_data
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.corrected_values(self, correction_parameters= correction_parameters,
+                                                               x1=x1, x2=x2,origx=origx,*args, **kwargs)
+        else:
+            return Processor.VolumeProcessor.corrected_values(self, correction_parameters=correction_parameters,
+                                                              x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2,origx=origx,
+                                                              origy=origy, origz=origz, *args, **kwargs)
 
     def gm_values(self, x1=0, x2=None, y1=0, y2=None, z1=0, z2=None):
-        """
-        Returns the original (non-corrected) observations
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.gm_values(self, x1=x1, x2=x2)
+        else:
+            return Processor.VolumeProcessor.gm_values(self, x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2)
 
-        Parameters
-        ----------
-        x1 : int
-            Voxel in the x-axis from where the retrieval begins
-        x2 : int
-            Voxel in the x-axis where the retrieval ends
-        y1 : int
-            Voxel in the y-axis from where the retrieval begins
-        y2 : int
-            Voxel in the y-axis where the retrieval ends
-        z1 : int
-            Voxel in the z-axis from where the retrieval begins
-        z2 : int
-            Voxel in the z-axis where the retrieval ends
-
-        Returns
-        -------
-        ndarray
-            Array with the original observations
-        """
-        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                        mem_usage=self._processor_processing_params['mem_usage'])
-        dims = chunks.dims
-
-        gm_data = np.zeros(tuple([chunks.num_subjects]) + dims, dtype=np.float64)
-
-        for chunk in chunks:
-            # Get relative (to the solution matrix) coordinates of the chunk
-            x, y, z = chunk.coords
-            x -= x1
-            y -= y1
-            z -= z1
-
-            # Get chunk data and its dimensions
-            cdata = chunk.data
-            dx, dy, dz = cdata.shape[-3:]
-
-            gm_data[:, x:(x + dx), y:(y + dy), z:(z + dz)] = cdata
-
-        return gm_data
 
     def __assign_bound_data__(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
                               fitting_results):
+        """
+        Computes and binds the generic requirements for all fit evaluation functions. It leaves the option to
+        fitter processors to bind more data.
+
+        Parameters
+        ----------
+        observations : ndarray
+            Array with the original observations
+        predictors : ndarray
+            Array with the predictor of the model
+        prediction_parameters : ndarray
+            Array with computed prediction parameters
+        correctors : ndarray
+            Array with the correctors of the model
+        correction_parameters : ndarray
+            Array with the computed correction parameters
+        fitting_results : Object
+            Object that stores the bound data for the fit evaluation function
+
+        Returns
+        -------
+        List
+            List of the names of the functions that should be bound (if they are not already) to the evaluation
+            function that you are using
+        """
+        return []
+
+
+    def assign_bound_data(self, observations, predictors, prediction_parameters, correctors, correction_parameters,
+                          fitting_results):
+
         """
         Computes and binds the generic requirements for all fit evaluation functions
 
@@ -747,152 +1576,43 @@ class Processor(object):
             prediction_parameters=prediction_parameters,
             tpoints=2 * len(self.subjects)
         )
+
         fitting_results.curve = curve
-        fitting_results.xdiff = axis[1] - axis[0]
+        fitting_results.xdiff = axis[..., 1] - axis[..., 0]
 
         return ['corrected_data', 'predicted_data', 'df_correction', 'df_prediction', 'curve', 'xdiff']
 
     def evaluate_fit(self, evaluation_function, correction_parameters, prediction_parameters, x1=0, x2=None, y1=0,
                      y2=None, z1=0, z2=None, origx=0, origy=0, origz=0, gm_threshold=None, filter_nans=True,
                      default_value=0.0, *args, **kwargs):
-        """
-        Evaluates the goodness of the fit for a particular fit evaluation metric
 
-        Parameters
-        ----------
-        evaluation_function : FitScores.FitEvaluation function
-            Fit evaluation function
-        correction_parameters : ndarray
-            Array with the correction parameters
-        prediction_parameters : ndarray
-            Array with the prediction parameters
-        x1 : int
-            Relative coordinate to origx of the starting voxel in the x-dimension
-        x2 : int
-            Relative coordinate to origx of the ending voxel in the x-dimension
-        y1 : int
-            Relative coordinate to origy of the starting voxel in the y-dimension
-        y2 : int
-            Relative coordinate to origy of the ending voxel in the y-dimension
-        z1 : int
-            Relative coordinate to origz of the starting voxel in the z-dimension
-        z2 : int
-            Relative coordinate to origz of the ending voxel in the z-dimension
-        origx : int
-            Absolute coordinate where the observations start in the x-dimension
-        origy : int
-            Absolute coordinate where the observations start in the y-dimension
-        origz : int
-            Absolute coordinate where the observations start in the z-dimension
-        gm_threshold : float
-            Float that specifies the minimum value of mean gray matter (across subjects) that a voxel must have.
-            All voxels that don't fulfill this requirement have their fitting score filtered out
-        filter_nans : Boolean
-            Whether to filter the values that are not numeric or not
-        default_value : float
-            Default value for the voxels that have mean gray matter below the threshold or have NaNs in the
-            fitting scores
-        args : List
-        kwargs : Dictionary
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.evaluate_fit(self, evaluation_function, correction_parameters,
+                                                           prediction_parameters, x1=x1, x2=x2, origx=origx,
+                                                           gm_threshold=gm_threshold, filter_nans=filter_nans,
+                                                           default_value=default_value, *args, **kwargs)
+        else:
+            return Processor.VolumeProcessor.evaluate_fit(self, evaluation_function, correction_parameters,
+                                                          prediction_parameters,x1=x1, x2=x2, y1=y1,y2=y2, z1=z1,z2=z2,
+                                                          origx=origx, origy=origy, origz=origz,
+                                                          gm_threshold=gm_threshold, filter_nans=filter_nans,
+                                                          default_value=default_value,*args, **kwargs)
 
-        Returns
-        -------
-        ndarray
-            Array with the fitting scores of the specified evaluation function
-        """
-        # Evaluate fitting from pre-processed parameters
+    def evaluate_latent_space(self, correction_parameters, prediction_parameters, x1=0, x2=None,y1=0, y2=None, z1=0,
+                              z2=None, origx=0, origy=0, origz=0,gm_threshold=None, filter_nans=True,
+                              default_value=0.0,n_permutations = 0,  *args, **kwargs):
 
-        if correction_parameters.shape[-3] != prediction_parameters.shape[-3] or correction_parameters.shape[-2] != \
-                prediction_parameters.shape[-2] or correction_parameters.shape[-1] != prediction_parameters.shape[-1]:
-            raise ValueError('The dimensions of the correction parameters and the prediction parameters do not match')
-
-        if x2 is None:
-            x2 = x1 + correction_parameters.shape[-3]
-        if y2 is None:
-            y2 = y1 + correction_parameters.shape[-2]
-        if z2 is None:
-            z2 = z1 + correction_parameters.shape[-1]
-
-        correction_parameters = correction_parameters[:, x1:x2, y1:y2, z1:z2]
-        prediction_parameters = prediction_parameters[:, x1:x2, y1:y2, z1:z2]
-
-        x1 += origx
-        x2 += origx
-        y1 += origy
-        y2 += origy
-        z1 += origz
-        z2 += origz
-
-        chunks = Chunks(self._processor_subjects, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2,
-                        mem_usage=self._processor_processing_params['mem_usage'])
-        dims = chunks.dims
-
-        # Initialize solution matrix
-        fitting_scores = np.zeros(dims, dtype=np.float64)
-
-        if gm_threshold is not None:
-            # Instead of comparing the mean to the original gm_threshold,
-            # we compare the sum to such gm_threshold times the number of subjects
-            gm_threshold *= chunks.num_subjects
-            invalid_voxels = np.zeros(fitting_scores.shape, dtype=np.bool)
-
-        # Initialize progress
-        self._processor_progress = 0.0
-        total_num_voxels = dims[-3] * dims[-2] * dims[-1]
-        prog_inc = 10000. / total_num_voxels
-
-        # Evaluate the fit for each chunk
-        for chunk in chunks:
-            # Get relative (to the solution matrices) coordinates of the chunk
-            x, y, z = chunk.coords
-            x -= x1
-            y -= y1
-            z -= z1
-
-            # Get chunk data and its dimensions
-            cdata = chunk.data
-            dx, dy, dz = cdata.shape[-3:]
-
-            if gm_threshold is not None:
-                invalid_voxels[x:(x + dx), y:(y + dy), z:(z + dz)] = np.sum(cdata, axis=0) < gm_threshold
-
-            fitres = FittingResults()
-
-            # Assign the bound data necessary for the evaluation
-            bound_functions = self.__assign_bound_data__(
-                observations=cdata,
-                correctors=self._processor_fitter.correctors,
-                predictors=self._processor_fitter.predictors,
-                correction_parameters=correction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
-                prediction_parameters=prediction_parameters[:, x:(x + dx), y:(y + dy), z:(z + dz)],
-                fitting_results=fitres
-            )
-
-            # Bind the functions to the processor instance
-            def bind_function(function_name):
-                return lambda x: getattr(x.fitting_results, function_name)
-
-            for bound_f in bound_functions:
-                eval_func[self].bind(bound_f, bind_function(bound_f))
-
-            # Evaluate the fit for the voxels in this chunk and store them
-            fitting_scores[x:x + dx, y:y + dy, z:z + dz] = evaluation_function[self].evaluate(fitres, *args, **kwargs)
-
-            # Update progress
-            self.__processor_update_progress(prog_inc * dx * dy * dz)
-
-        if self.progress != 100.0:
-            self.__processor_update_progress(10000.0 - self._processor_progress)
-
-        # Filter non-finite elements
-        if filter_nans:
-            fitting_scores[~np.isfinite(fitting_scores)] = default_value
-
-        # Filter by gray-matter threshold
-        if gm_threshold is not None:
-            fitting_scores[invalid_voxels] = default_value
-
-        return fitting_scores
+        if self._type_data == 'surf':
+            return Processor.SurfaceProcessor.evaluate_latent_space(self, correction_parameters, prediction_parameters,
+                                                                    x1=x1, x2=x2, origx=origx, gm_threshold=gm_threshold,
+                                                                    filter_nans=filter_nans, default_value=default_value,
+                                                                    n_permutations=n_permutations, *args, **kwargs)
+        else:
+            return Processor.VolumeProcessor.evaluate_latent_space(self, correction_parameters, prediction_parameters,
+                                                                   x1=x1, x2=x2, y1=y1, y2=y2, z1=z1, z2=z2, origx=origx,
+                                                                   origy=origy, origz=origz, gm_threshold=gm_threshold,
+                                                                   filter_nans=filter_nans, default_value=default_value,
+                                                                   n_permutations=n_permutations, *args, **kwargs)
 
     @staticmethod
     def clusterize(fitting_scores, default_value=0.0, fit_lower_threshold=None, fit_upper_threshold=None,
@@ -927,23 +1647,46 @@ class Processor(object):
             labels = np.zeros(fitting_scores.shape, dtype=np.float64)
             label = 0
 
-        ng = NiftiGraph(fitting_scores, fit_lower_threshold, fit_upper_threshold)
-        for scc in ng.sccs():
-            if len(scc) >= cluster_threshold:
-                # lscc = np.array(list(scc)).T
-                # fitscores[lscc] = fitting_scores[lscc]
-                for x, y, z in scc:
-                    fitscores[x, y, z] = fitting_scores[x, y, z]
-
-                if produce_labels:
-                    label += 1
+        if len(fitting_scores.shape) == 3:
+            ng = NiftiGraph(fitting_scores, fit_lower_threshold, fit_upper_threshold)
+            for scc in ng.sccs():
+                if len(scc) >= cluster_threshold:
+                    # lscc = np.array(list(scc)).T
+                    # fitscores[lscc] = fitting_scores[lscc]
                     for x, y, z in scc:
-                        labels[x, y, z] = label
+                        fitscores[x, y, z] = fitting_scores[x, y, z]
+
+                    if produce_labels:
+                        label += 1
+                        for x, y, z in scc:
+                            labels[x, y, z] = label
+        else:
+            warnings.warn('Clusterize for surface still not implemented. This function is IDENTITY')
+
+
 
         if produce_labels:
             return fitscores, labels
         else:
             return fitscores
+
+    # @staticmethod
+    # def __curve_confidence_intervals__(corrected_data, curve, fitter, predictor, prediction_parameters,
+    #                                    *args, **kwargs):
+    #
+    #     # Get the error obtained when using the full model (correctors + predictors)
+    #     prediction_error = corrected_data - fitter.predict(predictor, prediction_parameters)
+    #
+    #     # Residual Sum of Squares for full model
+    #     rss = prediction_error ** 2
+    #     cov = np.dot(prediction_parameters, prediction_parameters)
+    #     dof = fitter.__df_prediction__ + fitter.__df_correction__
+    #     se = np.sqrt(rss/dof * cov)
+    #
+    #     tval = t.ppf(1.0 - alpha / 2., dof)
+    #     ci = (curve - tval*se, curve + tval*se)
+    #     return predictor.T,
+
 
     @staticmethod
     def __processor_get__(obtain_input_from, apply_function, try_ntimes, default_value, show_text, show_error_text):
@@ -953,7 +1696,7 @@ class Processor(object):
         Parameters
         ----------
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
         apply_function : Function
             Function applied to the input if it is correct.
         try_ntimes : int
@@ -976,25 +1719,25 @@ class Processor(object):
         while try_ntimes != 0:
             s = obtain_input_from(show_text)
             if not s:
-                print 'Default value selected.'
+                print( 'Default value selected.')
                 return default_value
             else:
                 try:
                     return apply_function(s)
                 except Exception as exc:
-                    print show_error_text(exc)
+                    print( show_error_text(exc))
 
             if try_ntimes < 0:
-                print 'Infinite',
+                print( 'Infinite')
             else:
                 try_ntimes -= 1
-                print try_ntimes,
-            print 'attempts left.',
+                print(try_ntimes)
+            print('attempts left.')
 
             if try_ntimes == 0:
-                print 'Default value selected.'
+                print( 'Default value selected.')
             else:
-                print 'Please, try again.'
+                print( 'Please, try again.')
 
         return default_value
 
@@ -1004,7 +1747,7 @@ class Processor(object):
                    lower_limit=None,
                    upper_limit=None,
                    show_text='Please, enter an integer number (or leave blank to set by default): ',
-                   obtain_input_from=raw_input,
+                   obtain_input_from=input,
                    ):
         """
         Static method to ask the user for an integer
@@ -1022,7 +1765,7 @@ class Processor(object):
         show_text : String
             Text to be shown to the user when asking for input
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
 
         Returns
         -------
@@ -1053,7 +1796,7 @@ class Processor(object):
                      lower_limit=None,
                      upper_limit=None,
                      show_text='Please, enter a real number (or leave blank to set by default): ',
-                     obtain_input_from=raw_input,
+                     obtain_input_from=input,
                      ):
         """
         Static method to ask the user for a float
@@ -1071,7 +1814,7 @@ class Processor(object):
         show_text : String
             Text to be shown to the user when asking for input
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
 
         Returns
         -------
@@ -1101,7 +1844,7 @@ class Processor(object):
                      default_value=None,
                      try_ntimes=3,
                      show_text='Please, select one of the following (enter index, or leave blank to set by default):',
-                     obtain_input_from=raw_input,
+                     obtain_input_from=input,
                      ):
         """
         Static method to ask the user to select one option out of several
@@ -1117,7 +1860,7 @@ class Processor(object):
         show_text : String
             Text to be shown to the user when asking for input
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
 
         Returns
         -------
@@ -1130,7 +1873,7 @@ class Processor(object):
         right_justify = lambda s: ' ' * (lslol - len(str(s))) + str(s)
 
         new_show_text = show_text
-        for i in xrange(lol):
+        for i in range(lol):
             new_show_text += '\n  ' + right_justify(i) + ':  ' + str(opt_list[i])
         new_show_text += '\nYour choice: '
 
@@ -1160,7 +1903,7 @@ class Processor(object):
                           default_value=None,
                           try_ntimes=3,
                           show_text='Please, enter a number in the range',
-                          obtain_input_from=raw_input
+                          obtain_input_from=input
                           ):
         """
         Static method to ask the user for a number in between a specific range
@@ -1182,7 +1925,7 @@ class Processor(object):
         show_text : String
             Text to be shown to the user when asking for input
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
 
         Returns
         -------
@@ -1218,7 +1961,7 @@ class Processor(object):
     def __getyesorno__(default_value=None,
                        try_ntimes=3,
                        show_text='Select yes (Y/y) or no (N/n), or leave blank to set by default: ',
-                       obtain_input_from=raw_input
+                       obtain_input_from=input
                        ):
         """
         Static method to ask the user for a yes or no decision
@@ -1232,7 +1975,7 @@ class Processor(object):
         show_text : String
             Text to be shown to the user when asking for input
         obtain_input_from : function
-            Function used to ask for use input. Default: raw_input
+            Function used to ask for use input. Default: input
 
         Returns
         -------

@@ -222,7 +222,7 @@ class PolySVR(LinSVR):
         """
         correctors = []
         predictors = []
-        for index in xrange(len(self._svr_is_predictor)):
+        for index in range(len(self._svr_is_predictor)):
             for p in polynomial(self._svr_degrees[index], [self._svr_features[index]]):
                 if self._svr_is_predictor[index]:
                     predictors.append(p)

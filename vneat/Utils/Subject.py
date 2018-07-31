@@ -1,5 +1,5 @@
 import numpy as np
-import niftiIO
+from vneat.Utils import niftiIO
 
 
 class Subject(object):
@@ -7,7 +7,7 @@ class Subject(object):
     Class that represents a participant (or subject) in a study, and holds the information related to him/her.
     """
 
-    def __init__(self, participant_id, gmfile, category=None):
+    def __init__(self, participant_id, gmfile, extension, category=None):
         """
         Initializes a participant
 
@@ -17,6 +17,8 @@ class Subject(object):
             Unique identifier for this participant
         gmfile : string
             Full path to the NIFTI file that contains the grey matter data for this participant
+        extension : string
+            the file extension that will determin which reader from niftiIO to use.
         category : [Optional] int
             Numerical category assigned to this participant. Default value: 0
         """
@@ -24,6 +26,7 @@ class Subject(object):
         self._gmfile = str(gmfile)
         self._category = category
         self._parameters = {}
+        self._reader = niftiIO.file_reader_from_extension(extension)
 
     @property
     def id(self):
@@ -36,6 +39,10 @@ class Subject(object):
     @property
     def category(self):
         return self._category
+
+    @property
+    def reader(self):
+        return self._reader
 
     def set_parameter(self, parameter_name, parameter_value, override=True):
         """
@@ -113,7 +120,8 @@ class Subject(object):
             If one of the parameter_names has not been set previously in this participant
 
         """
-        return map(lambda name: self._parameters[name], parameter_names)
+
+        return list(map(lambda name: self._parameters[name], parameter_names))
 
 
 class Chunks:
@@ -148,12 +156,13 @@ class Chunks:
 
         if mem_usage is None:
             mem_usage = 512.0
-        self._gmdata_readers = map(
-            lambda subject: niftiIO.NiftiReader(subject.gmfile, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2), subject_list)
+        self._gmdata_readers = list(map(
+            lambda subject: subject.reader(subject.gmfile, x1=x1, y1=y1, z1=z1, x2=x2, y2=y2, z2=z2), subject_list))
         self._dims = self._gmdata_readers[0].dims
         self._num_subjects = np.float64(len(self._gmdata_readers))
-        self._iterators = map(lambda gmdata_reader: gmdata_reader.chunks(mem_usage / self._num_subjects),
-                              self._gmdata_readers)
+        self._iterators = list(map(lambda gmdata_reader: gmdata_reader.chunks(mem_usage / self._num_subjects),
+                              self._gmdata_readers))
+
 
     @property
     def dims(self):
@@ -166,8 +175,9 @@ class Chunks:
     def __iter__(self):
         return self
 
-    def next(self):
-        reg = self._iterators[0].next()  # throws StopIteration if there are not more Chunks
+    def __next__(self):
+        reg = self._iterators[0].__next__()  # throws StopIteration if there are not more Chunks
         chunkset = [reg.data]
-        chunkset += [it.next().data for it in self._iterators[1:]]
+        chunkset += [it.__next__().data for it in self._iterators[1:]]
+
         return niftiIO.Region(reg.coords, np.array(chunkset, dtype=np.float64))

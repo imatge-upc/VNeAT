@@ -9,6 +9,7 @@ import nibabel as nib
 
 from vneat import helper_functions
 from vneat.Processors.MixedProcessor import MixedProcessor
+from vneat.Utils.DataLoader import DataLoader
 
 if __name__ == '__main__':
 
@@ -35,9 +36,10 @@ if __name__ == '__main__':
     parameters = arguments.parameters
     prefix = arguments.prefix
 
+
     """ LOAD DATA USING DATALOADER """
     subjects, predictors_names, correctors_names, predictors, correctors, processing_parameters, \
-    affine_matrix, output_dir = helper_functions.load_data_from_config_file(config_file)
+    affine_matrix, output_dir, results_io, type_data = helper_functions.load_data_from_config_file(config_file)
 
     if parameters:
         # Load user defined parameters
@@ -79,9 +81,11 @@ if __name__ == '__main__':
                                    correctors,
                                    processing_parameters,
                                    user_defined_parameters=udp,
-                                   category=initial_category)
+                                   category=initial_category,
+                                   type_data=type_data)
         # User defined parameters
         udp = processor.user_defined_parameters
+        print(udp)
     except ValueError:
         print()
         print("=" * 15)
@@ -91,6 +95,7 @@ if __name__ == '__main__':
               'Check your user_defined_parameters file first '
               'if you used one, and if that does not solve the issue, contact the developers.')
         exit(1)
+
 
     if not categories:
         # Processor name
@@ -117,19 +122,19 @@ if __name__ == '__main__':
 
         # Filenames
         udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
-        p_file = prefix + '-prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
-        c_file = prefix + '-correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
+        p_file = prefix + '-prediction_parameters'+results_io.extension if prefix else 'prediction_parameters'+results_io.extension
+        c_file = prefix + '-correction_parameters'+results_io.extension if prefix else 'correction_parameters'+results_io.extension
 
         # Save user defined parameters
         with open(path.join(output_folder, udp_file), 'wb') as f:
-            f.write(str(udp) + '\n')
+            f.write(str(udp).encode('utf-8'))
+            f.write(b'\n')
 
         # Save correction and prediction parameters
-        niiImage = nib.Nifti1Image
-        p_image = niiImage(prediction_params, affine_matrix)
-        c_image = niiImage(correction_params, affine_matrix)
-        nib.save(p_image, path.join(output_folder, p_file))
-        nib.save(c_image, path.join(output_folder, c_file))
+        p_writer = results_io.writer(prediction_params, affine_matrix)
+        c_wrtier = results_io.writer(correction_params, affine_matrix)
+        p_writer.save(path.join(output_folder, p_file))
+        c_wrtier.save(path.join(output_folder, c_file))
 
         print('Done')
 
@@ -145,7 +150,8 @@ if __name__ == '__main__':
                                        correctors,
                                        processing_parameters,
                                        category=category,
-                                       user_defined_parameters=udp)
+                                       user_defined_parameters=udp,
+                                       type_data=type_data)
 
             # Processor name
             processor_name = processor.get_name()
@@ -172,19 +178,19 @@ if __name__ == '__main__':
 
             # Filenames
             udp_file = prefix + '-user_defined_parameters.txt' if prefix else 'user_defined_parameters.txt'
-            p_file = prefix + '-prediction_parameters.nii.gz' if prefix else 'prediction_parameters.nii.gz'
-            c_file = prefix + '-correction_parameters.nii.gz' if prefix else 'correction_parameters.nii.gz'
+            p_file = prefix + '-prediction_parameters'+results_io.extension if prefix else 'prediction_parameters'+results_io.extension
+            c_file = prefix + '-correction_parameters'+results_io.extension if prefix else 'correction_parameters'+results_io.extension
 
             # Save user defined parameters
             with open(path.join(output_folder, udp_file), 'wb') as f:
-                f.write(str(udp) + '\n')
+                f.write(str(udp).encode('utf-8'))
+                f.write(b'\n')
 
             # Save correction and prediction parameters
-            niiImage = nib.Nifti1Image
-            p_image = niiImage(prediction_params, affine_matrix)
-            c_image = niiImage(correction_params, affine_matrix)
-            nib.save(p_image, path.join(output_folder, p_file))
-            nib.save(c_image, path.join(output_folder, c_file))
+            p_writer = results_io.writer(prediction_params, affine_matrix)
+            c_writer = results_io.writer(correction_params, affine_matrix)
+            p_writer.save(path.join(output_folder, p_file))
+            c_writer.save(path.join(output_folder, c_file))
 
             print('Done category', category)
 

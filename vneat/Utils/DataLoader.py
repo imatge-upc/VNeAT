@@ -2,10 +2,10 @@ import nibabel as nib
 import numpy as np
 import yaml
 
-from os.path import join
-from Subject import Subject
-from vneat.Utils.ExcelIO import ExcelSheet
-from vneat.Utils.niftiIO import NiftiReader
+from os.path import join, basename
+from vneat.Utils.Subject import Subject
+from vneat.Utils.ExcelIO import ExcelSheet, CSVSheet
+from vneat.Utils.niftiIO import file_reader_from_extension, file_writer_from_extension, Results, NiftiReader
 
 
 class DataLoader(object):
@@ -58,21 +58,27 @@ class DataLoader(object):
         excel_file = self._conf['input']['excel_file']
         data_folder = self._conf['input']['data_folder']
         study_prefix = self._conf['input']['study_prefix']
-        gzip_nifti = self._conf['input']['gzip_nifti']
+        extension = self._conf['input']['extension']
 
-        # Extension for GM files
-        extension = '.nii.gz' if gzip_nifti else '.nii'
 
         # Load model parameters
         id_identifier = self._conf['model']['id_identifier']  # ID identifier
         id_type = int if self._conf['model']['id_type'] == 'Number' else str
         category_identifier = self._conf['model']['category_identifier']  # Category identifier
         fields_names = []
-        fields_names = fields_names + list(self._conf['model']['correctors_identifiers'])  # Correctors
-        fields_names = fields_names + [self._conf['model']['predictor_identifier']]        # Predictors
+        if self._conf['model']['correctors_identifiers'] is not None:
+            fields_names = fields_names + list(self._conf['model']['correctors_identifiers'])  # Correctors
+        if self._conf['model']['predictor_identifier'] is not None:
+            fields_names = fields_names + list(self._conf['model']['predictor_identifier'])        # Predictors
 
         # Load excel file
-        xls = ExcelSheet(excel_file)
+        if excel_file.endswith('.xls'):
+            xls = ExcelSheet(excel_file)
+        elif excel_file.endswith('.csv'):
+            xls = CSVSheet(excel_file)
+        else:
+            raise ValueError('Specify one of the valid formats for excel file [xls,csv]')
+
 
         # Prepare fields type parameter
         if category_identifier:
@@ -100,7 +106,7 @@ class DataLoader(object):
                 # Category
                 category = row[category_identifier] if category_identifier else None
                 # Create subject
-                subj = Subject(row[id_identifier], nifti_path, category=category)
+                subj = Subject(row[id_identifier], nifti_path, extension, category=category)
                 # Add prediction and correction parameters
                 for param_name in fields_names:
                     subj.set_parameter(parameter_name=param_name, parameter_value=row[param_name])
@@ -124,7 +130,8 @@ class DataLoader(object):
             3D numpy array that contains the template image
         """
         template_path = self._conf['input']['template_file']
-        return nib.load(template_path).get_data()
+        reader = file_reader_from_extension(basename(template_path))
+        return reader(template_path).get_data()
 
     def get_template_affine(self):
         """
@@ -136,7 +143,13 @@ class DataLoader(object):
             The affine matrix in the template NIFTI file
         """
         template_path = self._conf['input']['template_file']
-        return NiftiReader(template_path).affine()
+        extension = self._conf['input']['extension']
+        reader = file_reader_from_extension(extension)
+
+        if reader == NiftiReader:
+            return reader(template_path).affine()
+        else:
+            return None
 
     def get_gm_data(self, start=None, end=None, use_cache=True):
         """
@@ -166,7 +179,7 @@ class DataLoader(object):
             self._start = start
             self._end = end
 
-        gm_values = map(lambda subject: nib.load(subject.gmfile).get_data(), subjects)
+        gm_values = list(map(lambda subject: nib.load(subject.gmfile).get_data(), subjects))
         return np.asarray(gm_values)
 
     def get_predictor(self, start=None, end=None, use_cache=True):
@@ -199,8 +212,12 @@ class DataLoader(object):
             self._end = end
 
         # Get predictors
-        predictors_names = [self._conf['model']['predictor_identifier']]
-        predictors = map(lambda subject: subject.get_parameters(predictors_names), subjects)
+        if self._conf['model']['predictor_identifier'] is not None:
+            predictors_names = self._conf['model']['predictor_identifier']
+            predictors = list(map(lambda subject: subject.get_parameters(predictors_names), subjects))
+        else:
+            predictors = []
+
         return np.asarray(predictors)
 
     def get_correctors(self, start=None, end=None, use_cache=True):
@@ -233,8 +250,10 @@ class DataLoader(object):
             self._end = end
 
         # Get predictors
-        correctors_names = self._conf['model']['correctors_identifiers']
-        correctors = map(lambda subject: subject.get_parameters(correctors_names), subjects)
+        correctors = []
+        if self._conf['model']['correctors_identifiers'] is not None:
+            correctors_names = self._conf['model']['correctors_identifiers']
+            correctors = list(map(lambda subject: subject.get_parameters(correctors_names), subjects))
         return np.asarray(correctors)
 
     def get_predictor_name(self):
@@ -246,7 +265,10 @@ class DataLoader(object):
         List<String>
             List of predictors' names
         """
-        return [self._conf['model']['predictor_identifier']]
+        if self._conf['model']['predictor_identifier'] is not None:
+            return self._conf['model']['predictor_identifier']
+        else:
+            return []
 
     def get_correctors_names(self):
         """
@@ -257,7 +279,10 @@ class DataLoader(object):
         List<String>
             List of correctors' names
         """
-        return self._conf['model']['correctors_identifiers']
+        if self._conf['model']['correctors_identifiers'] is not None:
+            return self._conf['model']['correctors_identifiers']
+        else:
+            return []
 
     def get_processing_parameters(self):
         """
@@ -335,3 +360,34 @@ class DataLoader(object):
 
         return hyperparams_dict
 
+    def get_results_io(self):
+        """
+        Returns the class in charge of results I/O either for loading/writing results.
+        Returns
+        -------
+        niftiIO.Results class with two properties:
+            loader = instance class for loading results
+            writer = instance class for writing results
+
+        """
+
+        extension = self._conf['output']['extension']
+        loader = file_reader_from_extension(extension)
+        writer = file_writer_from_extension(extension)
+
+        return Results(loader, writer, extension)
+
+    def get_extension(self):
+        """
+        Returns the extention of the file
+
+        Returns
+        -------
+        extension: string
+
+
+        """
+        return self._conf['input']['extension']
+
+    def get_prefix(self):
+        return self._conf['input']['study_prefix']
